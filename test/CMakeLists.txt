@@ -10,7 +10,8 @@ target_sources(Shape_shape_test PRIVATE
     convex_hull_test.cpp
     extract_borders_test.cpp
     self_intersections_removal_test.cpp
-    trapezoidation_test.cpp)
+    trapezoidation_test.cpp
+    intersection_tree_test.cpp)
 target_include_directories(Shape_shape_test PRIVATE
     ${PROJECT_SOURCE_DIR}/src)
 target_link_libraries(Shape_shape_test

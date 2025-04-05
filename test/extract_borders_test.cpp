@@ -29,7 +29,7 @@ TEST_P(ExtractBordersTest, ExtractBorders)
 }
 
 INSTANTIATE_TEST_SUITE_P(
-        ,
+        Shape,
         ExtractBordersTest,
         testing::ValuesIn(std::vector<ExtractBordersTestParams>{
             {
