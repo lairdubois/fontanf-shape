@@ -4,13 +4,13 @@
 
 #include "optimizationtools/containers/indexed_set.hpp"
 
-#include <iostream>
+//#include <iostream>
 
 using namespace shape;
 
 IntersectionTree::IntersectionTree(
         const std::vector<Shape>& shapes):
-    shapes_(shapes)
+    shapes_(&shapes)
 {
     std::vector<std::pair<Point, Point>> shapes_min_max(shapes.size());
     for (ShapePos shape_id = 0;
@@ -47,13 +47,13 @@ IntersectionTree::IntersectionTree(
 
         NodeId node_id = stack_element.node_id;
         Node& node = tree_[node_id];
-        std::cout << "node_id " << node_id
-            << " size " << stack_element.shape_ids.size()
-            << " l " << node.l
-            << " r " << node.r
-            << " b " << node.b
-            << " t " << node.t
-            << std::endl;
+        //std::cout << "node_id " << node_id
+        //    << " size " << stack_element.shape_ids.size()
+        //    << " l " << node.l
+        //    << " r " << node.r
+        //    << " b " << node.b
+        //    << " t " << node.t
+        //    << std::endl;
 
         // Compute x_middle / y_middle
         std::vector<LengthDbl> xs =  {
@@ -171,21 +171,21 @@ IntersectionTree::IntersectionTree(
             stack.push_back(stack_element_bottom);
         }
     }
-    std::cout << "IntersectionTree::IntersectionTree end" << std::endl;
+    //std::cout << "IntersectionTree::IntersectionTree end" << std::endl;
 }
 
 std::vector<ShapePos> IntersectionTree::intersect(
         const Shape& shape,
         bool strict) const
 {
-    std::cout << "intersect..." << std::endl;
+    //std::cout << "intersect..." << std::endl;
 
-    if (shapes_.empty())
+    if (shapes_->empty())
         return {};
 
     auto mm = shape.compute_min_max();
 
-    optimizationtools::IndexedSet potentially_intersecting_shapes(shapes_.size());
+    optimizationtools::IndexedSet potentially_intersecting_shapes(shapes_->size());
     std::vector<NodeId> stack = {0};
 
     while (!stack.empty()) {
@@ -212,14 +212,55 @@ std::vector<ShapePos> IntersectionTree::intersect(
 
     std::vector<ShapePos> intersecting_shapes;
     for (ShapePos shape_pos: potentially_intersecting_shapes)
-        if (shape::intersect(shape, shapes_[shape_pos], strict))
+        if (shape::intersect(shape, this->shape(shape_pos), strict))
+            intersecting_shapes.push_back(shape_pos);
+    return intersecting_shapes;
+}
+
+std::vector<ShapePos> IntersectionTree::intersect(
+        const ShapeElement& element,
+        bool strict) const
+{
+    if (shapes_->empty())
+        return {};
+
+    auto mm = element.min_max();
+
+    optimizationtools::IndexedSet potentially_intersecting_shapes(shapes_->size());
+    std::vector<NodeId> stack = {0};
+
+    while (!stack.empty()) {
+
+        NodeId node_id = stack.back();
+        stack.pop_back();
+        const Node& node = tree_[node_id];
+
+        if (node.direction == 'x') {
+            for (ShapePos shape_id: node.shape_ids)
+                potentially_intersecting_shapes.add(shape_id);
+        } else if (node.direction == 'v') {
+            if (mm.first.x <= node.position)
+                stack.push_back(node.lesser_child_id);
+            if (mm.second.x >= node.position)
+                stack.push_back(node.greater_child_id);
+        } else {  // node.direction == 'h'
+            if (mm.first.y <= node.position)
+                stack.push_back(node.lesser_child_id);
+            if (mm.second.y >= node.position)
+                stack.push_back(node.greater_child_id);
+        }
+    }
+
+    std::vector<ShapePos> intersecting_shapes;
+    for (ShapePos shape_pos: potentially_intersecting_shapes)
+        if (shape::intersect(this->shape(shape_pos), element, strict))
             intersecting_shapes.push_back(shape_pos);
     return intersecting_shapes;
 }
 
 std::vector<std::pair<ShapePos, ShapePos>> IntersectionTree::compute_intersecting_shapes(bool strict) const
 {
-    std::cout << "compute_intersecting_shapes..." << std::endl;
+    //std::cout << "compute_intersecting_shapes..." << std::endl;
 
     std::vector<std::pair<ShapePos, ShapePos>> potentially_intersecting_shapes;
     for (const Node& node: tree_) {
@@ -247,7 +288,7 @@ std::vector<std::pair<ShapePos, ShapePos>> IntersectionTree::compute_intersectin
     // Compute intersections.
     std::vector<std::pair<ShapePos, ShapePos>> intersecting_shapes;
     for (auto p: potentially_intersecting_shapes)
-        if (shape::intersect(shapes_[p.first], shapes_[p.second], strict))
+        if (shape::intersect(this->shape(p.first), this->shape(p.second), strict))
             intersecting_shapes.push_back(p);
     return intersecting_shapes;
 }

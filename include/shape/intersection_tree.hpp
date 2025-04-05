@@ -18,6 +18,11 @@ public:
             const Shape& shape,
             bool strict) const;
 
+    /** Check if a given element intersects one of the tree shapes. */
+    std::vector<ShapePos> intersect(
+            const ShapeElement& element,
+            bool strict) const;
+
     /** Get all the pairs of intersecting shapes in the tree. */
     std::vector<std::pair<ShapePos, ShapePos>> compute_intersecting_shapes(bool strict) const;
 
@@ -56,7 +61,9 @@ private:
             NodeId node_id,
             const std::vector<ShapePos>& shape_ids);
 
-    const std::vector<Shape>& shapes_;
+    const Shape& shape(ShapePos shape_pos) const { return (*shapes_)[shape_pos]; }
+
+    const std::vector<Shape>* shapes_ = nullptr;
 
     std::vector<Node> tree_;
 

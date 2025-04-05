@@ -777,3 +777,22 @@ bool shape::intersect(
 
     return false;
 }
+
+bool shape::intersect(
+        const Shape& shape,
+        const ShapeElement& element,
+        bool strict)
+{
+    for (const ShapeElement& shape_element: shape.elements) {
+        auto intersections = compute_intersections(
+                element,
+                shape_element,
+                strict);
+        if (!intersections.empty())
+            return true;
+        Point middle = element.middle();
+        if (shape.contains(middle, strict))
+            return true;
+    }
+    return false;
+}

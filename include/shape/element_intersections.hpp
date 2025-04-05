@@ -15,4 +15,9 @@ bool intersect(
         const Shape& shape_2,
         bool strict = false);
 
+bool intersect(
+        const Shape& shape,
+        const ShapeElement& element,
+        bool strict = false);
+
 }
