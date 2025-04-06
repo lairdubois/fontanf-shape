@@ -1,5 +1,8 @@
 #include "shape/element_intersections.hpp"
 
+#include "shape/intersection_tree.hpp"
+#include "shape/self_intersections_removal.hpp"
+
 using namespace shape;
 
 namespace
@@ -795,4 +798,52 @@ bool shape::intersect(
             return true;
     }
     return false;
+}
+
+std::vector<Shape> shape::merge_intersecting_shapes(
+        const std::vector<Shape>& shapes)
+{
+    IntersectionTree intersection_tree(shapes);
+    std::vector<std::pair<ShapePos, ShapePos>> intersecting_shapes
+        = intersection_tree.compute_intersecting_shapes(false);
+
+    // Build graph.
+    std::vector<std::vector<ShapePos>> graph(shapes.size());
+    for (auto p: intersecting_shapes) {
+        graph[p.first].push_back(p.second);
+        graph[p.second].push_back(p.first);
+    }
+
+    // For each connected component, build a shape.
+    ShapePos node_id = 0;
+    std::vector<uint8_t> visited(shapes.size(), 0);
+    std::vector<Shape> new_shapes;
+    for (;;) {
+        while (visited[node_id]) {
+            node_id++;
+            if (node_id == shapes.size())
+                break;
+        }
+        if (node_id == shapes.size())
+            break;
+
+        Shape shape = shapes[node_id];
+        visited[node_id] = 1;
+        std::vector<ShapePos> stack = {node_id};
+        while (!stack.empty()) {
+            ShapePos node_id_cur = stack.back();
+            stack.pop_back();
+            for (ShapePos neighbor: graph[node_id_cur]) {
+                if (visited[neighbor])
+                    continue;
+                stack.push_back(neighbor);
+                visited[neighbor] = 1;
+                shape = compute_union(shape, shapes[neighbor]).first;
+            }
+        }
+
+        new_shapes.push_back(shape);
+    }
+
+    return new_shapes;
 }

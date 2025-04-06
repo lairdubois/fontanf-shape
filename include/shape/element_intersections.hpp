@@ -20,4 +20,7 @@ bool intersect(
         const ShapeElement& element,
         bool strict = false);
 
+std::vector<Shape> merge_intersecting_shapes(
+        const std::vector<Shape>& shapes);
+
 }
