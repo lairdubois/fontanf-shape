@@ -7,7 +7,8 @@ target_sources(Shape_shape PRIVATE
     extract_borders.cpp
     self_intersections_removal.cpp
     trapezoidation.cpp
-    intersection_tree.cpp)
+    intersection_tree.cpp
+    supports.cpp)
 target_include_directories(Shape_shape PUBLIC
     ${PROJECT_SOURCE_DIR}/include)
 target_include_directories(Shape_shape PRIVATE
