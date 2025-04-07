@@ -3,6 +3,8 @@
 #include "shape/intersection_tree.hpp"
 #include "shape/self_intersections_removal.hpp"
 
+//#include <iostream>
+
 using namespace shape;
 
 namespace
@@ -158,169 +160,91 @@ std::vector<Point> compute_line_arc_intersections(
         const ShapeElement& arc,
         bool strict)
 {
-    // Transform line to quadratic equation coefficients
-    LengthDbl dx = line.end.x - line.start.x;
-    LengthDbl dy = line.end.y - line.start.y;
-    LengthDbl length = distance(line.start, line.end);
-
-    if (equal(length, 0.0))
-        return {};
-
-    // Normalize direction vector
-    dx /= length;
-    dy /= length;
-
-    // Line equation: P = P0 + t*d, where P0 is start point, d is direction
-    // Circle equation: (x - cx)² + (y - cy)² = r²
-    // Substituting line into circle gives quadratic equation
-    LengthDbl cx = arc.center.x;
-    LengthDbl cy = arc.center.y;
+    // x (y1 - y2) + y (x2 - x1) + (x1 y2 - x2 y1) = 0
+    LengthDbl xm = arc.center.x;
+    LengthDbl ym = arc.center.y;
+    LengthDbl a = line.start.y - line.end.y;
+    LengthDbl b = line.end.x - line.start.x;
+    LengthDbl c = line.end.x * line.start.y
+        - line.start.x * line.end.y;
     LengthDbl r = distance(arc.center, arc.start);
-
-    // Calculate quadratic equation coefficients
-    LengthDbl px = line.start.x - cx;
-    LengthDbl py = line.start.y - cy;
-
-    LengthDbl a = dx * dx + dy * dy;  // Should be 1.0 due to normalization
-    LengthDbl b = 2.0 * (px * dx + py * dy);
-    LengthDbl c = px * px + py * py - r * r;
+    LengthDbl c_prime = c - a * xm - b * ym;
+    LengthDbl discriminant = r * r * (a * a + b * b) - c_prime * c_prime;
+    //std::cout << "discriminant " << discriminant << std::endl;
 
     // Solve quadratic equation
-    LengthDbl discriminant = b * b - 4 * a * c;
-    if (discriminant < 0)
+    if (strictly_lesser(discriminant, 0))
         return {};
 
-    std::vector<Point> intersections;
     if (equal(discriminant, 0.0)) {
-        // One intersection - this is a tangent point
-        LengthDbl t = -b / (2 * a);
-        if (t < 0 || t > length)
+        if (strict)
             return {};
 
-        // Check if intersection is at endpoint of line segment
-        if (equal(t, 0.0) || equal(t, length)) {
-            // Skip endpoints in strict mode
-            if (strict) {
-                return {};
-            }
+        LengthDbl denom = a * a + b * b;
+        LengthDbl eta = (a * c_prime) / denom;
+        LengthDbl teta = (b * c_prime) / denom;
+        Point p;
+        p.x = xm + eta;
+        p.y = ym + teta;
+        //std::cout << "p " << p.to_string() << std::endl;
 
-            // Intersection is at an endpoint of line
-            Point endpoint = equal(t, 0.0) ? line.start : line.end;
-            if (arc.contains(endpoint)) {
-                // Check if it's also an endpoint of the arc
-                if (strict && (equal(distance(endpoint, arc.start), 0.0) || equal(distance(endpoint, arc.end), 0.0))) {
-                    return {};
-                }
-                return {endpoint};
-            }
-            return {};
-        }
-
-        // Standard intersection point
-        Point p = {
-            line.start.x + t * dx,
-            line.start.y + t * dy
-        };
-
-        if (arc.contains(p)) {
-            // In strict mode, check if p is an endpoint of the arc
-            if (strict && (equal(distance(p, arc.start), 0.0) || equal(distance(p, arc.end), 0.0))) {
-                return {};
-            }
-
-            // In strict mode, also check if this is a tangent point (line touches circle)
-            if (strict && equal(discriminant, 0.0)) {
-                // For tangent points, we skip in strict mode
-                return {};
-            }
-
-            intersections.push_back(p);
-        }
-    } else {
-        // Two intersections
-        LengthDbl t1 = (-b + std::sqrt(discriminant)) / (2 * a);
-        LengthDbl t2 = (-b - std::sqrt(discriminant)) / (2 * a);
-
-        // Check first intersection
-        if (t1 >= 0 && t1 <= length) {
-            // Handle endpoint cases
-            if (equal(t1, 0.0) || equal(t1, length)) {
-                if (!strict) {
-                    Point endpoint = equal(t1, 0.0) ? line.start : line.end;
-                    if (arc.contains(endpoint)) {
-                        // Check if it's also an endpoint of the arc in strict mode
-                        if (!(strict && (equal(distance(endpoint, arc.start), 0.0) || equal(distance(endpoint, arc.end), 0.0)))) {
-                            intersections.push_back(endpoint);
-                        }
-                    }
-                }
+        if (line.contains(p) || arc.contains(p)) {
+            if (equal(p, line.start)) {
+                return {line.start};
+            } else if (equal(p, line.end)) {
+                return {line.end};
+            } else if (equal(p, arc.start)) {
+                return {arc.start};
+            } else if (equal(p, arc.end)) {
+                return {arc.end};
             } else {
-                // Standard intersection
-                Point p1 = {
-                    line.start.x + t1 * dx,
-                    line.start.y + t1 * dy
-                };
-                if (arc.contains(p1)) {
-                    // In strict mode, check if p1 is an endpoint of the arc
-                    if (!strict || (!equal(distance(p1, arc.start), 0.0) && !equal(distance(p1, arc.end), 0.0))) {
-                        // Check if this is a tangent point
-                        if (!strict || !is_tangent_point(line, arc, p1)) {
-                            intersections.push_back(p1);
-                        }
-                    }
-                }
+                return {p};
             }
         }
+    }
 
-        // Check second intersection
-        if (t2 >= 0 && t2 <= length) {
-            // Handle endpoint cases
-            if (equal(t2, 0.0) || equal(t2, length)) {
-                if (!strict) {
-                    Point endpoint = equal(t2, 0.0) ? line.start : line.end;
-                    if (arc.contains(endpoint)) {
-                        // Check for duplicates
-                        bool is_duplicate = false;
-                        for (const auto& p : intersections) {
-                            if (equal(distance(p, endpoint), 0.0)) {
-                                is_duplicate = true;
-                                break;
-                            }
-                        }
-                        // Add if not a duplicate and not an arc endpoint in strict mode
-                        if (!is_duplicate && !(strict && (equal(distance(endpoint, arc.start), 0.0) || equal(distance(endpoint, arc.end), 0.0)))) {
-                            intersections.push_back(endpoint);
-                        }
-                    }
-                }
-            } else {
-                // Standard intersection
-                Point p2 = {
-                    line.start.x + t2 * dx,
-                    line.start.y + t2 * dy
-                };
-                if (arc.contains(p2)) {
-                    // In strict mode, check if p2 is an endpoint of the arc
-                    if (strict && (equal(distance(p2, arc.start), 0.0) || equal(distance(p2, arc.end), 0.0))) {
-                        // Skip arc endpoints in strict mode
-                    } else {
-                        // Check if this is a tangent point
-                        if (!strict || !is_tangent_point(line, arc, p2)) {
-                            // Ensure we're not adding a duplicate point
-                            bool is_duplicate = false;
-                            for (const auto& p : intersections) {
-                                if (equal(distance(p, p2), 0.0)) {
-                                    is_duplicate = true;
-                                    break;
-                                }
-                            }
-                            if (!is_duplicate) {
-                                intersections.push_back(p2);
-                            }
-                        }
-                    }
-                }
-            }
+    std::vector<Point> intersections;
+    LengthDbl denom = a * a + b * b;
+    LengthDbl eta_1 = (a * c_prime + b * std::sqrt(discriminant)) / denom;
+    LengthDbl eta_2 = (a * c_prime - b * std::sqrt(discriminant)) / denom;
+    LengthDbl teta_1 = (b * c_prime - a * std::sqrt(discriminant)) / denom;
+    LengthDbl teta_2 = (b * c_prime + a * std::sqrt(discriminant)) / denom;
+    Point p1;
+    p1.x = xm + eta_1;
+    p1.y = ym + teta_1;
+    Point p2;
+    p2.x = xm + eta_2;
+    p2.y = ym + teta_2;
+
+    if (line.contains(p1)) {
+        if (equal(p1, arc.start) || equal(p1, arc.end)) {
+            if (!strict)
+                intersections.push_back(p1);
+        } else if (arc.contains(p1)) {
+            intersections.push_back(p1);
+        }
+    } else if (arc.contains(p1)) {
+        if (equal(p1, line.start) || equal(p1, line.end)) {
+            if (!strict)
+                intersections.push_back(p1);
+        } else if (line.contains(p1)) {
+            intersections.push_back(p1);
+        }
+    }
+
+    if (line.contains(p2)) {
+        if (equal(p2, arc.start) || equal(p2, arc.end)) {
+            if (!strict)
+                intersections.push_back(p2);
+        } else if (arc.contains(p2)) {
+            intersections.push_back(p2);
+        }
+    } else if (arc.contains(p2)) {
+        if (equal(p2, line.start) || equal(p2, line.end)) {
+            if (!strict)
+                intersections.push_back(p2);
+        } else if (line.contains(p2)) {
+            intersections.push_back(p2);
         }
     }
 

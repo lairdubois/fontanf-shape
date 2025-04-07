@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <fstream>
+#include <iostream>
 
 using namespace shape;
 
@@ -319,21 +320,22 @@ bool ShapeElement::contains(const Point& point) const
 
         // Normalize angles
         if (this->anticlockwise) {
-            if (end_angle <= start_angle) {
-                end_angle += 2 * M_PI;
-            }
-            if (point_angle < start_angle) {
-                point_angle += 2 * M_PI;
-            }
-            return point_angle >= start_angle && point_angle <= end_angle;
+            Angle a0 = angle_radian(
+                    this->start - this->center,
+                    this->end - this->center);
+            Angle a = angle_radian(
+                    this->start - this->center,
+                    point - this->center);
+            return !strictly_greater(a, a0);
         } else {
-            if (start_angle <= end_angle) {
-                start_angle += 2 * M_PI;
-            }
-            if (point_angle < end_angle) {
-                point_angle += 2 * M_PI;
-            }
-            return point_angle >= end_angle && point_angle <= start_angle;
+            Angle a0 = angle_radian(
+                    this->end - this->center,
+                    this->start - this->center);
+            Angle a = angle_radian(
+                    this->end - this->center,
+                    point - this->center);
+            //std::cout << "a0 " << a0 << " a " << a << std::endl;
+            return !strictly_greater(a, a0);
         }
     }
     }
