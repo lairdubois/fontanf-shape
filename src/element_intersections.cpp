@@ -793,10 +793,10 @@ bool shape::intersect(
                 strict);
         if (!intersections.empty())
             return true;
-        Point middle = element.middle();
-        if (shape.contains(middle, strict))
-            return true;
     }
+    Point middle = element.middle();
+    if (shape.contains(middle, strict))
+        return true;
     return false;
 }
 
@@ -819,10 +819,9 @@ std::vector<Shape> shape::merge_intersecting_shapes(
     std::vector<uint8_t> visited(shapes.size(), 0);
     std::vector<Shape> new_shapes;
     for (;;) {
-        while (visited[node_id]) {
+        while (node_id < shapes.size()
+                && visited[node_id]) {
             node_id++;
-            if (node_id == shapes.size())
-                break;
         }
         if (node_id == shapes.size())
             break;

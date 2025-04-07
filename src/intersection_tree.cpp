@@ -261,6 +261,8 @@ std::vector<ShapePos> IntersectionTree::intersect(
 std::vector<std::pair<ShapePos, ShapePos>> IntersectionTree::compute_intersecting_shapes(bool strict) const
 {
     //std::cout << "compute_intersecting_shapes..." << std::endl;
+    if (shapes_->empty())
+        return {};
 
     std::vector<std::pair<ShapePos, ShapePos>> potentially_intersecting_shapes;
     for (const Node& node: tree_) {
