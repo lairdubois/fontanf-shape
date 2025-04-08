@@ -133,10 +133,11 @@ std::vector<Point> compute_line_arc_intersections(
     LengthDbl discriminant = r * r * (a * a + b * b) - c_prime * c_prime;
     //std::cout << "discriminant " << discriminant << std::endl;
 
-    // Solve quadratic equation
+    // No intersection.
     if (strictly_lesser(discriminant, 0))
         return {};
 
+    // Single intersection point.
     if (equal(discriminant, 0.0)) {
         if (strict)
             return {};
@@ -158,7 +159,7 @@ std::vector<Point> compute_line_arc_intersections(
         } else if (equal(p, arc.end)) {
             p = arc.end;
         }
-        if (line.contains(p) || arc.contains(p))
+        if (line.contains(p) && arc.contains(p))
             return {p};
     }
 

@@ -100,6 +100,11 @@ INSTANTIATE_TEST_SUITE_P(
                 build_shape({{2, 0}, {2, 2}}, true).elements.front(),
                 false,
                 {},
+            }, {  // Non-intersecting line segment and circular arc.
+                build_shape({{1, 0}, {0, 0, 1}, {0, 1}}, true).elements.front(),
+                build_shape({{1, 1}, {2, 1}}, true).elements.front(),
+                false,
+                {},
             }, {  // Intersecting line segment and circular arc.
                 build_shape({{1, 0}, {0, 0, 1}, {-1, 0}}, true).elements.front(),
                 build_shape({{0, 0}, {0, 2}}, true).elements.front(),
