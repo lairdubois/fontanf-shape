@@ -169,62 +169,37 @@ std::vector<Point> compute_line_arc_intersections(
     LengthDbl eta_2 = (a * c_prime - b * std::sqrt(discriminant)) / denom;
     LengthDbl teta_1 = (b * c_prime - a * std::sqrt(discriminant)) / denom;
     LengthDbl teta_2 = (b * c_prime + a * std::sqrt(discriminant)) / denom;
-    Point p1;
-    p1.x = xm + eta_1;
-    p1.y = ym + teta_1;
-    Point p2;
-    p2.x = xm + eta_2;
-    p2.y = ym + teta_2;
+    Point ps[2];
+    ps[0].x = xm + eta_1;
+    ps[0].y = ym + teta_1;
+    ps[1].x = xm + eta_2;
+    ps[1].y = ym + teta_2;
 
-    // Check if any intersection coincides with an arc endpoint
-    if (equal(p1, line.start)) {
-        p1 = line.start;
-    } else if (equal(p1, line.end)) {
-        p1 = line.end;
-    } else if (equal(p1, arc.start)) {
-        p1 = arc.start;
-    } else if (equal(p1, arc.end)) {
-        p1 = arc.end;
-    }
-    if (line.contains(p1)) {
-        if (p1 == arc.start || p1 == arc.end) {
-            if (!strict)
-                intersections.push_back(p1);
-        } else if (arc.contains(p1)) {
-            intersections.push_back(p1);
+    for (Point& p: ps) {
+        // Check if any intersection coincides with an arc endpoint
+        if (strict) {
+            if (equal(p, line.start)) {
+                continue;
+            } else if (equal(p, line.end)) {
+                continue;
+            } else if (equal(p, arc.start)) {
+                continue;
+            } else if (equal(p, arc.end)) {
+                continue;
+            }
+        } else {
+            if (equal(p, line.start)) {
+                p = line.start;
+            } else if (equal(p, line.end)) {
+                p = line.end;
+            } else if (equal(p, arc.start)) {
+                p = arc.start;
+            } else if (equal(p, arc.end)) {
+                p = arc.end;
+            }
         }
-    } else if (arc.contains(p1)) {
-        if (p1 == line.start || p1 == line.end) {
-            if (!strict)
-                intersections.push_back(p1);
-        } else if (line.contains(p1)) {
-            intersections.push_back(p1);
-        }
-    }
-
-    if (equal(p2, line.start)) {
-        p2 = line.start;
-    } else if (equal(p2, line.end)) {
-        p2 = line.end;
-    } else if (equal(p2, arc.start)) {
-        p2 = arc.start;
-    } else if (equal(p2, arc.end)) {
-        p2 = arc.end;
-    }
-    if (line.contains(p2)) {
-        if (p2 == arc.start || p2 == arc.end) {
-            if (!strict)
-                intersections.push_back(p2);
-        } else if (arc.contains(p2)) {
-            intersections.push_back(p2);
-        }
-    } else if (arc.contains(p2)) {
-        if (p2 == line.start || p2 == line.end) {
-            if (!strict)
-                intersections.push_back(p2);
-        } else if (line.contains(p2)) {
-            intersections.push_back(p2);
-        }
+        if (line.contains(p) && arc.contains(p))
+            intersections.push_back(p);
     }
 
     return intersections;
