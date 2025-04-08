@@ -182,14 +182,17 @@ Point ShapeElement::middle() const
         point.y = (this->start.y + this->end.y) / 2;
         return point;
     } case ShapeElementType::CircularArc: {
-        Angle angle = (this->anticlockwise)?
-            angle_radian(
+        if (this->anticlockwise) {
+            Angle angle = angle_radian(
                     this->start - this->center,
-                    this->end - this->center):
-            angle_radian(
-                    this->end - this->center,
-                    this->start - this->center);
-        return this->start.rotate_radians(this->center, angle);
+                    this->end - this->center);
+            return this->start.rotate_radians(this->center, angle / 2.);
+        } else {
+            Angle angle = angle_radian(
+                this->end - this->center,
+                this->start - this->center);
+            return this->end.rotate_radians(this->center, angle / 2.);
+        }
     }
     }
     return {0, 0};

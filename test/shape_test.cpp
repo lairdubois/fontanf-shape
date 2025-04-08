@@ -19,13 +19,62 @@ TEST_P(ShapeElementLengthTest, ShapeElementLength)
 }
 
 INSTANTIATE_TEST_SUITE_P(
-        ,
+        Shape,
         ShapeElementLengthTest,
         testing::ValuesIn(std::vector<ShapeElementLengthTestParams>{
             {build_shape({{0, 0}, {0, 1}}, true).elements.front(), 1 },
             {build_shape({{1, 0}, {0, 0, 1}, {0, 1}}, true).elements.front(), M_PI / 2 },
             {build_shape({{1, 0}, {0, 0, -1}, {0, -1}}, true).elements.front(), M_PI / 2 },
             }));
+
+
+struct ShapeElementMiddleTestParams
+{
+    ShapeElement circular_arc;
+    Point expected_middle;
+};
+
+class ShapeElementMiddleTest: public testing::TestWithParam<ShapeElementMiddleTestParams> { };
+
+TEST_P(ShapeElementMiddleTest, ShapeElementMiddle)
+{
+    ShapeElementMiddleTestParams test_params = GetParam();
+    std::cout << "circular_arc" << std::endl;
+    std::cout << test_params.circular_arc.to_string() << std::endl;
+    std::cout << "expected_middle" << std::endl;
+    std::cout << test_params.expected_middle.to_string() << std::endl;
+
+    Point middle = test_params.circular_arc.middle();
+    std::cout << "computed_middle" << std::endl;
+    std::cout << middle.to_string() << std::endl;
+
+    EXPECT_TRUE(equal(middle, test_params.expected_middle));
+}
+ 
+INSTANTIATE_TEST_SUITE_P(
+        Shape,
+        ShapeElementMiddleTest,
+        testing::ValuesIn(std::vector<ShapeElementMiddleTestParams>{
+            {
+                build_shape({{1, 0}, {0, 0, 1}, {0, 1}}, true).elements.front(),
+                {sqrt(2) / 2, sqrt(2) / 2}
+            }, {
+                build_shape({{0, 1}, {0, 0, -1}, {1, 0}}, true).elements.front(),
+                {sqrt(2) / 2, sqrt(2) / 2}
+            }, {
+                build_shape({{1, 0}, {0, 0, 1}, {-1, 0}}, true).elements.front(),
+                {0, 1}
+            }, {
+                build_shape({{1, 0}, {0, 0, -1}, {-1, 0}}, true).elements.front(),
+                {0, -1}
+            }, {
+                build_shape({{-1, 0}, {0, 0, 1}, {0, 1}}, true).elements.front(),
+                {sqrt(2) / 2, - sqrt(2) / 2}
+            }, {
+                build_shape({{-1, 0}, {0, 0, -1}, {0, 1}}, true).elements.front(),
+                {- sqrt(2) / 2, sqrt(2) / 2}
+            }
+        }));
 
 
 struct ShapeElementMinMaxTestParams
@@ -133,7 +182,7 @@ TEST_P(ShapeContainsTest, ShapeContains)
 }
 
 INSTANTIATE_TEST_SUITE_P(
-        ,
+        Shape,
         ShapeContainsTest,
         testing::ValuesIn(std::vector<ShapeContainsTestParams>{
             {  // Point oustide of polygon
@@ -218,7 +267,7 @@ TEST_P(ApproximateCircularArcByLineSegmentsTest, ApproximateCircularArcByLineSeg
 }
 
 INSTANTIATE_TEST_SUITE_P(
-        ,
+        Shape,
         ApproximateCircularArcByLineSegmentsTest,
         testing::ValuesIn(std::vector<ApproximateCircularArcByLineSegmentsTestParams>{
             {
