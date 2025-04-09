@@ -215,9 +215,37 @@ INSTANTIATE_TEST_SUITE_P(
                 {0, 3},
                 false,
                 false,
+            }, {  // Point outside of shape
+                build_shape({{1, 0}, {0, 1}, {-1, 0}, {0, -1}}),
+                {-1, -1},
+                false,
+                false,
+            }, {  // Point outside of shape
+                build_shape({{1, 0}, {1, 1, -1},
+                             {0, 1}, {-1, 1, -1},
+                             {-1, 0}, {-1, -1, -1},
+                             {0, -1}, {1, -1, -1},
+                             {1, 0}}),
+                {-1, -1},
+                false,
+                false,
             }, {  // Point inside shape
                 build_shape({{0, 2}, {0, 0, 1}, {0, -2}}),
                 {0, 1},
+                false,
+                true,
+            }, {  // Point inside shape
+                build_shape({{1, 0}, {0, 1}, {-1, 0}, {0, -1}}),
+                {0, 0},
+                false,
+                true,
+            }, {  // Point inside shape
+                build_shape({{1, 0}, {1, 1, -1},
+                             {0, 1}, {-1, 1, -1},
+                             {-1, 0}, {-1, -1, -1},
+                             {0, -1}, {1, -1, -1},
+                             {1, 0}}),
+                {0, 0},
                 false,
                 true,
             }, {  // Point on shape
