@@ -118,10 +118,7 @@ INSTANTIATE_TEST_SUITE_P(
                 build_shape({{0, 0}, {1, 0}, {2, 1}, {1, 1}}),
                 {},
                 {build_shape({{0, 0}, {1, 1}, {2, 1}}, true)},
-                {
-                    build_shape({{1, 0}, {0, 0}}, true),
-                    build_shape({{2, 1}, {1, 0}}, true),
-                },
+                {build_shape({{2, 1}, {1, 0}, {0, 0}}, true)},
             }, {
                 build_shape({{0, 0}, {7, 0}, {6, 2}, {5, 2}, {4, 1}, {3, 1}, {2, 2}, {1, 2}}),
                 {},
@@ -150,5 +147,23 @@ INSTANTIATE_TEST_SUITE_P(
                 }, {
                     build_shape({{3, 0}, {0, 0}}, true),
                     build_shape({{2, 2}, {1, 2}}, true),
+                },
+            }, {
+                build_shape({{15, 0}, {30, 10}, {0, 10}}),
+                {},
+                {
+                    build_shape({{0, 10}, {30, 10}}, true),
+                }, {
+                    build_shape({{30, 10}, {15, 0}, {0, 10}}, true),
+                },
+            }, {
+                build_shape({{-10, -10}, {50, -10}, {50, 50}, {-10, 50}}),
+                {build_shape({{0, 0}, {40, 20}, {40, 40}, {10, 40}})},
+                {
+                    build_shape({{-10, 50}, {50, 50}}, true),
+                    build_shape({{0, 0}, {40, 20}}, true),
+                }, {
+                    build_shape({{50, -10}, {-10, -10}}, true),
+                    build_shape({{40, 40}, {10, 40}, {0, 0}}, true),
                 },
             }}));

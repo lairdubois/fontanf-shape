@@ -194,6 +194,8 @@ struct ShapeElement
 
     ShapeElement axial_symmetry_y_axis() const;
 
+    ShapeElement reverse() const;
+
     /** Get the middle point on the element. */
     Point middle() const;
 

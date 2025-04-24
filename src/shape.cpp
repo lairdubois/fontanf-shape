@@ -398,6 +398,20 @@ ShapeElement ShapeElement::axial_symmetry_y_axis() const
     return element_out;
 }
 
+ShapeElement ShapeElement::reverse() const
+{
+    ShapeElement element_out;
+    element_out.type = this->type;
+    element_out.start.x = this->end.x;
+    element_out.start.y = this->end.y;
+    element_out.end.x = this->start.x;
+    element_out.end.y = this->start.y;
+    element_out.center.x = this->center.x;
+    element_out.center.y = this->center.y;
+    element_out.anticlockwise = !this->anticlockwise;
+    return element_out;
+}
+
 ShapeElementType shape::str2element(const std::string& str)
 {
     if (str == "LineSegment"
@@ -822,19 +836,8 @@ Shape Shape::axial_symmetry_y_axis() const
 Shape Shape::reverse() const
 {
     Shape shape;
-    for (auto it = elements.rbegin(); it != elements.rend(); ++it) {
-        const ShapeElement& element = *it;
-        ShapeElement element_new;
-        element_new.type = element.type;
-        element_new.start.x = element.end.x;
-        element_new.start.y = element.end.y;
-        element_new.end.x = element.start.x;
-        element_new.end.y = element.start.y;
-        element_new.center.x = element.center.x;
-        element_new.center.y = element.center.y;
-        element_new.anticlockwise = !element.anticlockwise;
-        shape.elements.push_back(element_new);
-    }
+    for (auto it = elements.rbegin(); it != elements.rend(); ++it)
+        shape.elements.push_back(it->reverse());
     return shape;
 }
 

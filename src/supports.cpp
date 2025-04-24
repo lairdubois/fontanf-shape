@@ -181,7 +181,7 @@ ShapeSupports shape::compute_shape_supports(
                     continue;
                 }
 
-                if (slope > slope_prev) {
+                if (slope < slope_prev) {
                     if (!current_support.elements.empty()) {
                         if (!is_hole) {
                             supports.supported_parts.push_back(current_support);
