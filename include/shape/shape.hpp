@@ -267,7 +267,7 @@ struct Shape
             bool mirror = false) const;
 
     /** Compute the width and length of the shape. */
-    std::pair<LengthDbl, LengthDbl> compute_width_and_length(
+    std::pair<LengthDbl, LengthDbl> compute_width_and_height(
             Angle angle = 0.0,
             bool mirror = false) const;
 

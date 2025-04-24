@@ -838,7 +838,7 @@ Shape Shape::reverse() const
     return shape;
 }
 
-std::pair<LengthDbl, LengthDbl> Shape::compute_width_and_length(
+std::pair<LengthDbl, LengthDbl> Shape::compute_width_and_height(
         Angle angle,
         bool mirror) const
 {
