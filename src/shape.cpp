@@ -980,17 +980,17 @@ Shape shape::build_shape(
         bool path)
 {
     Shape shape;
-    Point point_prev = {points.back().x, points.back().y};
+    Point point_prev = {points.front().x, points.front().y};
     ShapeElementType type = ShapeElementType::LineSegment;
     bool anticlockwise = false;
     Point center = {0, 0};
-    for (ElementPos pos = 0; pos < (ElementPos)points.size(); ++pos) {
-        const BuildShapeElement& point = points[pos];
+    for (ElementPos pos = 1; pos <= (ElementPos)points.size(); ++pos) {
+        const BuildShapeElement& point = points[(pos != points.size())? pos: 0];
         if (point.type == 0) {
             ShapeElement element;
             element.type = type;
             element.start = point_prev;
-            element.end = {points[pos].x, points[pos].y};
+            element.end = {point.x, point.y};
             element.center = center;
             element.anticlockwise = anticlockwise;
             if (!path || pos > 0)
@@ -1001,7 +1001,7 @@ Shape shape::build_shape(
             type = ShapeElementType::LineSegment;
         } else {
             anticlockwise = (point.type == 1);
-            center = {points[pos].x, points[pos].y};
+            center = {point.x, point.y};
             type = ShapeElementType::CircularArc;
         }
     }

@@ -244,7 +244,7 @@ std::pair<Shape, std::vector<Shape>> shape::remove_self_intersections(
         if (element_cur_pos == element_start_pos)
             break;
     }
-    new_shape = clean_shape(new_shape);
+    new_shape = clean_shape(new_shape, true);
 
     // Find holes by finding paths from remaining unprocessed vertices.
     std::vector<Shape> new_holes;
@@ -320,7 +320,7 @@ std::pair<Shape, std::vector<Shape>> shape::remove_self_intersections(
                     }
                     new_hole_2 = new_hole_2.reverse();
                     if (new_hole_2.compute_area() > 0) {
-                        new_hole_2 = clean_shape(new_hole_2);
+                        new_hole_2 = clean_shape(new_hole_2, false);
                         new_holes.push_back(new_hole_2);
                     }
                 }
@@ -431,7 +431,7 @@ std::vector<Shape> shape::extract_all_holes_from_self_intersecting_hole(
                     }
                     //std::cout << "area " << new_hole_2.compute_area() << std::endl;
                     if (new_hole_2.compute_area() > 0) {
-                        new_hole_2 = clean_shape(new_hole_2);
+                        new_hole_2 = clean_shape(new_hole_2, false);
                         new_holes.push_back(new_hole_2);
                     }
                 }

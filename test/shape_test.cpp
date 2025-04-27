@@ -133,7 +133,7 @@ class CleanShapeTest: public testing::TestWithParam<CleanShapeTestParams> { };
 TEST_P(CleanShapeTest, CleanShape)
 {
     CleanShapeTestParams test_params = GetParam();
-    Shape cleaned_shape = clean_shape(test_params.shape);
+    Shape cleaned_shape = clean_shape(test_params.shape, true);
     std::cout << cleaned_shape.to_string(0) << std::endl;
     EXPECT_EQ(test_params.expected_shape, cleaned_shape);
 }

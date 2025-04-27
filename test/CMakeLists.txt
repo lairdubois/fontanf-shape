@@ -12,6 +12,7 @@ target_sources(Shape_shape_test PRIVATE
     self_intersections_removal_test.cpp
     trapezoidation_test.cpp
     intersection_tree_test.cpp
+    offset_test.cpp
     supports_test.cpp)
 target_include_directories(Shape_shape_test PRIVATE
     ${PROJECT_SOURCE_DIR}/src)
