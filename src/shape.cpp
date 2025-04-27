@@ -364,6 +364,16 @@ nlohmann::json ShapeElement::to_json() const
     return json;
 }
 
+ShapeElement& ShapeElement::shift(
+        LengthDbl x,
+        LengthDbl y)
+{
+    this->start.shift(x, y);
+    this->end.shift(x, y);
+    this->center.shift(x, y);
+    return *this;
+}
+
 ShapeElement ShapeElement::rotate(
         Angle angle) const
 {
@@ -791,11 +801,8 @@ Shape& Shape::shift(
         LengthDbl x,
         LengthDbl y)
 {
-    for (ShapeElement& element: elements) {
-        element.start.shift(x, y);
-        element.end.shift(x, y);
-        element.center.shift(x, y);
-    }
+    for (ShapeElement& element: elements)
+        element.shift(x, y);
     return *this;
 }
 
