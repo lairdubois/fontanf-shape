@@ -1154,32 +1154,74 @@ std::pair<bool, Shape> shape::remove_aligned_vertices(
     return {found, shape_new};
 }
 
-std::pair<bool, Shape> shape::equalize_close_y(
-        const Shape& shape)
+std::pair<bool, Shape> shape::clean_extreme_slopes(
+        const Shape& shape,
+        bool outer)
 {
     bool found = false;
     Shape shape_new;
 
-    ElementPos element_prev_pos = shape.elements.size() - 1;
     for (ElementPos element_pos = 0;
             element_pos < (ElementPos)shape.elements.size();
             ++element_pos) {
         const ShapeElement& element = shape.elements[element_pos];
-        const ShapeElement& element_prev = shape.elements[element_prev_pos];
-        shape_new.elements.push_back(element);
-        if (equal(element.start.y, element_prev.start.y)
-                && element.start.y != element_prev.start.y) {
-            shape_new.elements.back().start.y = element_prev.start.y;
+        ShapeElement element_new = element;
+        if (element_pos > 0)
+            element_new.start = shape_new.elements.back().end;
+        if (element_pos == shape.elements.size() - 1)
+            element_new.end = shape_new.elements.front().start;
+
+        double slope
+            = (element_new.end.y - element_new.start.y)
+            / (element_new.end.x - element_new.start.x);
+        //std::cout << "element_new " << element_new.to_string() << " slope " << slope << std::endl;
+        if (element_new.start.x != element_new.end.x && slope > 1e2) {
+            //std::cout << "found" << std::endl;
             found = true;
+            if (outer) {
+                element_new.start.x = element.end.x;
+            } else {
+                element_new.end.x = element.start.x;
+            }
+        } else if (element_new.start.x != element_new.end.x && slope < -1e2) {
+            //std::cout << "found" << std::endl;
+            found = true;
+            if (outer) {
+                element_new.end.x = element.start.x;
+            } else {
+                element_new.start.x = element.end.x;
+            }
+        } else if (element_new.start.y != element_new.end.y && slope > 0 && slope < 1e-2) {
+            //std::cout << "found" << std::endl;
+            found = true;
+            if (outer) {
+                element_new.end.y = element.start.y;
+            } else {
+                element_new.start.y = element.end.y;
+            }
+        } else if (element_new.start.y != element_new.end.y && slope < 0 && slope > -1e-2) {
+            //std::cout << "found" << std::endl;
+            found = true;
+            if (outer) {
+                element_new.start.y = element.end.y;
+            } else {
+                element_new.end.y = element.start.y;
+            }
         }
-        element_prev_pos = element_pos;
+        if (element_pos > 0)
+            shape_new.elements.back().end = element_new.start;
+        //std::cout << "element_new " << element_new.to_string() << " slope " << slope << std::endl;
+        shape_new.elements.push_back(element_new);
     }
+    shape_new.elements.front().start = shape_new.elements.back().end;
+    //shape.elements.back().end = shape.elements.front().start;
 
     return {found, shape_new};
 }
 
 Shape shape::clean_shape(
-        const Shape& shape)
+        const Shape& shape,
+        bool outer)
 {
     Shape shape_new = shape;
 
@@ -1196,7 +1238,7 @@ Shape shape::clean_shape(
         }
 
         {
-            auto res = equalize_close_y(shape_new);
+            auto res = clean_extreme_slopes(shape_new, outer);
             found |= res.first;
             shape_new = res.second;
         }

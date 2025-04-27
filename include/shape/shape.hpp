@@ -361,11 +361,13 @@ std::pair<bool, Shape> remove_redundant_vertices(
 std::pair<bool, Shape> remove_aligned_vertices(
         const Shape& shape);
 
-std::pair<bool, Shape> equalize_close_y(
-        const Shape& shape);
+std::pair<bool, Shape> clean_extreme_slopes(
+        const Shape& shape,
+        bool outer);
 
 Shape clean_shape(
-        const Shape& shape);
+        const Shape& shape,
+        bool outer);
 
 inline bool operator==(
         const Point& point_1,
