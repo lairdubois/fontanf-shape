@@ -8,6 +8,15 @@ std::pair<Shape, std::vector<Shape>> shape::inflate(
         const Shape& shape,
         LengthDbl offset)
 {
+    if (offset < 0.0) {
+        throw std::invalid_argument(
+                "shape::inflate: offset must be >= 0.0; "
+                "offset: " + std::to_string(offset) + ".");
+    }
+
+    if (offset == 0.0)
+        return {shape, {}};
+
     Shape shape_new;
     ElementPos element_pos_prev = shape.elements.size() - 1;
     for (ElementPos element_pos = 0;
@@ -85,6 +94,15 @@ std::vector<Shape> shape::deflate(
         const Shape& shape,
         LengthDbl offset)
 {
+    if (offset < 0.0) {
+        throw std::invalid_argument(
+                "shape::inflate: offset must be >= 0.0; "
+                "offset: " + std::to_string(offset) + ".");
+    }
+
+    if (offset == 0)
+        return {shape};
+
     Shape shape_new;
     ElementPos element_pos_prev = shape.elements.size() - 1;
     for (ElementPos element_pos = 0;
