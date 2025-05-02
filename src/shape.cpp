@@ -984,6 +984,32 @@ void Shape::write_svg(
     file << "</svg>" << std::endl;
 }
 
+Shape shape::approximate_by_line_segments(
+        const Shape& shape,
+        ElementPos number_of_line_segments,
+        bool outer)
+{
+    Shape shape_new;
+    for (const ShapeElement& element: shape.elements) {
+        switch (element.type) {
+        case ShapeElementType::LineSegment: {
+            shape_new.elements.push_back(element);
+            break;
+        } case ShapeElementType::CircularArc: {
+            std::vector<ShapeElement> approximated_element
+                = approximate_circular_arc_by_line_segments(
+                        element,
+                        number_of_line_segments,
+                        outer);
+            for (const ShapeElement& e: approximated_element)
+                shape_new.elements.push_back(e);
+            break;
+        }
+        }
+    }
+    return shape_new;
+}
+
 Shape shape::build_shape(
         const std::vector<BuildShapeElement>& points,
         bool path)

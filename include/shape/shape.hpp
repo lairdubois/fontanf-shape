@@ -309,6 +309,11 @@ struct Shape
             const std::string& file_path) const;
 };
 
+Shape approximate_by_line_segments(
+        const Shape& shape,
+        ElementPos number_of_line_segments,
+        bool outer);
+
 struct BuildShapeElement
 {
     LengthDbl x = 0;
