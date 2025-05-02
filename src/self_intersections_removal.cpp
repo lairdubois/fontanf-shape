@@ -2,6 +2,8 @@
 
 #include "shape/element_intersections.hpp"
 
+//#include <iostream>
+
 using namespace shape;
 
 namespace
@@ -171,6 +173,7 @@ std::pair<Shape, std::vector<Shape>> shape::remove_self_intersections(
         const Shape& shape)
 {
     //std::cout << "remove_self_intersections shape " << shape.to_string(0) << std::endl;
+    //shape.write_svg("shape.svg");
 
     // Build directed graph.
     std::vector<ShapeElement> new_elements = compute_splitted_elements(shape.elements);
@@ -223,11 +226,52 @@ std::pair<Shape, std::vector<Shape>> shape::remove_self_intersections(
         const ShapeSelfIntersectionRemovalNode& node = graph.nodes[arc.end_node_id];
         ElementPos smallest_angle_element_pos = -1;
         Angle smallest_angle = 0.0;
+
+        Point direction_cur = {0, 0};
+        switch (element_cur.type) {
+        case ShapeElementType::LineSegment: {
+            direction_cur = element_cur.end - element_cur.start;
+            break;
+        } case ShapeElementType::CircularArc: {
+            if (element_cur.anticlockwise) {
+                direction_cur = {
+                    element_cur.center.y - element_cur.end.y,
+                    element_cur.end.x - element_cur.center.x};
+            } else {
+                direction_cur = {
+                    element_cur.end.y - element_cur.center.y,
+                    element_cur.center.x - element_cur.end.x};
+            }
+            break;
+        }
+        }
+        direction_cur = {-direction_cur.x, -direction_cur.y};
+
         for (ElementPos element_pos_next: node.successors) {
             const ShapeElement& element_next = new_elements[element_pos_next];
+
+            Point direction_next = {0, 0};
+            switch (element_next.type) {
+            case ShapeElementType::LineSegment: {
+                direction_next = element_next.end - element_next.start;
+                break;
+            } case ShapeElementType::CircularArc: {
+                if (element_next.anticlockwise) {
+                    direction_next = {
+                        element_next.center.y - element_next.start.y,
+                        element_next.start.x - element_next.center.x};
+                } else {
+                    direction_next = {
+                        element_next.start.y - element_next.center.y,
+                        element_next.center.x - element_next.start.x};
+                }
+                break;
+            }
+            }
+
             Angle angle = angle_radian(
-                    element_cur.start - element_cur.end,
-                    element_next.end - element_next.start);
+                    direction_cur,
+                    direction_next);
             //std::cout << "- element_pos_next " << element_pos_next
             //    << " " << element_next.to_string()
             //    << " angle " << angle
@@ -282,11 +326,52 @@ std::pair<Shape, std::vector<Shape>> shape::remove_self_intersections(
             const ShapeSelfIntersectionRemovalNode& node = graph.nodes[arc.end_node_id];
             ElementPos smallest_angle_element_pos = -1;
             Angle smallest_angle = 0.0;
+
+            Point direction_cur = {0, 0};
+            switch (element_cur.type) {
+            case ShapeElementType::LineSegment: {
+                direction_cur = element_cur.end - element_cur.start;
+                break;
+            } case ShapeElementType::CircularArc: {
+                if (element_cur.anticlockwise) {
+                    direction_cur = {
+                        element_cur.center.y - element_cur.end.y,
+                        element_cur.end.x - element_cur.center.x};
+                } else {
+                    direction_cur = {
+                        element_cur.end.y - element_cur.center.y,
+                        element_cur.center.x - element_cur.end.x};
+                }
+                break;
+            }
+            }
+            direction_cur = {-direction_cur.x, -direction_cur.y};
+
             for (ElementPos element_pos_next: node.successors) {
                 const ShapeElement& element_next = new_elements[element_pos_next];
+
+                Point direction_next = {0, 0};
+                switch (element_next.type) {
+                case ShapeElementType::LineSegment: {
+                    direction_next = element_next.end - element_next.start;
+                    break;
+                } case ShapeElementType::CircularArc: {
+                    if (element_next.anticlockwise) {
+                        direction_next = {
+                            element_next.center.y - element_next.start.y,
+                            element_next.start.x - element_next.center.x};
+                    } else {
+                        direction_next = {
+                            element_next.start.y - element_next.center.y,
+                            element_next.center.x - element_next.start.x};
+                    }
+                    break;
+                }
+                }
+
                 Angle angle = angle_radian(
-                        element_cur.start - element_cur.end,
-                        element_next.end - element_next.start);
+                        direction_cur,
+                        direction_next);
                 //std::cout << "* element_pos_next " << element_pos_next
                 //    << " " << element_next.to_string()
                 //    << " angle " << angle
@@ -395,11 +480,52 @@ std::vector<Shape> shape::extract_all_holes_from_self_intersecting_hole(
             const ShapeSelfIntersectionRemovalNode& node = graph.nodes[arc.end_node_id];
             ElementPos largest_angle_element_pos = -1;
             Angle largest_angle = 0.0;
+
+            Point direction_cur = {0, 0};
+            switch (element_cur.type) {
+            case ShapeElementType::LineSegment: {
+                direction_cur = element_cur.end - element_cur.start;
+                break;
+            } case ShapeElementType::CircularArc: {
+                if (element_cur.anticlockwise) {
+                    direction_cur = {
+                        element_cur.center.y - element_cur.end.y,
+                        element_cur.end.x - element_cur.center.x};
+                } else {
+                    direction_cur = {
+                        element_cur.end.y - element_cur.center.y,
+                        element_cur.center.x - element_cur.end.x};
+                }
+                break;
+            }
+            }
+            direction_cur = {-direction_cur.x, -direction_cur.y};
+
             for (ElementPos element_pos_next: node.successors) {
                 const ShapeElement& element_next = new_elements[element_pos_next];
+
+                Point direction_next = {0, 0};
+                switch (element_next.type) {
+                case ShapeElementType::LineSegment: {
+                    direction_next = element_next.end - element_next.start;
+                    break;
+                } case ShapeElementType::CircularArc: {
+                    if (element_next.anticlockwise) {
+                        direction_next = {
+                            element_next.center.y - element_next.start.y,
+                            element_next.start.x - element_next.center.x};
+                    } else {
+                        direction_next = {
+                            element_next.start.y - element_next.center.y,
+                            element_next.center.x - element_next.start.x};
+                    }
+                    break;
+                }
+                }
+
                 Angle angle = angle_radian(
-                        element_cur.start - element_cur.end,
-                        element_next.end - element_next.start);
+                        direction_cur,
+                        direction_next);
                 if (largest_angle_element_pos == -1
                         || largest_angle < angle) {
                     largest_angle_element_pos = element_pos_next;
