@@ -9,6 +9,7 @@ target_sources(Shape_shape PRIVATE
     trapezoidation.cpp
     intersection_tree.cpp
     offset.cpp
+    simplification.cpp
     supports.cpp)
 target_include_directories(Shape_shape PUBLIC
     ${PROJECT_SOURCE_DIR}/include)
