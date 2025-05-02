@@ -914,12 +914,21 @@ std::string Shape::to_svg(double factor) const
 {
     std::string s = "M";
     for (const ShapeElement& element: elements) {
-        s += std::to_string(element.start.x * factor)
-            + "," + std::to_string(-(element.start.y * factor));
+        Point center = {element.center.x * factor, -(element.center.y * factor)};
+        Point start = {element.start.x * factor, -(element.start.y * factor)};
+        Point end = {element.end.x * factor, -(element.end.y * factor)};
+        s += std::to_string(start.x) + "," + std::to_string(start.y);
         if (element.type == ShapeElementType::LineSegment) {
             s += "L";
         } else {
-            throw std::invalid_argument("");
+            LengthDbl radius = distance(center, start);
+            Angle theta = angle_radian(start - center, end - center);
+            int large_arc_flag = (theta > M_PI)? 0: 1;
+            int sweep_flag = (element.anticlockwise)? 0: 1;
+            s += "A" + std::to_string(radius) + ","
+                + std::to_string(radius) + ",0,"
+                + std::to_string(large_arc_flag) + ","
+                + std::to_string(sweep_flag) + ",";
         }
     }
     s += std::to_string(elements.front().start.x * factor)
