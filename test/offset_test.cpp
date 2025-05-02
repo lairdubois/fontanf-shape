@@ -46,7 +46,7 @@ INSTANTIATE_TEST_SUITE_P(
         ,
         InflateTest,
         testing::ValuesIn(std::vector<InflateTestParams>{
-            {  // No self intersection
+            {  // Square
                 build_shape({{0, 0}, {1, 0}, {1, 1}, {0, 1}}),
                 1.0,
                 build_shape({{0, -1}, {1, -1}, {1, 0, 1},
@@ -54,6 +54,14 @@ INSTANTIATE_TEST_SUITE_P(
                              {1, 2}, {0, 2}, {0, 1, 1},
                              {-1, 1}, {-1, 0}, {0, 0, 1}}),
                 {},
+            //}, {  // Triangle
+            //    build_shape({{1, 0}, {3, 1}, {0, 1}}),
+            //    10,
+            //    build_shape({{0, -1}, {1, -1}, {1, 0, 1},
+            //                 {2, 0}, {2, 1}, {1, 1, 1},
+            //                 {1, 2}, {0, 2}, {0, 1, 1},
+            //                 {-1, 1}, {-1, 0}, {0, 0, 1}}),
+            //    {},
             }}));
 
 

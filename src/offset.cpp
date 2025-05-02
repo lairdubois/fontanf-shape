@@ -34,8 +34,9 @@ std::pair<Shape, std::vector<Shape>> shape::inflate(
             Point normal;
             normal.x = element.end.y - element.start.y;
             normal.y = element.start.x - element.end.x;
-            normal.x = normal.x / norm(normal);
-            normal.y = normal.y / norm(normal);
+            LengthDbl normal_length = norm(normal);
+            normal.x = normal.x / normal_length;
+            normal.y = normal.y / normal_length;
 
             element_new.type = ShapeElementType::LineSegment;
             element_new.start.x = element.start.x + offset * normal.x;
@@ -46,11 +47,13 @@ std::pair<Shape, std::vector<Shape>> shape::inflate(
 
         } case shape::ShapeElementType::CircularArc: {
             Point normal_start = element.start - element.center;
-            normal_start.x = normal_start.x / norm(normal_start);
-            normal_start.y = normal_start.y / norm(normal_start);
+            LengthDbl normal_start_length = norm(normal_start);
+            normal_start.x = normal_start.x / normal_start_length;
+            normal_start.y = normal_start.y / normal_start_length;
             Point normal_end = element.end - element.center;
-            normal_end.x = normal_end.x / norm(normal_end);
-            normal_end.y = normal_end.y / norm(normal_end);
+            LengthDbl normal_end_length = norm(normal_end);
+            normal_end.x = normal_end.x / normal_end_length;
+            normal_end.y = normal_end.y / normal_end_length;
 
             element_new.type = ShapeElementType::CircularArc;
             element_new.start.x = element.start.x + offset * normal_start.x;
@@ -72,6 +75,17 @@ std::pair<Shape, std::vector<Shape>> shape::inflate(
             element_inter_new.center = element.start;
             element_inter_new.anticlockwise = true;
             shape_new.elements.push_back(element_inter_new);
+
+            // Check radius.
+            LengthDbl radius = distance(element_inter_new.start, element_inter_new.center);
+            if (!equal(radius, offset)) {
+                throw std::logic_error(
+                        "shape::inflate: radius != offset; "
+                        "radius: " + std::to_string(radius) + "; "
+                        "offset: " + std::to_string(offset) + "; "
+                        "center: " + element_inter_new.center.to_string() + "; "
+                        "start: " + element_inter_new.start.to_string() + ".");
+            }
         }
 
         // Add inflated element.
@@ -120,8 +134,9 @@ std::vector<Shape> shape::deflate(
             Point normal;
             normal.x = element.end.y - element.start.y;
             normal.y = element.start.x - element.end.x;
-            normal.x = normal.x / norm(normal);
-            normal.y = normal.y / norm(normal);
+            LengthDbl normal_length = norm(normal);
+            normal.x = normal.x / normal_length;
+            normal.y = normal.y / normal_length;
 
             element_new.type = ShapeElementType::LineSegment;
             element_new.start.x = element.start.x - offset * normal.x;
@@ -132,11 +147,13 @@ std::vector<Shape> shape::deflate(
 
         } case shape::ShapeElementType::CircularArc: {
             Point normal_start = element.start - element.center;
-            normal_start.x = normal_start.x / norm(normal_start);
-            normal_start.y = normal_start.y / norm(normal_start);
+            LengthDbl normal_start_length = norm(normal_start);
+            normal_start.x = normal_start.x / normal_start_length;
+            normal_start.y = normal_start.y / normal_start_length;
             Point normal_end = element.end - element.center;
-            normal_end.x = normal_end.x / norm(normal_end);
-            normal_end.y = normal_end.y / norm(normal_end);
+            LengthDbl normal_end_length = norm(normal_end);
+            normal_end.x = normal_end.x / normal_end_length;
+            normal_end.y = normal_end.y / normal_end_length;
 
             element_new.type = ShapeElementType::CircularArc;
             element_new.start.x = element.start.x - offset * normal_start.x;
@@ -158,6 +175,15 @@ std::vector<Shape> shape::deflate(
             element_inter_new.center = element.start;
             element_inter_new.anticlockwise = false;
             shape_new.elements.push_back(element_inter_new);
+
+            // Check radius.
+            LengthDbl radius = distance(element_inter_new.start, element_inter_new.center);
+            if (!equal(radius, offset)) {
+                throw std::logic_error(
+                        "shape::inflate: radius != offset; "
+                        "radius: " + std::to_string(radius) + "; "
+                        "offset: " + std::to_string(offset) + ".");
+            }
         }
 
         // Add inflated element.
