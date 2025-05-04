@@ -347,6 +347,26 @@ std::vector<SimplifyOutputShape> shape::simplify(
     //for (const SimplifyInputShape& shape: shapes)
     //    std::cout << shape.shape.to_string(2) << std::endl;
 
+    // Check that the input doesn't contain any circular arc.
+    for (ShapePos shape_pos = 0;
+            shape_pos < (ShapePos)shapes.size();
+            ++shape_pos) {
+        const SimplifyInputShape& shape = shapes[shape_pos];
+        for (ElementPos element_pos = 0;
+                element_pos < (ElementPos)shape.shape.elements.size();
+                ++element_pos) {
+            const ShapeElement& element = shape.shape.elements[element_pos];
+            if (element.type == ShapeElementType::CircularArc) {
+                throw std::invalid_argument(
+                        "shape::simplify: "
+                        "all shape elements must be line segments; "
+                        "shape_pos: " + std::to_string(shape_pos) + "; "
+                        "element_pos: " + std::to_string(element_pos) + "; "
+                        "element: " + element.to_string() + ".");
+            }
+        }
+    }
+
     // Build element_keys, approximated_bin_types, approximated_item_types.
     std::vector<ApproximatedElementKey> element_keys;
     std::vector<ApproximatedShape> approximated_shapes;
