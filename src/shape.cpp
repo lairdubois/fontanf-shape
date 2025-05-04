@@ -1194,6 +1194,11 @@ std::pair<bool, Shape> shape::clean_extreme_slopes(
         const Shape& shape,
         bool outer)
 {
+    if (shape.elements.empty()) {
+        throw std::invalid_argument(
+                "shape::clean_extreme_slopes: empty input shape.");
+    }
+
     bool found = false;
     Shape shape_new;
 
@@ -1259,6 +1264,11 @@ Shape shape::clean_shape(
         const Shape& shape,
         bool outer)
 {
+    if (shape.elements.empty()) {
+        throw std::invalid_argument(
+                "shape::clean_shape: empty input shape.");
+    }
+
     Shape shape_new = shape;
 
     auto res = remove_redundant_vertices(shape_new);
