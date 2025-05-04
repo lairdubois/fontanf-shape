@@ -963,19 +963,7 @@ void Shape::write_svg(
         + "\" version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\">\n";
     file << s;
 
-    file << "<path d=\"M";
-    for (const ShapeElement& element: elements) {
-        file << (element.start.x * factor)
-            << "," << -(element.start.y * factor);
-        if (element.type == ShapeElementType::LineSegment) {
-            file << "L";
-        } else {
-            throw std::invalid_argument("");
-        }
-    }
-    file << (elements.front().start.x * factor)
-        << "," << -(elements.front().start.y * factor)
-        << "Z\""
+    file << "<path d=\"" << to_svg(factor) << "\""
         << " stroke=\"black\""
         << " stroke-width=\"1\""
         << " fill=\"blue\""
