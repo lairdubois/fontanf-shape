@@ -1129,13 +1129,15 @@ std::pair<bool, Shape> shape::remove_aligned_vertices(
     if (shape.elements.size() <= 3)
         return {false, shape};
 
-    bool found = false;
+    ElementPos number_of_elements_removed = 0;
     Shape shape_new;
 
     ElementPos element_prev_pos = shape.elements.size() - 1;
     for (ElementPos element_cur_pos = 0;
             element_cur_pos < (ElementPos)shape.elements.size();
             ++element_cur_pos) {
+
+        //std::cout << "element_cur_pos " << element_cur_pos << std::endl;
         ElementPos element_next_pos = element_cur_pos + 1;
         const ShapeElement& element_prev = shape.elements[element_prev_pos];
         const ShapeElement& element = shape.elements[element_cur_pos];
@@ -1145,13 +1147,7 @@ std::pair<bool, Shape> shape::remove_aligned_vertices(
         bool useless = false;
         if (element.type == ShapeElementType::LineSegment
                 && element_prev.type == ShapeElementType::LineSegment) {
-            double x1 = element_prev.start.x;
-            double y1 = element_prev.start.y;
-            double x2 = element.start.x;
-            double y2 = element.start.y;
-            double x3 = element_next.start.x;
-            double y3 = element_next.start.y;
-            double v = x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2);
+            double v = compute_area(element_prev.start, element.start, element_next.start);
             //std::cout << "element_prev  " << element_prev_pos << " " << element_prev.to_string() << std::endl;
             //std::cout << "element       " << element_cur_pos << " " << element.to_string() << std::endl;
             //std::cout << "element_next  " << element_next_pos << " " << element_next.to_string() << std::endl;
@@ -1163,19 +1159,20 @@ std::pair<bool, Shape> shape::remove_aligned_vertices(
                         && equal(element.start.x, element_next.start.x))) {
                 //std::cout << "useless " << element.to_string() << std::endl;
                 useless = true;
-                found = true;
             }
         }
-        if (!useless) {
+        if (!useless || shape.elements.size() - number_of_elements_removed <= 3) {
             if (!shape_new.elements.empty())
                 shape_new.elements.back().end = element.start;
             shape_new.elements.push_back(element);
             element_prev_pos = element_cur_pos;
+        } else {
+            number_of_elements_removed++;
         }
     }
     shape_new.elements.back().end = shape_new.elements.front().start;
 
-    return {found, shape_new};
+    return {(number_of_elements_removed > 0), shape_new};
 }
 
 std::pair<bool, Shape> shape::clean_extreme_slopes(
