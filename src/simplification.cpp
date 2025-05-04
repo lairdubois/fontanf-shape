@@ -83,16 +83,17 @@ struct ApproximatedShape
 };
 
 AreaDbl compute_approximation_cost(
-        const ApproximatedShape& shape,
-        ElementPos element_pos)
+        std::vector<ApproximatedShape>& approximated_shapes,
+        const ApproximatedElementKey& element_key)
 {
-    if (element_pos >= (ElementPos)shape.elements.size()) {
+    ApproximatedShape& shape = approximated_shapes[element_key.shape_pos];
+    if (element_key.element_pos >= (ElementPos)shape.elements.size()) {
         throw std::runtime_error(
                 "irregular::compute_approximation_cost; "
-                "element_pos: " + std::to_string(element_pos) + "; "
+                "element_pos: " + std::to_string(element_key.element_pos) + "; "
                 "shape.elements.size(): " + std::to_string(shape.elements.size()) + ".\n");
     }
-    const ApproximatedShapeElement& element = shape.elements[element_pos];
+    const ApproximatedShapeElement& element = shape.elements[element_key.element_pos];
     //std::cout << "element_pos " << element_pos << " / " << shape.elements.size() << std::endl;
     //std::cout << "element_prev_pos " << element.element_prev_pos << std::endl;
     //std::cout << "element_next_pos " << element.element_next_pos << std::endl;
@@ -106,6 +107,20 @@ AreaDbl compute_approximation_cost(
     Angle angle_next = angle_radian(
             element.element.start - element.element.end,
             element_next.element.end - element_next.element.start);
+
+    //std::cout
+    //    << "shape_pos " << element_key.shape_pos
+    //    << " element_pos " << element_key.element_pos
+    //    << " angle " << angle_next << std::endl;
+
+    if (angle_prev == 0) {
+        throw std::logic_error(
+                "shape::simplify: angle_prev == 0.0.");
+    }
+    if (angle_next == 0) {
+        throw std::logic_error(
+                "shape::simplify: angle_next == 0.0.");
+    }
 
     if (shape.outer) {
         // Outer approximation.
@@ -124,11 +139,15 @@ AreaDbl compute_approximation_cost(
                 LengthDbl x4 = element_next.element.end.x;
                 LengthDbl y4 = element_next.element.end.y;
                 LengthDbl denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+                //std::cout << "element_prev " << element_prev.element.to_string() << std::endl;
+                //std::cout << "element_next " << element_next.element.to_string() << std::endl;
+                //std::cout << "denom " << denom << std::endl;
                 // If no intersection, no approximation possible.
-                if (shape::equal(denom, 0.0))
+                if (denom == 0.0)
                     return std::numeric_limits<Angle>::infinity();
                 LengthDbl xp = ((x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4)) / denom;
                 LengthDbl yp = ((x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4)) / denom;
+                //std::cout << "xp " << xp << " yp " << yp << std::endl;
 
                 // We don't want to increase the bounding box of the shape.
                 if (strictly_lesser(xp, shape.min.x)
@@ -188,7 +207,7 @@ AreaDbl compute_approximation_cost(
                 LengthDbl y4 = element_next.element.end.y;
                 LengthDbl denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
                 // If no intersection, no approximation possible.
-                if (shape::equal(denom, 0.0))
+                if (denom == 0)
                     return std::numeric_limits<Angle>::infinity();
                 LengthDbl xp = ((x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4)) / denom;
                 LengthDbl yp = ((x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4)) / denom;
@@ -226,10 +245,11 @@ AreaDbl compute_approximation_cost(
 }
 
 void apply_approximation(
-        ApproximatedShape& shape,
-        ElementPos element_pos)
+        std::vector<ApproximatedShape>& approximated_shapes,
+        const ApproximatedElementKey& element_key)
 {
-    ApproximatedShapeElement& element = shape.elements[element_pos];
+    ApproximatedShape& shape = approximated_shapes[element_key.shape_pos];
+    ApproximatedShapeElement& element = shape.elements[element_key.element_pos];
     //std::cout << "element_pos " << element_pos << " / " << shape.elements.size() << std::endl;
     //std::cout << "element_prev_pos " << element.element_prev_pos << std::endl;
     //std::cout << "element_next_pos " << element.element_next_pos << std::endl;
@@ -261,9 +281,11 @@ void apply_approximation(
                 LengthDbl x4 = element_next.element.end.x;
                 LengthDbl y4 = element_next.element.end.y;
                 LengthDbl denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
-                if (shape::equal(denom, 0.0)) {
+                if (denom == 0.0) {
                     throw std::runtime_error(
                             "irregular::apply_approximation: outer; "
+                            "shape_pos: " + std::to_string(element_key.shape_pos) + "; "
+                            "element_pos: " + std::to_string(element_key.element_pos) + "; "
                             "element_prev.element: " + element_prev.element.to_string() + "; "
                             "element.element: " + element.element.to_string() + "; "
                             "element_next.element: " + element_next.element.to_string() + "; "
@@ -306,7 +328,7 @@ void apply_approximation(
                 LengthDbl x4 = element_next.element.end.x;
                 LengthDbl y4 = element_next.element.end.y;
                 LengthDbl denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
-                if (shape::equal(denom, 0.0)) {
+                if (denom == 0.0) {
                     throw std::runtime_error(
                             "irregular::apply_approximation: inner; "
                             "denom: " + std::to_string(denom) + ".");
@@ -425,14 +447,10 @@ std::vector<SimplifyOutputShape> shape::simplify(
         //    << " shape.elements.size() " << shape.elements.size()
         //    << std::endl;
         AreaDbl cost = compute_approximation_cost(
-                shape,
-                element_key.element_pos);
+                approximated_shapes,
+                element_key);
         //std::cout << "element_key_id " << element_key_id
-        //    << " type " << (int)element_key.type
-        //    << " bin_type_id " << element_key.bin_type_id
-        //    << " defect_id " << element_key.defect_id
-        //    << " hole_pos " << element_key.hole_pos
-        //    << " item_type_id " << element_key.item_type_id
+        //    << " shape_pos " << element_key.shape_pos
         //    << " element_pos " << element_key.element_pos
         //    << " cost " << cost
         //    << std::endl;
@@ -469,7 +487,7 @@ std::vector<SimplifyOutputShape> shape::simplify(
             continue;
 
         const ApproximatedElementKey& element_key = element_keys[element_key_id];
-        //std::cout << "element_key_id " << element_key_id
+        //std::cout << "apply element_key_id " << element_key_id
         //    << " shape_pos " << element_key.shape_pos
         //    << " element_pos " << element_key.element_pos
         //    << " cost " << new_cost
@@ -482,33 +500,51 @@ std::vector<SimplifyOutputShape> shape::simplify(
         total_number_of_elements -= shape.copies;
         const ApproximatedShapeElement& element = shape.elements[element_key.element_pos];
         ElementPos element_prev_pos = element.element_prev_pos;
+        ElementPos element_prev_prev_pos = shape.elements[element_prev_pos].element_prev_pos;
         ElementPos element_next_pos = element.element_next_pos;
         ElementPos element_next_next_pos = shape.elements[element_next_pos].element_next_pos;
+        ElementPos element_next_next_next_pos = shape.elements[element_next_next_pos].element_next_pos;
         apply_approximation(
-                shape,
-                element_key.element_pos);
+                approximated_shapes,
+                element_key);
 
         // Update priority queue values.
         AreaDbl cost_prev = compute_approximation_cost(
-                shape,
-                element_prev_pos);
+                approximated_shapes,
+                {element_key.shape_pos, element_prev_pos});
+        AreaDbl cost_prev_prev = compute_approximation_cost(
+                approximated_shapes,
+                {element_key.shape_pos, element_prev_prev_pos});
         AreaDbl cost_next = compute_approximation_cost(
-                shape,
-                element_next_pos);
+                approximated_shapes,
+                {element_key.shape_pos, element_next_pos});
         AreaDbl cost_next_next = compute_approximation_cost(
-                shape,
-                element_next_next_pos);
+                approximated_shapes,
+                {element_key.shape_pos, element_next_next_pos});
+        AreaDbl cost_next_next_next = compute_approximation_cost(
+                approximated_shapes,
+                {element_key.shape_pos, element_next_next_next_pos});
         //std::cout << "element_prev_pos " << element_prev_pos
         //    << " cost_prev " << cost_prev << std::endl;
+        //std::cout << "element_prev_prev_pos " << element_prev_prev_pos
+        //    << " cost_prev_prev " << cost_prev_prev << std::endl;
         //std::cout << "element_next_pos " << element_next_pos
         //    << " cost_next " << cost_next << std::endl;
         //std::cout << "element_next_next_pos " << element_next_next_pos
         //    << " cost_next_next " << cost_next_next << std::endl;
+        //std::cout << "element_next_next_next_pos " << element_next_next_next_pos
+        //    << " cost_next_next_next " << cost_next_next_next << std::endl;
         if (priority_queue.contains(shape.elements[element_prev_pos].element_key_id)
                 || cost_prev < std::numeric_limits<AreaDbl>::infinity()) {
             priority_queue.update_key(
                     shape.elements[element_prev_pos].element_key_id,
                     cost_prev);
+        }
+        if (priority_queue.contains(shape.elements[element_prev_prev_pos].element_key_id)
+                || cost_prev_prev < std::numeric_limits<AreaDbl>::infinity()) {
+            priority_queue.update_key(
+                    shape.elements[element_prev_prev_pos].element_key_id,
+                    cost_prev_prev);
         }
         if (priority_queue.contains(shape.elements[element_next_pos].element_key_id)
                 || cost_next < std::numeric_limits<AreaDbl>::infinity()) {
@@ -521,6 +557,12 @@ std::vector<SimplifyOutputShape> shape::simplify(
             priority_queue.update_key(
                     shape.elements[element_next_next_pos].element_key_id,
                     cost_next_next);
+        }
+        if (priority_queue.contains(shape.elements[element_next_next_next_pos].element_key_id)
+                || cost_next_next_next < std::numeric_limits<AreaDbl>::infinity()) {
+            priority_queue.update_key(
+                    shape.elements[element_next_next_next_pos].element_key_id,
+                    cost_next_next_next);
         }
     }
     //std::cout << "end" << std::endl;
