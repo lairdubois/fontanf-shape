@@ -8,6 +8,8 @@ std::pair<Shape, std::vector<Shape>> shape::inflate(
         const Shape& shape,
         LengthDbl offset)
 {
+    //std::cout << "inflate " << shape.to_string(2) << std::endl;
+
     if (offset < 0.0) {
         throw std::invalid_argument(
                 "shape::inflate: offset must be >= 0.0; "
@@ -100,6 +102,8 @@ std::pair<Shape, std::vector<Shape>> shape::inflate(
     element_inter_new.center = shape.elements.back().end;
     element_inter_new.anticlockwise = true;
     shape_new.elements.push_back(element_inter_new);
+
+    //std::cout << "inflate end " << shape.to_string(2) << std::endl;
 
     return remove_self_intersections(shape_new);
 }
