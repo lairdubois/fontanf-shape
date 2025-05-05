@@ -126,19 +126,12 @@ std::vector<Point> compute_line_arc_intersections(
     LengthDbl ym = arc.center.y;
     LengthDbl a = line.start.y - line.end.y;
     LengthDbl b = line.end.x - line.start.x;
-    LengthDbl c = line.end.x * line.start.y
-        - line.start.x * line.end.y;
+    LengthDbl c = line.end.x * line.start.y - line.start.x * line.end.y;
     LengthDbl rsq = squared_distance(arc.center, arc.start);
     LengthDbl c_prime = c - a * xm - b * ym;
-    LengthDbl discriminant = rsq * (a * a + b * b) - c_prime * c_prime;
-    //std::cout << "discriminant " << discriminant << std::endl;
-
-    // No intersection.
-    if (strictly_lesser(discriminant, 0))
-        return {};
 
     // Single intersection point.
-    if (equal(discriminant, 0.0)) {
+    if (equal(rsq * (a * a + b * b), c_prime * c_prime)) {
         if (strict)
             return {};
 
@@ -159,9 +152,19 @@ std::vector<Point> compute_line_arc_intersections(
         } else if (equal(p, arc.end)) {
             p = arc.end;
         }
-        if (line.contains(p) && arc.contains(p))
+        if (line.contains(p) && arc.contains(p)) {
             return {p};
+        } else {
+            return {};
+        }
     }
+
+    LengthDbl discriminant = rsq * (a * a + b * b) - c_prime * c_prime;
+    //std::cout << "discriminant " << discriminant << std::endl;
+
+    // No intersection.
+    if (strictly_lesser(discriminant, 0))
+        return {};
 
     std::vector<Point> intersections;
     LengthDbl denom = a * a + b * b;
@@ -174,6 +177,8 @@ std::vector<Point> compute_line_arc_intersections(
     ps[0].y = ym + teta_1;
     ps[1].x = xm + eta_2;
     ps[1].y = ym + teta_2;
+    //std::cout << "p1 " << ps[0].to_string() << std::endl;
+    //std::cout << "p2 " << ps[1].to_string() << std::endl;
 
     for (Point& p: ps) {
         // Check if any intersection coincides with an arc endpoint
