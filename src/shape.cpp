@@ -870,6 +870,42 @@ bool Shape::check() const
     // Check that the shape is not empty.
     if (elements.empty())
         return false;
+    ElementPos element_prev_pos = this->elements.size() - 1;
+    for (ElementPos element_cur_pos = 0;
+            element_cur_pos < (ElementPos)this->elements.size();
+            ++element_cur_pos) {
+        const ShapeElement& element_prev = this->elements[element_prev_pos];
+        const ShapeElement& element = this->elements[element_cur_pos];
+
+        if (element_prev.type == ShapeElementType::LineSegment
+                && element.type == ShapeElementType::LineSegment
+                && !(element_prev.start == element_prev.end)
+                && !(element.start == element.end)) {
+            Angle angle = angle_radian(
+                    element_prev.start - element_prev.end,
+                    element.end - element.start);
+            if (angle == 0) {
+                std::cout << this->to_string(1) << std::endl;
+                std::cout << "element_prev_pos  " << element_prev_pos << std::endl;
+                std::cout << "element_pos       " << element_cur_pos << std::endl;
+                std::cout << "element_prev  " << element_prev.to_string() << std::endl;
+                std::cout << "element       " << element.to_string() << std::endl;
+                std::cout << "angle  " << angle << std::endl;
+                return false;
+            }
+        }
+
+        if (element_prev.start == element.end) {
+            std::cout << this->to_string(1) << std::endl;
+            std::cout << "element_pos       " << element_cur_pos << std::endl;
+            std::cout << "element_prev_pos  " << element_prev_pos << std::endl;
+            std::cout << "element       " << element.to_string() << std::endl;
+            std::cout << "element_prev  " << element_prev.to_string() << std::endl;
+            return false;
+        }
+
+        element_prev_pos = element_cur_pos;
+    }
     // TODO
     return true;
 }
@@ -1105,27 +1141,62 @@ void shape::write_svg(
 std::pair<bool, Shape> shape::remove_redundant_vertices(
         const Shape& shape)
 {
-    bool found = false;
-    Shape shape_new;
-
-    for (ElementPos element_pos = 0;
-            element_pos < (ElementPos)shape.elements.size();
-            ++element_pos) {
-        const ShapeElement& element = shape.elements[element_pos];
-        if (equal(element.start.x, element.end.x)
-                && equal(element.start.y, element.end.y)) {
-            found = true;
-            continue;
-        }
-        shape_new.elements.push_back(element);
+    //std::cout << "remove_redundant_vertices " << shape.to_string(2) << std::endl;
+    if (!shape.check()) {
+        throw std::invalid_argument(
+                "shape::remove_redundant_vertices: invalid input shape.");
     }
 
-    return {found, shape_new};
+    if (shape.elements.size() <= 3)
+        return {false, shape};
+
+    ElementPos number_of_elements_removed = 0;
+    Shape shape_new;
+
+    ElementPos element_prev_pos = shape.elements.size() - 1;
+    for (ElementPos element_cur_pos = 0;
+            element_cur_pos < (ElementPos)shape.elements.size();
+            ++element_cur_pos) {
+
+        //std::cout << "element_cur_pos " << element_cur_pos << std::endl;
+        ElementPos element_next_pos = element_cur_pos + 1;
+        const ShapeElement& element_prev = shape.elements[element_prev_pos];
+        const ShapeElement& element = shape.elements[element_cur_pos];
+        const ShapeElement& element_next = (element_next_pos < shape.elements.size())?
+            shape.elements[element_next_pos]:
+            shape_new.elements.front();
+        bool useless = false;
+        if (equal(element.start.x, element.end.x)
+                && equal(element.start.y, element.end.y)) {
+            useless = true;
+        }
+        if (!useless || shape.elements.size() - number_of_elements_removed <= 3) {
+            if (!shape_new.elements.empty())
+                shape_new.elements.back().end = element.start;
+            shape_new.elements.push_back(element);
+            element_prev_pos = element_cur_pos;
+        } else {
+            number_of_elements_removed++;
+        }
+    }
+    shape_new.elements.back().end = shape_new.elements.front().start;
+
+    if (!shape_new.check()) {
+        throw std::invalid_argument(
+                "shape::remove_redundant_vertices: invalid output shape.");
+    }
+    return {(number_of_elements_removed > 0), shape_new};
 }
 
 std::pair<bool, Shape> shape::remove_aligned_vertices(
         const Shape& shape)
 {
+    //std::cout << "remove_aligned_vertices " << shape.to_string(2) << std::endl;
+    if (!shape.check()) {
+        throw std::invalid_argument(
+                "shape::remove_aligned_vertices: invalid input shape.");
+    }
+
     if (shape.elements.size() <= 3)
         return {false, shape};
 
@@ -1152,11 +1223,7 @@ std::pair<bool, Shape> shape::remove_aligned_vertices(
             //std::cout << "element       " << element_cur_pos << " " << element.to_string() << std::endl;
             //std::cout << "element_next  " << element_next_pos << " " << element_next.to_string() << std::endl;
             //std::cout << "v " << v << std::endl;
-            if (equal(v, 0)
-                    || (equal(element_prev.start.y, element.start.y)
-                        && equal(element.start.y, element_next.start.y))
-                    || (equal(element_prev.start.x, element.start.x)
-                        && equal(element.start.x, element_next.start.x))) {
+            if (equal(v, 0)) {
                 //std::cout << "useless " << element.to_string() << std::endl;
                 useless = true;
             }
@@ -1172,6 +1239,10 @@ std::pair<bool, Shape> shape::remove_aligned_vertices(
     }
     shape_new.elements.back().end = shape_new.elements.front().start;
 
+    if (!shape_new.check()) {
+        throw std::invalid_argument(
+                "shape::remove_aligned_vertices: invalid output shape.");
+    }
     return {(number_of_elements_removed > 0), shape_new};
 }
 
@@ -1179,9 +1250,10 @@ std::pair<bool, Shape> shape::clean_extreme_slopes(
         const Shape& shape,
         bool outer)
 {
-    if (shape.elements.empty()) {
+    //std::cout << "clean_extreme_slopes " << shape.to_string(2) << std::endl;
+    if (!shape.check()) {
         throw std::invalid_argument(
-                "shape::clean_extreme_slopes: empty input shape.");
+                "shape::clean_extreme_slopes: invalid input shape.");
     }
 
     bool found = false;
@@ -1203,13 +1275,16 @@ std::pair<bool, Shape> shape::clean_extreme_slopes(
         //std::cout << "element_new " << element_new.to_string() << " slope " << slope << std::endl;
         if (element_new.start.x != element_new.end.x && slope > 1e2) {
             //std::cout << "found" << std::endl;
+            //std::cout << "   " << element_new.to_string() << std::endl;
             found = true;
             if (outer) {
                 element_new.start.x = element.end.x;
             } else {
                 element_new.end.x = element.start.x;
             }
+            //std::cout << "-> " << element_new.to_string() << std::endl;
         } else if (element_new.start.x != element_new.end.x && slope < -1e2) {
+            //std::cout << "   " << element_new.to_string() << std::endl;
             //std::cout << "found" << std::endl;
             found = true;
             if (outer) {
@@ -1217,7 +1292,9 @@ std::pair<bool, Shape> shape::clean_extreme_slopes(
             } else {
                 element_new.start.x = element.end.x;
             }
+            //std::cout << "-> " << element_new.to_string() << std::endl;
         } else if (element_new.start.y != element_new.end.y && slope > 0 && slope < 1e-2) {
+            //std::cout << "   " << element_new.to_string() << std::endl;
             //std::cout << "found" << std::endl;
             found = true;
             if (outer) {
@@ -1225,7 +1302,9 @@ std::pair<bool, Shape> shape::clean_extreme_slopes(
             } else {
                 element_new.start.y = element.end.y;
             }
+            //std::cout << "-> " << element_new.to_string() << std::endl;
         } else if (element_new.start.y != element_new.end.y && slope < 0 && slope > -1e-2) {
+            //std::cout << "   " << element_new.to_string() << std::endl;
             //std::cout << "found" << std::endl;
             found = true;
             if (outer) {
@@ -1233,6 +1312,7 @@ std::pair<bool, Shape> shape::clean_extreme_slopes(
             } else {
                 element_new.end.y = element.start.y;
             }
+            //std::cout << "-> " << element_new.to_string() << std::endl;
         }
         if (element_pos > 0)
             shape_new.elements.back().end = element_new.start;
@@ -1242,6 +1322,10 @@ std::pair<bool, Shape> shape::clean_extreme_slopes(
     shape_new.elements.front().start = shape_new.elements.back().end;
     //shape.elements.back().end = shape.elements.front().start;
 
+    if (!shape_new.check()) {
+        throw std::invalid_argument(
+                "shape::clean_extreme_slopes: invalid output shape.");
+    }
     return {found, shape_new};
 }
 
@@ -1249,9 +1333,10 @@ Shape shape::clean_shape(
         const Shape& shape,
         bool outer)
 {
-    if (shape.elements.empty()) {
+    //std::cout << "clean_shape " << shape.to_string(2) << std::endl;
+    if (!shape.check()) {
         throw std::invalid_argument(
-                "shape::clean_shape: empty input shape.");
+                "shape::clean_shape: invalid input shape.");
     }
 
     Shape shape_new = shape;
@@ -1278,6 +1363,10 @@ Shape shape::clean_shape(
             break;
     }
 
+    if (!shape_new.check()) {
+        throw std::invalid_argument(
+                "shape::clean_shape: invalid output shape.");
+    }
     return shape_new;
 }
 
