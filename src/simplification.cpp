@@ -115,11 +115,16 @@ AreaDbl compute_approximation_cost(
 
     if (angle_prev == 0) {
         throw std::logic_error(
-                "shape::simplify: angle_prev == 0.0.");
+                "shape::simplify: angle_prev == 0.0; "
+                "element: " + element.element.to_string() + "; "
+                "element_nex: " + element_next.element.to_string() + ".");
     }
     if (angle_next == 0) {
+        //shape.shape().write_svg("shape.svg");
         throw std::logic_error(
-                "shape::simplify: angle_next == 0.0.");
+                "shape::simplify: angle_next == 0.0; "
+                "element: " + element.element.to_string() + "; "
+                "element_nex: " + element_next.element.to_string() + ".");
     }
 
     if (shape.outer) {
