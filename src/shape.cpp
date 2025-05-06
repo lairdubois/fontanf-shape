@@ -31,6 +31,13 @@ Point shape::operator+(
     return {point_1.x + point_2.x, point_1.y + point_2.y};
 }
 
+Point shape::operator*(
+        LengthDbl scalar,
+        const Point& point)
+{
+    return {scalar * point.x, scalar * point.y};
+}
+
 Point shape::operator-(
         const Point& point_1,
         const Point& point_2)
@@ -469,6 +476,19 @@ char shape::element2char(ShapeElementType type)
     }
     }
     return ' ';
+}
+
+ShapeElement shape::operator*(
+        LengthDbl scalar,
+        const ShapeElement& element)
+{
+    ShapeElement element_out;
+    element_out.type = element.type;
+    element_out.start = scalar * element.start;
+    element_out.end = scalar * element.end;
+    element_out.center = scalar * element.center;
+    element_out.anticlockwise = element.anticlockwise;
+    return element_out;
 }
 
 std::vector<ShapeElement> shape::approximate_circular_arc_by_line_segments(
@@ -1007,6 +1027,16 @@ void Shape::write_svg(
         << "/>" << std::endl;
 
     file << "</svg>" << std::endl;
+}
+
+Shape shape::operator*(
+        LengthDbl scalar,
+        const Shape& shape)
+{
+    Shape shape_new;
+    for (const ShapeElement& element: shape.elements)
+        shape_new.elements.push_back(scalar * element);
+    return shape_new;
 }
 
 Shape shape::approximate_by_line_segments(

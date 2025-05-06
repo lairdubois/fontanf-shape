@@ -95,6 +95,10 @@ Point operator-(
         const Point& point_1,
         const Point& point_2);
 
+Point operator*(
+        LengthDbl scalar,
+        const Point& point);
+
 LengthDbl norm(
         const Point& vector);
 
@@ -211,6 +215,10 @@ struct ShapeElement
     nlohmann::json to_json() const;
 };
 
+ShapeElement operator*(
+        LengthDbl scalar,
+        const ShapeElement& element);
+
 /**
  * Convert a shape element of type CircularArc into multiple shape elements
  * of type LineSegment.
@@ -308,6 +316,10 @@ struct Shape
     void write_svg(
             const std::string& file_path) const;
 };
+
+Shape operator*(
+        LengthDbl scalar,
+        const Shape& shape);
 
 Shape approximate_by_line_segments(
         const Shape& shape,
