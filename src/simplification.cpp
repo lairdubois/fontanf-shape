@@ -129,7 +129,7 @@ AreaDbl compute_approximation_cost(
 
     if (shape.outer) {
         // Outer approximation.
-        if (shape::equal(angle_next, M_PI)) {
+        if (angle_next == M_PI) {
             return 0.0;
         } else if (angle_next > M_PI) {
             if (angle_prev > M_PI) {
@@ -196,7 +196,7 @@ AreaDbl compute_approximation_cost(
         }
     } else {
         // Inner approximation.
-        if (shape::equal(angle_next, M_PI)) {
+        if (angle_next == M_PI) {
             return 0.0;
         } else if (angle_next < M_PI) {
             if (angle_prev < M_PI) {
@@ -321,7 +321,7 @@ void apply_approximation(
         }
     } else {
         // Inner approximation.
-        if (shape::equal(angle_next, M_PI)) {
+        if (angle_next == M_PI) {
             element_next.element.start = element.element.start;
         } else if (angle_next < M_PI) {
             if (angle_prev < M_PI) {
