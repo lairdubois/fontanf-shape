@@ -78,41 +78,34 @@ std::vector<Point> compute_line_line_intersections(
         return {point_1, point_2};
     }
 
-    // Otherwise, compute intersection.
-    LengthDbl t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / denom;
-    LengthDbl u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / denom;
-
-    // Edge cases.
+    Point p;
+    p.x = ((x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4)) / denom;
+    p.y = ((x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4)) / denom;
     if (strict) {
-        if (!strictly_greater(t, 0)
-                || !strictly_lesser(t, 1)
-                || !strictly_greater(u, 0)
-                || !strictly_lesser(u, 1)) {
-            // No intersection.
+        if (equal(p, line1.start)) {
+            return {};
+        } else if (equal(p, line1.end)) {
+            return {};
+        } else if (equal(p, line2.start)) {
+            return {};
+        } else if (equal(p, line2.end)) {
             return {};
         }
     } else {
-        if (strictly_lesser(t, 0)
-                || strictly_greater(t, 1)
-                || strictly_lesser(u, 0)
-                || strictly_greater(u, 1)) {
-            // No intersection.
-            return {};
-        } else if (equal(t, 0.0)) {
-            return {line1.start};
-        } else if (equal(t, 1.0)) {
-            return {line1.end};
-        } else if (equal(u, 0.0)) {
-            return {line2.start};
-        } else if (equal(u, 1.0)) {
-            return {line2.end};
+        if (equal(p, line1.start)) {
+            p = line1.start;
+        } else if (equal(p, line1.end)) {
+            p = line1.end;
+        } else if (equal(p, line2.start)) {
+            p = line2.start;
+        } else if (equal(p, line2.end)) {
+            p = line2.end;
         }
     }
 
-    // Standard intersection.
-    LengthDbl xp = x1 + t * (x2 - x1);
-    LengthDbl yp = y1 + t * (y2 - y1);
-    return {{xp, yp}};
+    if (line1.contains(p) && line2.contains(p))
+        return {p};
+    return {};
 }
 
 // Helper function to compute line-arc intersections
@@ -159,14 +152,12 @@ std::vector<Point> compute_line_arc_intersections(
         }
     }
 
-    LengthDbl discriminant = rsq * (a * a + b * b) - c_prime * c_prime;
-    //std::cout << "discriminant " << discriminant << std::endl;
-
     // No intersection.
-    if (strictly_lesser(discriminant, 0))
+    if (strictly_lesser(rsq * (a * a + b * b), c_prime * c_prime))
         return {};
 
     std::vector<Point> intersections;
+    LengthDbl discriminant = rsq * (a * a + b * b) - c_prime * c_prime;
     LengthDbl denom = a * a + b * b;
     LengthDbl eta_1 = (a * c_prime + b * std::sqrt(discriminant)) / denom;
     LengthDbl eta_2 = (a * c_prime - b * std::sqrt(discriminant)) / denom;
@@ -254,14 +245,9 @@ std::vector<Point> compute_arc_arc_intersections(
     //std::cout << "a " << a << " b " << b << " c " << c << std::endl;
 
     LengthDbl c_prime = c - a * xm - b * ym;
-    LengthDbl discriminant = rsq * (a * a + b * b) - c_prime * c_prime;
-
-    // No intersection.
-    if (strictly_lesser(discriminant, 0))
-        return {};
 
     // Single intersection point.
-    if (equal(discriminant, 0.0)) {
+    if (equal(rsq * (a * a + b * b), c_prime * c_prime)) {
         if (strict)
             return {};
 
@@ -282,11 +268,19 @@ std::vector<Point> compute_arc_arc_intersections(
         } else if (equal(p, arc_2.end)) {
             p = arc_2.end;
         }
-        if (arc.contains(p) && arc_2.contains(p))
+        if (arc.contains(p) && arc_2.contains(p)) {
             return {p};
+        } else {
+            return {};
+        }
     }
 
+    // No intersection.
+    if (strictly_lesser(rsq * (a * a + b * b), c_prime * c_prime))
+        return {};
+
     std::vector<Point> intersections;
+    LengthDbl discriminant = rsq * (a * a + b * b) - c_prime * c_prime;
     LengthDbl denom = a * a + b * b;
     LengthDbl eta_1 = (a * c_prime + b * std::sqrt(discriminant)) / denom;
     LengthDbl eta_2 = (a * c_prime - b * std::sqrt(discriminant)) / denom;
