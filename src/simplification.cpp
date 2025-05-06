@@ -260,6 +260,9 @@ void apply_approximation(
     //std::cout << "element_next_pos " << element.element_next_pos << std::endl;
     ApproximatedShapeElement& element_prev = shape.elements[element.element_prev_pos];
     ApproximatedShapeElement& element_next = shape.elements[element.element_next_pos];
+    //std::cout << "element_prev " << element_prev.element.to_string() << std::endl;
+    //std::cout << "element_cur  " << element.element.to_string() << std::endl;
+    //std::cout << "element_next " << element_next.element.to_string() << std::endl;
 
     // Compute previous and next angles.
     Angle angle_prev = angle_radian(
@@ -271,7 +274,7 @@ void apply_approximation(
 
     if (shape.outer) {
         // Outer approximation.
-        if (shape::equal(angle_next, M_PI)) {
+        if (angle_next == M_PI) {
             element_next.element.start = element.element.start;
         } else if (angle_next > M_PI) {
             if (angle_prev > M_PI) {
@@ -362,6 +365,8 @@ void apply_approximation(
     element_next.element_prev_pos = element.element_prev_pos;
     element.removed = true;
     shape.number_of_elements--;
+    //std::cout << "element_prev " << element_prev.element.to_string() << std::endl;
+    //std::cout << "element_next " << element_next.element.to_string() << std::endl;
 }
 
 }
