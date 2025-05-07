@@ -105,6 +105,7 @@ std::pair<Shape, std::vector<Shape>> shape::inflate(
 
     //std::cout << "inflate end " << shape.to_string(2) << std::endl;
 
+    shape_new = clean_shape(shape_new, true);
     return remove_self_intersections(shape_new);
 }
 
@@ -203,5 +204,6 @@ std::vector<Shape> shape::deflate(
     element_inter_new.anticlockwise = false;
     shape_new.elements.push_back(element_inter_new);
 
+    shape_new = clean_shape(shape_new, false);
     return extract_all_holes_from_self_intersecting_hole(shape_new);
 }
