@@ -493,9 +493,17 @@ ShapeElement shape::operator*(
 
 std::vector<ShapeElement> shape::approximate_circular_arc_by_line_segments(
         const ShapeElement& circular_arc,
-        ElementPos number_of_line_segments,
+        LengthDbl segment_length,
         bool outer)
 {
+    LengthDbl arc_length = circular_arc.length();
+    ElementPos number_of_line_segments = std::ceil(arc_length / segment_length);
+    if ((outer && circular_arc.anticlockwise)
+            || (!outer && !circular_arc.anticlockwise)) {
+        if (number_of_line_segments < 3)
+            number_of_line_segments = 3;
+    }
+
     if (circular_arc.type != ShapeElementType::CircularArc) {
         throw std::runtime_error(
                 "shape::circular_arc_to_line_segments: "
@@ -1041,7 +1049,7 @@ Shape shape::operator*(
 
 Shape shape::approximate_by_line_segments(
         const Shape& shape,
-        ElementPos number_of_line_segments,
+        LengthDbl segment_length,
         bool outer)
 {
     Shape shape_new;
@@ -1054,7 +1062,7 @@ Shape shape::approximate_by_line_segments(
             std::vector<ShapeElement> approximated_element
                 = approximate_circular_arc_by_line_segments(
                         element,
-                        number_of_line_segments,
+                        segment_length,
                         outer);
             for (const ShapeElement& e: approximated_element)
                 shape_new.elements.push_back(e);

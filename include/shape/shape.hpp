@@ -219,7 +219,7 @@ ShapeElement operator*(
  */
 std::vector<ShapeElement> approximate_circular_arc_by_line_segments(
         const ShapeElement& circular_arc,
-        ElementPos number_of_line_segments,
+        LengthDbl segment_length,
         bool outer);
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -317,7 +317,7 @@ Shape operator*(
 
 Shape approximate_by_line_segments(
         const Shape& shape,
-        ElementPos number_of_line_segments,
+        LengthDbl segment_length,
         bool outer);
 
 struct BuildShapeElement
