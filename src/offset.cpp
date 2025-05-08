@@ -2,6 +2,8 @@
 
 #include "shape/self_intersections_removal.hpp"
 
+//#include <iostream>
+
 using namespace shape;
 
 std::pair<Shape, std::vector<Shape>> shape::inflate(
@@ -103,9 +105,7 @@ std::pair<Shape, std::vector<Shape>> shape::inflate(
     element_inter_new.anticlockwise = true;
     shape_new.elements.push_back(element_inter_new);
 
-    //std::cout << "inflate end " << shape.to_string(2) << std::endl;
-
-    shape_new = clean_shape(shape_new, true);
+    shape_new = remove_redundant_vertices(shape_new).second;
     return remove_self_intersections(shape_new);
 }
 
@@ -204,6 +204,6 @@ std::vector<Shape> shape::deflate(
     element_inter_new.anticlockwise = false;
     shape_new.elements.push_back(element_inter_new);
 
-    shape_new = clean_shape(shape_new, false);
+    shape_new = remove_redundant_vertices(shape_new).second;
     return extract_all_holes_from_self_intersecting_hole(shape_new);
 }
