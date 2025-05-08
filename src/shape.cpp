@@ -507,11 +507,11 @@ std::vector<ShapeElement> shape::approximate_circular_arc_by_line_segments(
     }
     if (!outer && number_of_line_segments < 1) {
         number_of_line_segments = 1;
-        throw std::runtime_error(
-                "shape::circular_arc_to_line_segments: "
-                "at least 1 line segment is needed to inner approximate a circular arc; "
-                "outer: " + std::to_string(outer) + "; "
-                "number_of_line_segments: " + std::to_string(number_of_line_segments) + ".");
+        //throw std::runtime_error(
+        //        "shape::circular_arc_to_line_segments: "
+        //        "at least 1 line segment is needed to inner approximate a circular arc; "
+        //        "outer: " + std::to_string(outer) + "; "
+        //        "number_of_line_segments: " + std::to_string(number_of_line_segments) + ".");
     }
 
     Angle angle = (circular_arc.anticlockwise)?
@@ -525,22 +525,22 @@ std::vector<ShapeElement> shape::approximate_circular_arc_by_line_segments(
             || (!outer && !circular_arc.anticlockwise)) {
         if (angle < M_PI && number_of_line_segments < 2) {
             number_of_line_segments = 2;
-            throw std::runtime_error(
-                    "shape::circular_arc_to_line_segments: "
-                    "at least 2 line segments are needed to approximate the circular arc; "
-                    "circular_arc: " + circular_arc.to_string() + "; "
-                    "outer: " + std::to_string(outer) + "; "
-                    "angle: " + std::to_string(angle) + "; "
-                    "number_of_line_segments: " + std::to_string(number_of_line_segments) + ".");
+            //throw std::runtime_error(
+            //        "shape::circular_arc_to_line_segments: "
+            //        "at least 2 line segments are needed to approximate the circular arc; "
+            //        "circular_arc: " + circular_arc.to_string() + "; "
+            //        "outer: " + std::to_string(outer) + "; "
+            //        "angle: " + std::to_string(angle) + "; "
+            //        "number_of_line_segments: " + std::to_string(number_of_line_segments) + ".");
         } else if (angle >= M_PI && number_of_line_segments < 3) {
             number_of_line_segments = 3;
-            throw std::runtime_error(
-                    "shape::circular_arc_to_line_segments: "
-                    "at least 3 line segments are needed to approximate the circular arc; "
-                    "circular_arc: " + circular_arc.to_string() + "; "
-                    "outer: " + std::to_string(outer) + "; "
-                    "angle: " + std::to_string(angle) + "; "
-                    "number_of_line_segments: " + std::to_string(number_of_line_segments) + ".");
+            //throw std::runtime_error(
+            //        "shape::circular_arc_to_line_segments: "
+            //        "at least 3 line segments are needed to approximate the circular arc; "
+            //        "circular_arc: " + circular_arc.to_string() + "; "
+            //        "outer: " + std::to_string(outer) + "; "
+            //        "angle: " + std::to_string(angle) + "; "
+            //        "number_of_line_segments: " + std::to_string(number_of_line_segments) + ".");
         }
     }
 
