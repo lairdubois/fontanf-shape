@@ -498,11 +498,6 @@ std::vector<ShapeElement> shape::approximate_circular_arc_by_line_segments(
 {
     LengthDbl arc_length = circular_arc.length();
     ElementPos number_of_line_segments = std::ceil(arc_length / segment_length);
-    if ((outer && circular_arc.anticlockwise)
-            || (!outer && !circular_arc.anticlockwise)) {
-        if (number_of_line_segments < 3)
-            number_of_line_segments = 3;
-    }
 
     if (circular_arc.type != ShapeElementType::CircularArc) {
         throw std::runtime_error(
@@ -511,6 +506,7 @@ std::vector<ShapeElement> shape::approximate_circular_arc_by_line_segments(
                 "circular_arc.type: " + element2str(circular_arc.type) + ".");
     }
     if (!outer && number_of_line_segments < 1) {
+        number_of_line_segments = 1;
         throw std::runtime_error(
                 "shape::circular_arc_to_line_segments: "
                 "at least 1 line segment is needed to inner approximate a circular arc; "
@@ -528,6 +524,7 @@ std::vector<ShapeElement> shape::approximate_circular_arc_by_line_segments(
     if ((outer && circular_arc.anticlockwise)
             || (!outer && !circular_arc.anticlockwise)) {
         if (angle < M_PI && number_of_line_segments < 2) {
+            number_of_line_segments = 2;
             throw std::runtime_error(
                     "shape::circular_arc_to_line_segments: "
                     "at least 2 line segments are needed to approximate the circular arc; "
@@ -536,6 +533,7 @@ std::vector<ShapeElement> shape::approximate_circular_arc_by_line_segments(
                     "angle: " + std::to_string(angle) + "; "
                     "number_of_line_segments: " + std::to_string(number_of_line_segments) + ".");
         } else if (angle >= M_PI && number_of_line_segments < 3) {
+            number_of_line_segments = 3;
             throw std::runtime_error(
                     "shape::circular_arc_to_line_segments: "
                     "at least 3 line segments are needed to approximate the circular arc; "
@@ -556,9 +554,11 @@ std::vector<ShapeElement> shape::approximate_circular_arc_by_line_segments(
         Angle angle_cur = (angle * (line_segment_id + 1)) / (number_of_line_segments - 1);
         if (!circular_arc.anticlockwise)
             angle_cur *= -1;
+        std::cout << "angle_cur " << angle_cur << std::endl;
         Point point_circle = circular_arc.start.rotate_radians(
                 circular_arc.center,
                 angle_cur);
+        std::cout << "point_circle " << point_circle.to_string() << std::endl;
         Point point_cur;
         if ((outer && !circular_arc.anticlockwise) || (!outer && circular_arc.anticlockwise)) {
             point_cur = point_circle;
@@ -1048,10 +1048,12 @@ Shape shape::operator*(
 }
 
 Shape shape::approximate_by_line_segments(
-        const Shape& shape,
+        const Shape& shape_orig,
         LengthDbl segment_length,
         bool outer)
 {
+    Shape shape = remove_redundant_vertices(shape_orig).second;
+
     Shape shape_new;
     for (const ShapeElement& element: shape.elements) {
         switch (element.type) {
@@ -1070,6 +1072,8 @@ Shape shape::approximate_by_line_segments(
         }
         }
     }
+
+    shape_new = remove_redundant_vertices(shape_new).second;
     return shape_new;
 }
 
@@ -1230,10 +1234,6 @@ std::pair<bool, Shape> shape::remove_aligned_vertices(
         const Shape& shape)
 {
     //std::cout << "remove_aligned_vertices " << shape.to_string(2) << std::endl;
-    if (!shape.check()) {
-        throw std::invalid_argument(
-                "shape::remove_aligned_vertices: invalid input shape.");
-    }
 
     if (shape.elements.size() <= 3)
         return {false, shape};
@@ -1261,7 +1261,13 @@ std::pair<bool, Shape> shape::remove_aligned_vertices(
             //std::cout << "element       " << element_cur_pos << " " << element.to_string() << std::endl;
             //std::cout << "element_next  " << element_next_pos << " " << element_next.to_string() << std::endl;
             //std::cout << "v " << v << std::endl;
-            if (equal(v, 0)) {
+            if (element_prev.start.x == element.start.x
+                    && element.start.x == element_next.start.x) {
+                //std::cout << "useless " << element.to_string() << std::endl;
+                useless = true;
+            }
+            if (element_prev.start.y == element.start.y
+                    && element.start.y == element_next.start.y) {
                 //std::cout << "useless " << element.to_string() << std::endl;
                 useless = true;
             }
@@ -1277,10 +1283,6 @@ std::pair<bool, Shape> shape::remove_aligned_vertices(
     }
     shape_new.elements.back().end = shape_new.elements.front().start;
 
-    if (!shape_new.check()) {
-        throw std::invalid_argument(
-                "shape::remove_aligned_vertices: invalid output shape.");
-    }
     return {(number_of_elements_removed > 0), shape_new};
 }
 
@@ -1300,112 +1302,177 @@ std::pair<bool, Shape> shape::clean_extreme_slopes(
     for (ElementPos element_pos = 0;
             element_pos < (ElementPos)shape.elements.size();
             ++element_pos) {
-        const ShapeElement& element = shape.elements[element_pos];
-        ShapeElement element_new = element;
+        ShapeElement element = shape.elements[element_pos];
+        const ShapeElement& element_prev = (!shape_new.elements.empty())?
+            shape_new.elements.back():
+            shape.elements.back();
+        const ShapeElement& element_next = (element_pos < shape.elements.size() - 1)?
+            shape.elements[element_pos + 1]:
+            shape_new.elements.front();
         if (element_pos > 0)
-            element_new.start = shape_new.elements.back().end;
+            element.start = shape_new.elements.back().end;
         if (element_pos == shape.elements.size() - 1)
-            element_new.end = shape_new.elements.front().start;
+            element.end = shape_new.elements.front().start;
 
         double slope
-            = (element_new.end.y - element_new.start.y)
-            / (element_new.end.x - element_new.start.x);
-        //std::cout << "element_new " << element_new.to_string() << " slope " << slope << std::endl;
-        if (element_new.start.x != element_new.end.x && slope > 1e2) {
-            //std::cout << "found" << std::endl;
-            //std::cout << "   " << element_new.to_string() << std::endl;
-            found = true;
-            if (outer) {
-                element_new.start.x = element.end.x;
-            } else {
-                element_new.end.x = element.start.x;
+            = (element.end.y - element.start.y)
+            / (element.end.x - element.start.x);
+        //std::cout << "element " << element.to_string() << " slope " << slope << std::endl;
+        //std::cout << "element_prev " << element_prev.to_string() << std::endl;
+        if (element.start.x != element.end.x && std::abs(slope) > 1e2) {
+            if (equal(element.start.x, element.end.x)) {
+                found = true;
+                //std::cout << "found x" << std::endl;
+                element.end.x = element.start.x;
+            } else if (slope > 1e2) {
+                found = true;
+                //std::cout << "found a" << std::endl;
+                //std::cout << "   " << element.to_string() << std::endl;
+                ShapeElement element_new;
+                element_new.type = ShapeElementType::LineSegment;
+                element_new.start = element.start;
+                if (outer) {
+                    element_new.end.x = element.end.x;
+                    element_new.end.y = element.start.y;
+                } else {
+                    element_new.end.x = element.start.x;
+                    element_new.end.y = element.end.y;
+                }
+                Angle angle_1 = angle_radian(
+                            element_prev.start - element_prev.end,
+                            element_new.end - element_new.start);
+                Angle angle_2 = angle_radian(
+                            element_new.start - element_new.end,
+                            element.end - element_new.end);
+                Angle angle_3 = angle_radian(
+                            element_new.end - element.end,
+                            element_next.end - element_next.start);
+                if (angle_1 != 0 && angle_2 != 0 && angle_3 != 0) {
+                    element.start = element_new.end;
+                    shape_new.elements.push_back(element_new);
+                    //std::cout << "angle_1 " << angle_1 << " angle_2 " << angle_2 << " angle_3 " << angle_3 << std::endl;
+                    //std::cout << "-> " << element_new.to_string() << std::endl;
+                    //std::cout << "-> " << element.to_string() << std::endl;
+                } else {
+                    element.end.x = element.start.x;
+                }
+            } else if (slope < -1e2) {
+                found = true;
+                //std::cout << "found b" << std::endl;
+                //std::cout << "   " << element.to_string() << std::endl;
+                ShapeElement element_new;
+                element_new.type = ShapeElementType::LineSegment;
+                element_new.start = element.start;
+                if (outer) {
+                    element_new.end.x = element.start.x;
+                    element_new.end.y = element.end.y;
+                } else {
+                    element_new.end.x = element.end.x;
+                    element_new.end.y = element.start.y;
+                }
+                Angle angle_1 = angle_radian(
+                            element_prev.start - element_prev.end,
+                            element_new.end - element_new.start);
+                Angle angle_2 = angle_radian(
+                            element_new.start - element_new.end,
+                            element.end - element_new.end);
+                Angle angle_3 = angle_radian(
+                            element_new.end - element.end,
+                            element_next.end - element_next.start);
+                if (angle_1 != 0 && angle_2 != 0 && angle_3 != 0) {
+                    element.start = element_new.end;
+                    shape_new.elements.push_back(element_new);
+                    //std::cout << "angle_1 " << angle_1 << " angle_2 " << angle_2 << " angle_3 " << angle_3 << std::endl;
+                    //std::cout << "-> " << element_new.to_string() << std::endl;
+                    //std::cout << "-> " << element.to_string() << std::endl;
+                } else {
+                    element.end.x = element.start.x;
+                }
             }
-            //std::cout << "-> " << element_new.to_string() << std::endl;
-        } else if (element_new.start.x != element_new.end.x && slope < -1e2) {
-            //std::cout << "   " << element_new.to_string() << std::endl;
-            //std::cout << "found" << std::endl;
-            found = true;
-            if (outer) {
-                element_new.end.x = element.start.x;
-            } else {
-                element_new.start.x = element.end.x;
+        } else if (element.start.y != element.end.y && std::abs(slope) < 1e-2) {
+            if (equal(element.start.y, element.end.y)) {
+                found = true;
+                //std::cout << "found y" << std::endl;
+                element.end.y = element.start.y;
+            } else if (slope > 0 && slope < 1e-2) {
+                found = true;
+                //std::cout << "found c" << std::endl;
+                //std::cout << "   " << element.to_string() << std::endl;
+                ShapeElement element_new;
+                element_new.type = ShapeElementType::LineSegment;
+                element_new.start = element.start;
+                if (outer) {
+                    element_new.end.x = element.end.x;
+                    element_new.end.y = element.start.y;
+                } else {
+                    element_new.end.x = element.start.x;
+                    element_new.end.y = element.end.y;
+                }
+                Angle angle_1 = angle_radian(
+                            element_prev.start - element_prev.end,
+                            element_new.end - element_new.start);
+                Angle angle_2 = angle_radian(
+                            element_new.start - element_new.end,
+                            element.end - element_new.end);
+                Angle angle_3 = angle_radian(
+                            element_new.end - element.end,
+                            element_next.end - element_next.start);
+                if (angle_1 != 0 && angle_2 != 0 && angle_3 != 0) {
+                    element.start = element_new.end;
+                    shape_new.elements.push_back(element_new);
+                    //std::cout << "angle_1 " << angle_1 << " angle_2 " << angle_2 << " angle_3 " << angle_3 << std::endl;
+                    //std::cout << "-> " << element_new.to_string() << std::endl;
+                    //std::cout << "-> " << element.to_string() << std::endl;
+                } else {
+                    element.end.y = element.start.y;
+                }
+            } else if (slope < 0 && slope > -1e-2) {
+                found = true;
+                //std::cout << "found d" << std::endl;
+                //std::cout << "   " << element.to_string() << std::endl;
+                ShapeElement element_new;
+                element_new.type = ShapeElementType::LineSegment;
+                element_new.start = element.start;
+                if (outer) {
+                    element_new.end.x = element.start.x;
+                    element_new.end.y = element.end.y;
+                } else {
+                    element_new.end.x = element.end.x;
+                    element_new.end.y = element.start.y;
+                }
+                Angle angle_1 = angle_radian(
+                            element_prev.start - element_prev.end,
+                            element_new.end - element_new.start);
+                Angle angle_2 = angle_radian(
+                            element_new.start - element_new.end,
+                            element.end - element_new.end);
+                Angle angle_3 = angle_radian(
+                            element_new.end - element.end,
+                            element_next.end - element_next.start);
+                if (angle_1 != 0 && angle_2 != 0 && angle_3 != 0) {
+                    element.start = element_new.end;
+                    shape_new.elements.push_back(element_new);
+                    //std::cout << "angle_1 " << angle_1 << " angle_2 " << angle_2 << " angle_3 " << angle_3 << std::endl;
+                    //std::cout << "-> " << element_new.to_string() << std::endl;
+                    //std::cout << "-> " << element.to_string() << std::endl;
+                } else {
+                    element.end.y = element.start.y;
+                }
             }
-            //std::cout << "-> " << element_new.to_string() << std::endl;
-        } else if (element_new.start.y != element_new.end.y && slope > 0 && slope < 1e-2) {
-            //std::cout << "   " << element_new.to_string() << std::endl;
-            //std::cout << "found" << std::endl;
-            found = true;
-            if (outer) {
-                element_new.end.y = element.start.y;
-            } else {
-                element_new.start.y = element.end.y;
-            }
-            //std::cout << "-> " << element_new.to_string() << std::endl;
-        } else if (element_new.start.y != element_new.end.y && slope < 0 && slope > -1e-2) {
-            //std::cout << "   " << element_new.to_string() << std::endl;
-            //std::cout << "found" << std::endl;
-            found = true;
-            if (outer) {
-                element_new.start.y = element.end.y;
-            } else {
-                element_new.end.y = element.start.y;
-            }
-            //std::cout << "-> " << element_new.to_string() << std::endl;
         }
-        if (element_pos > 0)
-            shape_new.elements.back().end = element_new.start;
-        //std::cout << "element_new " << element_new.to_string() << " slope " << slope << std::endl;
-        shape_new.elements.push_back(element_new);
+        if (!shape_new.elements.empty())
+            shape_new.elements.back().end = element.start;
+        shape_new.elements.push_back(element);
     }
     shape_new.elements.front().start = shape_new.elements.back().end;
-    //shape.elements.back().end = shape.elements.front().start;
+
+    shape_new = remove_aligned_vertices(shape_new).second;
 
     if (!shape_new.check()) {
         throw std::invalid_argument(
                 "shape::clean_extreme_slopes: invalid output shape.");
     }
     return {found, shape_new};
-}
-
-Shape shape::clean_shape(
-        const Shape& shape,
-        bool outer)
-{
-    //std::cout << "clean_shape " << shape.to_string(2) << std::endl;
-    if (!shape.check()) {
-        throw std::invalid_argument(
-                "shape::clean_shape: invalid input shape.");
-    }
-
-    Shape shape_new = shape;
-
-    auto res = remove_redundant_vertices(shape_new);
-    shape_new = res.second;
-
-    for (;;) {
-        bool found = false;
-
-        {
-            auto res = remove_aligned_vertices(shape_new);
-            found |= res.first;
-            shape_new = res.second;
-        }
-
-        {
-            auto res = clean_extreme_slopes(shape_new, outer);
-            found |= res.first;
-            shape_new = res.second;
-        }
-
-        if (!found)
-            break;
-    }
-
-    if (!shape_new.check()) {
-        throw std::invalid_argument(
-                "shape::clean_shape: invalid output shape.");
-    }
-    return shape_new;
 }
 
 bool shape::operator==(

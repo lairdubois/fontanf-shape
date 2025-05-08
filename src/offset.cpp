@@ -7,10 +7,13 @@
 using namespace shape;
 
 std::pair<Shape, std::vector<Shape>> shape::inflate(
-        const Shape& shape,
-        LengthDbl offset)
+        const Shape& shape_orig,
+        LengthDbl offset,
+        bool remove_self_intersections)
 {
     //std::cout << "inflate " << shape.to_string(2) << std::endl;
+
+    Shape shape = remove_redundant_vertices(shape_orig).second;
 
     if (offset < 0.0) {
         throw std::invalid_argument(
@@ -106,18 +109,23 @@ std::pair<Shape, std::vector<Shape>> shape::inflate(
     shape_new.elements.push_back(element_inter_new);
 
     shape_new = remove_redundant_vertices(shape_new).second;
-    return remove_self_intersections(shape_new);
+    if (!remove_self_intersections)
+        return {shape_new, {}};
+    return shape::remove_self_intersections(shape_new);
 }
 
 std::vector<Shape> shape::deflate(
-        const Shape& shape,
-        LengthDbl offset)
+        const Shape& shape_orig,
+        LengthDbl offset,
+        bool extract_all_holes)
 {
     if (offset < 0.0) {
         throw std::invalid_argument(
                 "shape::inflate: offset must be >= 0.0; "
                 "offset: " + std::to_string(offset) + ".");
     }
+
+    Shape shape = remove_redundant_vertices(shape_orig).second;
 
     if (offset == 0)
         return {shape};
@@ -205,5 +213,7 @@ std::vector<Shape> shape::deflate(
     shape_new.elements.push_back(element_inter_new);
 
     shape_new = remove_redundant_vertices(shape_new).second;
+    if (!extract_all_holes)
+        return {shape_new};
     return extract_all_holes_from_self_intersecting_hole(shape_new);
 }

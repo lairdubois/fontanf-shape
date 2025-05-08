@@ -7,10 +7,12 @@ namespace shape
 
 std::pair<Shape, std::vector<Shape>> inflate(
         const Shape& shape,
-        LengthDbl offset);
+        LengthDbl offset,
+        bool remove_self_intersections = true);
 
 std::vector<Shape> deflate(
         const Shape& shape,
-        LengthDbl offset);
+        LengthDbl offset,
+        bool extract_all_holes = true);
 
 }

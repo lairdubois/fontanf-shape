@@ -122,34 +122,28 @@ INSTANTIATE_TEST_SUITE_P(
             }));
 
 
-struct CleanShapeTestParams
+struct RemoveRedundantVerticesTestParams
 {
     Shape shape;
     Shape expected_shape;
 };
 
-class CleanShapeTest: public testing::TestWithParam<CleanShapeTestParams> { };
+class RemoveRedundantVerticesTest: public testing::TestWithParam<RemoveRedundantVerticesTestParams> { };
 
-TEST_P(CleanShapeTest, CleanShape)
+TEST_P(RemoveRedundantVerticesTest, RemoveRedundantVertices)
 {
-    CleanShapeTestParams test_params = GetParam();
-    Shape cleaned_shape = clean_shape(test_params.shape, true);
+    RemoveRedundantVerticesTestParams test_params = GetParam();
+    Shape cleaned_shape = remove_redundant_vertices(test_params.shape).second;
     std::cout << cleaned_shape.to_string(0) << std::endl;
     EXPECT_EQ(test_params.expected_shape, cleaned_shape);
 }
 
 INSTANTIATE_TEST_SUITE_P(
         ,
-        CleanShapeTest,
-        testing::ValuesIn(std::vector<CleanShapeTestParams>{
+        RemoveRedundantVerticesTest,
+        testing::ValuesIn(std::vector<RemoveRedundantVerticesTestParams>{
             {
                 build_shape({{0, 0}, {0, 0}, {100, 0}, {100, 100}}),
-                build_shape({{0, 0}, {100, 0}, {100, 100}})
-            }, {
-                build_shape({{50, 50}, {0, 0}, {100, 0}, {100, 100}}),
-                build_shape({{0, 0}, {100, 0}, {100, 100}})
-            }, {
-                build_shape({{0, 0}, {100, 0}, {100, 100}, {50, 50}}),
                 build_shape({{0, 0}, {100, 0}, {100, 100}})
             }}));
 
@@ -264,7 +258,7 @@ INSTANTIATE_TEST_SUITE_P(
 struct ApproximateCircularArcByLineSegmentsTestParams
 {
     ShapeElement circular_arc;
-    ElementPos number_of_line_segments;
+    LengthDbl number_of_line_segments;
     bool outer;
     std::vector<ShapeElement> expected_line_segments;
 };
@@ -279,9 +273,10 @@ TEST_P(ApproximateCircularArcByLineSegmentsTest, ApproximateCircularArcByLineSeg
     std::cout << "expected_line_segments" << std::endl;
     for (const ShapeElement& line_segment: test_params.expected_line_segments)
         std::cout << line_segment.to_string() << std::endl;
+    LengthDbl segment_length = test_params.circular_arc.length() / test_params.number_of_line_segments;
     std::vector<ShapeElement> line_segments = approximate_circular_arc_by_line_segments(
             test_params.circular_arc,
-            test_params.number_of_line_segments,
+            segment_length,
             test_params.outer);
     std::cout << "line_segments" << std::endl;
     for (const ShapeElement& line_segment: line_segments)

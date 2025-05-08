@@ -376,10 +376,6 @@ std::pair<bool, Shape> clean_extreme_slopes(
         const Shape& shape,
         bool outer);
 
-Shape clean_shape(
-        const Shape& shape,
-        bool outer);
-
 inline bool operator==(
         const Point& point_1,
         const Point& point_2)
