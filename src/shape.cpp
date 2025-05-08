@@ -554,11 +554,11 @@ std::vector<ShapeElement> shape::approximate_circular_arc_by_line_segments(
         Angle angle_cur = (angle * (line_segment_id + 1)) / (number_of_line_segments - 1);
         if (!circular_arc.anticlockwise)
             angle_cur *= -1;
-        std::cout << "angle_cur " << angle_cur << std::endl;
+        //std::cout << "angle_cur " << angle_cur << std::endl;
         Point point_circle = circular_arc.start.rotate_radians(
                 circular_arc.center,
                 angle_cur);
-        std::cout << "point_circle " << point_circle.to_string() << std::endl;
+        //std::cout << "point_circle " << point_circle.to_string() << std::endl;
         Point point_cur;
         if ((outer && !circular_arc.anticlockwise) || (!outer && circular_arc.anticlockwise)) {
             point_cur = point_circle;
