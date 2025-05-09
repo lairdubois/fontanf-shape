@@ -6,6 +6,7 @@ target_sources(Shape_shape PRIVATE
     convex_hull.cpp
     extract_borders.cpp
     self_intersections_removal.cpp
+    labeling.cpp
     trapezoidation.cpp
     intersection_tree.cpp
     offset.cpp
