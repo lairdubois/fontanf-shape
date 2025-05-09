@@ -387,26 +387,27 @@ std::vector<SimplifyOutputShape> shape::simplify(
     for (ShapePos shape_pos = 0;
             shape_pos < (ShapePos)shapes.size();
             ++shape_pos) {
-        const SimplifyInputShape& shape = shapes[shape_pos];
+        const SimplifyInputShape& input_shape = shapes[shape_pos];
+        Shape shape = shape::remove_redundant_vertices(input_shape.shape).second;
         ApproximatedShape approximated_shape;
 
-        auto mm = shape.shape.compute_min_max();
+        auto mm = shape.compute_min_max();
         approximated_shape.min = mm.first;
         approximated_shape.max = mm.second;
-        approximated_shape.copies = shape.copies;
-        approximated_shape.outer = shape.outer;
+        approximated_shape.copies = input_shape.copies;
+        approximated_shape.outer = input_shape.outer;
 
-        total_number_of_elements += shape.copies * shape.shape.elements.size();
+        total_number_of_elements += input_shape.copies * shape.elements.size();
         for (ElementPos element_pos = 0;
-                element_pos < (ElementPos)shape.shape.elements.size();
+                element_pos < (ElementPos)shape.elements.size();
                 ++element_pos) {
-            const ShapeElement& element = shape.shape.elements[element_pos];
+            const ShapeElement& element = shape.elements[element_pos];
             ApproximatedShapeElement approximated_element;
             approximated_element.element = element;
             approximated_element.element_prev_pos = (element_pos != 0)?
                 element_pos - 1:
-                shape.shape.elements.size() - 1;
-            approximated_element.element_next_pos = (element_pos != (ElementPos)shape.shape.elements.size() - 1)?
+                shape.elements.size() - 1;
+            approximated_element.element_next_pos = (element_pos != (ElementPos)shape.elements.size() - 1)?
                 element_pos + 1:
                 0;
             approximated_element.element_key_id = element_keys.size();
@@ -566,6 +567,10 @@ std::vector<SimplifyOutputShape> shape::simplify(
             auto shape_processed = remove_self_intersections(approximated_shape.shape());
             shape_new.shape = shape_processed.first;
             shape_new.holes = shape_processed.second;
+            if (strictly_lesser(shape_new.shape.compute_area(), shapes[shape_pos].shape.compute_area())) {
+                throw std::logic_error(
+                        "shape::remove_self_intersections: inconsistent area.");
+            }
         } else {
             auto shape_processed = extract_all_holes_from_self_intersecting_hole(approximated_shape.shape());
             shape_new.holes = shape_processed;
