@@ -34,7 +34,12 @@ INSTANTIATE_TEST_SUITE_P(
         LabelingTest,
         testing::ValuesIn(std::vector<LabelingTestParams>{
             {
-                build_shape({{0, 0}, {1, 0}, {1, 1}, {0, 1}}),
+                build_shape({{0, 0}, {1, 0}, {1, 1}, {0, 1}}),      // Square 1x1
                 {},
                 {0.5, 0.5}
+            },
+            {
+                build_shape({{0, 0}, {3, 0}, {3, 3}, {0, 3}}),      // Square 3x3
+                {build_shape({{1, 1}, {2, 1}, {2, 2}, {1, 2}})},    // Holes = Square 1x1 centred
+                {0.5, 1.5}
             }}));
