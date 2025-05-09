@@ -24,6 +24,7 @@ TEST_P(LabelingTest, Labeling)
     std::cout << "expected_label_position " << test_params.expected_label_position.to_string() << std::endl;
 
     auto label_position = find_label_position(test_params.shape, test_params.holes);
+    std::cout << "label_position " << label_position.to_string() << std::endl;
 
     EXPECT_TRUE(equal(label_position, test_params.expected_label_position));
 }
