@@ -179,19 +179,6 @@ AreaDbl compute_approximation_cost(
                     element.element.start,
                     element_next.element.end,
                     element.element.end);
-            if (cost < 0) {
-                throw std::runtime_error(
-                        "irregular::compute_approximation_cost: outer; "
-                        "angle_prev: " + std::to_string(angle_prev) + "; "
-                        "angle_next: " + std::to_string(angle_next) + "; "
-                        "element_prev.element: " + element_prev.element.to_string() + "; "
-                        "element.element: " + element.element.to_string() + "; "
-                        "element_next.element: " + element_next.element.to_string() + "; "
-                        "element.element.start: " + element.element.start.to_string() + "; "
-                        "element_next.element.end: " + element_next.element.end.to_string() + "; "
-                        "element.element.end: " + element.element.end.to_string() + "; "
-                        "cost: " + std::to_string(cost) + ".\n");
-            }
             return cost;
         }
     } else {
@@ -233,16 +220,6 @@ AreaDbl compute_approximation_cost(
                     element.element.start,
                     element.element.end,
                     element_next.element.end);
-            if (cost < 0) {
-                throw std::runtime_error(
-                        "irregular::compute_approximation_cost: inner; "
-                        "angle_prev: " + std::to_string(angle_prev) + "; "
-                        "angle_next: " + std::to_string(angle_next) + "; "
-                        "element.element.start: " + element.element.start.to_string() + "; "
-                        "element_next.element.end: " + element_next.element.end.to_string() + "; "
-                        "element.element.end: " + element.element.end.to_string() + "; "
-                        "cost: " + std::to_string(cost) + ".\n");
-            }
             return cost;
         }
     }
