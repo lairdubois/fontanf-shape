@@ -40,6 +40,6 @@ INSTANTIATE_TEST_SUITE_P(
             },
             {
                 build_shape({{0, 0}, {3, 0}, {3, 3}, {0, 3}}),      // Square 3x3
-                {build_shape({{1, 1}, {2, 1}, {2, 2}, {1, 2}})},    // Holes = Square 1x1 centred
-                {0.5, 1.5}
+                {build_shape({{1, 1}, {1, 2}, {2, 2}, {2, 1}})},    // Holes = Square 1x1 centred
+                {1.5, 0.5}
             }}));
