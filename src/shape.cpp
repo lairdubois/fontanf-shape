@@ -9,6 +9,32 @@
 
 using namespace shape;
 
+LengthDbl shape::largest_power_of_two_lesser_or_equal(LengthDbl value)
+{
+    double res = 1;
+    if (res > value) {
+        while (res > value)
+            res /= 2;
+    } else {
+        while (res * 2 < value)
+            res *= 2;
+    }
+    return res;
+}
+
+LengthDbl shape::smallest_power_of_two_greater_or_equal(LengthDbl value)
+{
+    double res = 1;
+    if (res < value) {
+        while (res < value)
+            res *= 2;
+    } else {
+        while (res / 2 > value)
+            res /= 2;
+    }
+    return res;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////// Point /////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////

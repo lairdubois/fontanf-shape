@@ -211,7 +211,13 @@ std::pair<Shape, std::vector<Shape>> shape::remove_self_intersections(
     //std::cout << "find outer loop..." << std::endl;
     Shape new_shape;
     ElementPos element_cur_pos = element_start_pos;
-    for (;;) {
+    for (int i = 0;; ++i) {
+        // Check infinite loop.
+        if (i >= 2 * new_elements.size()) {
+            throw std::runtime_error(
+                    "shape::self_intersections_removal: infinite loop.");
+        }
+
         const ShapeElement& element_cur = new_elements[element_cur_pos];
         new_shape.elements.push_back(element_cur);
         element_is_processed[element_cur_pos] = 1;
@@ -312,7 +318,13 @@ std::pair<Shape, std::vector<Shape>> shape::remove_self_intersections(
         //std::cout << "find new hole..." << std::endl;
         Shape new_hole;
         ElementPos element_cur_pos = element_start_pos;
-        for (;;) {
+        for (int i = 0;; ++i) {
+            // Check infinite loop.
+            if (i >= 2 * new_elements.size()) {
+                throw std::runtime_error(
+                        "shape::self_intersections_removal: infinite loop.");
+            }
+
             const ShapeElement& element_cur = new_elements[element_cur_pos];
             new_hole.elements.push_back(element_cur);
             element_is_processed[element_cur_pos] = 1;
@@ -467,7 +479,13 @@ std::vector<Shape> shape::extract_all_holes_from_self_intersecting_hole(
 
         Shape new_hole;
         ElementPos element_cur_pos = element_start_pos;
-        for (;;) {
+        for (int i = 0;; ++i) {
+            // Check infinite loop.
+            if (i >= 2 * new_elements.size()) {
+                throw std::runtime_error(
+                        "shape::self_intersections_removal: infinite loop.");
+            }
+
             const ShapeElement& element_cur = new_elements[element_cur_pos];
             new_hole.elements.push_back(element_cur);
             element_is_processed[element_cur_pos] = 1;
