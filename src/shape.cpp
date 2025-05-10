@@ -1312,7 +1312,10 @@ std::pair<bool, Shape> shape::remove_aligned_vertices(
     return {(number_of_elements_removed > 0), shape_new};
 }
 
-std::pair<bool, Shape> shape::clean_extreme_slopes(
+namespace
+{
+
+std::pair<bool, Shape> clean_extreme_slopes_rec(
         const Shape& shape,
         bool outer)
 {
@@ -1499,6 +1502,27 @@ std::pair<bool, Shape> shape::clean_extreme_slopes(
                 "shape::clean_extreme_slopes: invalid output shape.");
     }
     return {found, shape_new};
+}
+
+}
+
+Shape shape::clean_extreme_slopes(
+        const Shape& shape,
+        bool outer)
+{
+    Shape shape_new = shape;
+    for (int i = 0;; ++i) {
+        if (i == 100) {
+            throw std::runtime_error(
+                    "packingsolver::irregular::process_shape_outer: "
+                    "too many iterations.");
+        }
+        auto res = clean_extreme_slopes_rec(shape_new, outer);
+        if (!res.first)
+            break;
+        shape_new = res.second;
+    }
+    return shape_new;
 }
 
 bool shape::operator==(

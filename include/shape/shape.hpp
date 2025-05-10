@@ -376,7 +376,7 @@ std::pair<bool, Shape> remove_redundant_vertices(
 std::pair<bool, Shape> remove_aligned_vertices(
         const Shape& shape);
 
-std::pair<bool, Shape> clean_extreme_slopes(
+Shape clean_extreme_slopes(
         const Shape& shape,
         bool outer);
 
