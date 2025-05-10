@@ -519,7 +519,7 @@ std::vector<ShapeElement> shape::equalize_points(
                 int x1 = p1.second;
                 int x2 = p2.second;
                 const Point& point_1 = (x1 == 0)? element_1.start: (x1 == 1)? element_1.end: element_1.center;
-                const Point& point_2 = (x2 == 0)? element_2.start: (x2 == 2)? element_2.end: element_2.center;
+                const Point& point_2 = (x2 == 0)? element_2.start: (x2 == 1)? element_2.end: element_2.center;
                 if (point_1.x != point_2.x)
                     return point_1.x < point_2.x;
                 return point_1.y < point_2.y;
