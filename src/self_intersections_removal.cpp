@@ -1,5 +1,6 @@
 #include "shape/self_intersections_removal.hpp"
 
+#include "shape/element_intersections.hpp"
 #include "shape/intersection_tree.hpp"
 
 //#include <iostream>
@@ -12,7 +13,8 @@ namespace
 std::vector<ShapeElement> compute_splitted_elements(
         const std::vector<ShapeElement>& elements)
 {
-    //std::cout << "compute_splitted_elements" << std::endl;
+    //std::cout << "compute_splitted_elements"
+    //    " elements.size() " << elements.size() << std::endl;
 
     IntersectionTree intersection_tree({}, elements, {});
     std::vector<IntersectionTree::ElementElementIntersection> intersections
@@ -72,6 +74,9 @@ std::vector<ShapeElement> compute_splitted_elements(
         //std::cout << "- " << new_element.to_string() << std::endl;
         new_elements.push_back(new_element);
     }
+
+    // Equalize new element points.
+    new_elements = equalize_points(new_elements);
 
     //std::cout << "compute_splitted_elements end" << std::endl;
     return new_elements;
