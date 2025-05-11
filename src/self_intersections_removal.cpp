@@ -1,6 +1,6 @@
 #include "shape/self_intersections_removal.hpp"
 
-#include "shape/element_intersections.hpp"
+#include "shape/intersection_tree.hpp"
 
 //#include <iostream>
 
@@ -13,28 +13,21 @@ std::vector<ShapeElement> compute_splitted_elements(
         const std::vector<ShapeElement>& elements)
 {
     //std::cout << "compute_splitted_elements" << std::endl;
+
+    IntersectionTree intersection_tree({}, elements, {});
+    std::vector<IntersectionTree::ElementElementIntersection> intersections
+        = intersection_tree.compute_intersecting_elements(false);
     std::vector<std::vector<Point>> element_intersections(elements.size());
-    for (ElementPos element_pos_1 = 0;
-            element_pos_1 < (ElementPos)elements.size();
-            ++element_pos_1) {
-        const ShapeElement& element_1 = elements[element_pos_1];
-        for (ElementPos element_pos_2 = element_pos_1 + 1;
-                element_pos_2 < (ElementPos)elements.size();
-                ++element_pos_2) {
-            const ShapeElement& element_2 = elements[element_pos_2];
-            auto intersection_points = compute_intersections(
-                    element_1,
-                    element_2);
-            for (const Point& point: intersection_points) {
-                //std::cout << "element_pos_1 " << element_pos_1
-                //    << " " << element_1.to_string()
-                //    << " element_pos_2 " << element_pos_2
-                //    << " " << element_2.to_string()
-                //    << " intersection " << point.to_string()
-                //    << std::endl;
-                element_intersections[element_pos_1].push_back(point);
-                element_intersections[element_pos_2].push_back(point);
-            }
+    for (const IntersectionTree::ElementElementIntersection& intersection: intersections) {
+        for (const Point& point: intersection.intersections) {
+            //std::cout << "element_pos_1 " << element_pos_1
+            //    << " " << element_1.to_string()
+            //    << " element_pos_2 " << element_pos_2
+            //    << " " << element_2.to_string()
+            //    << " intersection " << point.to_string()
+            //    << std::endl;
+            element_intersections[intersection.element_id_1].push_back(point);
+            element_intersections[intersection.element_id_2].push_back(point);
         }
     }
 
@@ -79,6 +72,7 @@ std::vector<ShapeElement> compute_splitted_elements(
         //std::cout << "- " << new_element.to_string() << std::endl;
         new_elements.push_back(new_element);
     }
+
     //std::cout << "compute_splitted_elements end" << std::endl;
     return new_elements;
 }
