@@ -417,7 +417,7 @@ std::pair<Shape, std::vector<Shape>> shape::remove_self_intersections(
                         new_hole_2.elements.push_back(new_hole.elements[pos]);
                     }
                     new_hole_2 = new_hole_2.reverse();
-                    if (new_hole_2.compute_area() > 0) {
+                    if (strictly_greater(new_hole_2.compute_area(), 0)) {
                         new_hole_2 = remove_redundant_vertices(new_hole_2).second;
                         new_hole_2 = remove_aligned_vertices(new_hole_2).second;
                         new_holes.push_back(new_hole_2);
@@ -576,7 +576,7 @@ std::vector<Shape> shape::extract_all_holes_from_self_intersecting_hole(
                         new_hole_2.elements.push_back(new_hole.elements[pos]);
                     }
                     //std::cout << "area " << new_hole_2.compute_area() << std::endl;
-                    if (new_hole_2.compute_area() > 0) {
+                    if (strictly_greater(new_hole_2.compute_area(), 0)) {
                         new_hole_2 = remove_redundant_vertices(new_hole_2).second;
                         new_hole_2 = remove_aligned_vertices(new_hole_2).second;
                         new_holes.push_back(new_hole_2);
