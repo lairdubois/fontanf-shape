@@ -26,7 +26,4 @@ std::vector<Shape> merge_intersecting_shapes(
 std::vector<Point> equalize_points(
         const std::vector<Point>& points);
 
-std::vector<ShapeElement> equalize_points(
-        const std::vector<ShapeElement>& elements);
-
 }

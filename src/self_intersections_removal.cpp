@@ -33,6 +33,31 @@ std::vector<ShapeElement> compute_splitted_elements(
         }
     }
 
+    // Equalize points.
+    std::vector<Point*> equalize_to_orig;
+    std::vector<Point> equalize_input;
+    std::vector<ShapeElement> elements_tmp = elements;
+    for (ElementPos element_pos = 0;
+            element_pos < (ElementPos)elements.size();
+            ++element_pos) {
+        ShapeElement& element = elements_tmp[element_pos];
+        equalize_input.push_back(element.start);
+        equalize_to_orig.push_back(&element.start);
+        equalize_input.push_back(element.end);
+        equalize_to_orig.push_back(&element.end);
+        if (element.type == ShapeElementType::CircularArc) {
+            equalize_input.push_back(element.center);
+            equalize_to_orig.push_back(&element.center);
+        }
+        for (Point& intersection: element_intersections[element_pos]) {
+            equalize_input.push_back(intersection);
+            equalize_to_orig.push_back(&intersection);
+        }
+    }
+    std::vector<Point> equalize_output = equalize_points(equalize_input);
+    for (ElementPos pos = 0; pos < (ElementPos)equalize_output.size(); ++pos)
+        *equalize_to_orig[pos] = equalize_output[pos];
+
     std::vector<ShapeElement> new_elements;
     for (ElementPos element_pos = 0;
             element_pos < (ElementPos)elements.size();
@@ -74,9 +99,6 @@ std::vector<ShapeElement> compute_splitted_elements(
         //std::cout << "- " << new_element.to_string() << std::endl;
         new_elements.push_back(new_element);
     }
-
-    // Equalize new element points.
-    new_elements = equalize_points(new_elements);
 
     //std::cout << "compute_splitted_elements end" << std::endl;
     return new_elements;
