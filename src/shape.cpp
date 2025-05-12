@@ -1114,6 +1114,8 @@ Shape shape::build_shape(
     Point center = {0, 0};
     for (ElementPos pos = 1; pos <= (ElementPos)points.size(); ++pos) {
         const BuildShapeElement& point = points[(pos != points.size())? pos: 0];
+        if (path && pos == points.size())
+            break;
         if (point.type == 0) {
             ShapeElement element;
             element.type = type;
@@ -1121,8 +1123,8 @@ Shape shape::build_shape(
             element.end = {point.x, point.y};
             element.center = center;
             element.anticlockwise = anticlockwise;
-            if (!path || pos > 0)
-                shape.elements.push_back(element);
+            shape.elements.push_back(element);
+
             point_prev = element.end;
             anticlockwise = true;
             center = {0, 0};
