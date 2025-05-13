@@ -88,7 +88,7 @@ std::pair<Shape, std::vector<Shape>> shape::inflate(
 
         Angle angle = angle_radian(
                 element_prev.start - element_prev.end,
-                element_new.end - element_new.start);
+                element.end - element.start);
 
         if (angle > M_PI) {
             // Add joining circular arc.
@@ -110,14 +110,19 @@ std::pair<Shape, std::vector<Shape>> shape::inflate(
                         "center: " + element_inter_new.center.to_string() + "; "
                         "start: " + element_inter_new.start.to_string() + ".");
             }
+
+        } else {
+            // Add joining line segment.
+            ShapeElement element_inter_new;
+            element_inter_new.type = ShapeElementType::LineSegment;
+            element_inter_new.start = element_new_prev.end;
+            element_inter_new.end = element_new.start;
+            shape_new.elements.push_back(element_inter_new);
         }
 
         // Add inflated element.
-        if (element_pos != (ElementPos)shape.elements.size()) {
+        if (element_pos != (ElementPos)shape.elements.size())
             shape_new.elements.push_back(element_new);
-        } else {
-            shape_new.elements[0].start = element_new.start;
-        }
     }
 
     shape_new = remove_redundant_vertices(shape_new).second;
@@ -156,7 +161,7 @@ std::vector<Shape> shape::deflate(
 
         Angle angle = angle_radian(
                 element_prev.start - element_prev.end,
-                element_new.end - element_new.start);
+                element.end - element.start);
 
         if (angle < M_PI) {
             // Add joining circular arc.
@@ -178,14 +183,19 @@ std::vector<Shape> shape::deflate(
                         "center: " + element_inter_new.center.to_string() + "; "
                         "start: " + element_inter_new.start.to_string() + ".");
             }
+
+        } else {
+            // Add joining line segment.
+            ShapeElement element_inter_new;
+            element_inter_new.type = ShapeElementType::LineSegment;
+            element_inter_new.start = element_new_prev.end;
+            element_inter_new.end = element_new.start;
+            shape_new.elements.push_back(element_inter_new);
         }
 
         // Add inflated element.
-        if (element_pos != (ElementPos)shape.elements.size()) {
+        if (element_pos != (ElementPos)shape.elements.size())
             shape_new.elements.push_back(element_new);
-        } else {
-            shape_new.elements[0].start = element_new.start;
-        }
     }
 
     shape_new = remove_redundant_vertices(shape_new).second;
