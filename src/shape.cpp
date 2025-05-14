@@ -947,15 +947,15 @@ bool Shape::check() const
                 std::cout << "angle  " << angle << std::endl;
                 return false;
             }
-        }
 
-        if (element_prev.start == element.end) {
-            std::cout << this->to_string(1) << std::endl;
-            std::cout << "element_pos       " << element_cur_pos << std::endl;
-            std::cout << "element_prev_pos  " << element_prev_pos << std::endl;
-            std::cout << "element       " << element.to_string() << std::endl;
-            std::cout << "element_prev  " << element_prev.to_string() << std::endl;
-            return false;
+            if (element_prev.start == element.end) {
+                std::cout << this->to_string(1) << std::endl;
+                std::cout << "element_pos       " << element_cur_pos << std::endl;
+                std::cout << "element_prev_pos  " << element_prev_pos << std::endl;
+                std::cout << "element       " << element.to_string() << std::endl;
+                std::cout << "element_prev  " << element_prev.to_string() << std::endl;
+                return false;
+            }
         }
 
         element_prev_pos = element_cur_pos;
