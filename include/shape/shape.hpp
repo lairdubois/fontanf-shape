@@ -309,7 +309,7 @@ struct Shape
 
     nlohmann::json to_json() const;
 
-    std::string to_svg(double factor) const;
+    std::string to_svg() const;
 
     void write_svg(
             const std::string& file_path) const;
@@ -357,12 +357,9 @@ Shape build_shape(
         const std::vector<BuildShapeElement>& points,
         bool path = false);
 
-double compute_svg_factor(double width);
-
 std::string to_svg(
         const Shape& shape,
         const std::vector<Shape>& holes,
-        double factor,
         const std::string& fill_color = "blue");
 
 void write_svg(

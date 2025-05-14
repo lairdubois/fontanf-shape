@@ -1001,13 +1001,13 @@ nlohmann::json Shape::to_json() const
     return json;
 }
 
-std::string Shape::to_svg(double factor) const
+std::string Shape::to_svg() const
 {
     std::string s = "M";
     for (const ShapeElement& element: elements) {
-        Point center = {element.center.x * factor, -(element.center.y * factor)};
-        Point start = {element.start.x * factor, -(element.start.y * factor)};
-        Point end = {element.end.x * factor, -(element.end.y * factor)};
+        Point center = {element.center.x, -(element.center.y)};
+        Point start = {element.start.x, -(element.start.y)};
+        Point end = {element.end.x, -(element.end.y)};
         s += std::to_string(start.x) + "," + std::to_string(start.y);
         if (element.type == ShapeElementType::LineSegment) {
             s += "L";
@@ -1022,8 +1022,8 @@ std::string Shape::to_svg(double factor) const
                 + std::to_string(sweep_flag) + ",";
         }
     }
-    s += std::to_string(elements.front().start.x * factor)
-        + "," + std::to_string(-(elements.front().start.y * factor))
+    s += std::to_string(elements.front().start.x)
+        + "," + std::to_string(-(elements.front().start.y))
         + "Z";
     return s;
 }
@@ -1043,19 +1043,17 @@ void Shape::write_svg(
     LengthDbl width = (mm.second.x - mm.first.x);
     LengthDbl height = (mm.second.y - mm.first.y);
 
-    double factor = compute_svg_factor(width);
-
     std::string s = "<svg viewBox=\""
-        + std::to_string(mm.first.x * factor)
-        + " " + std::to_string(-mm.first.y * factor - height * factor)
-        + " " + std::to_string(width * factor)
-        + " " + std::to_string(height * factor)
+        + std::to_string(mm.first.x)
+        + " " + std::to_string(-mm.first.y - height)
+        + " " + std::to_string(width)
+        + " " + std::to_string(height)
         + "\" version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\">\n";
     file << s;
 
-    file << "<path d=\"" << to_svg(factor) << "\""
+    file << "<path d=\"" << to_svg() << "\""
         << " stroke=\"black\""
-        << " stroke-width=\"1\""
+        << " stroke-width=\"0.1\""
         << " fill=\"blue\""
         << " fill-opacity=\"0.2\""
         << "/>" << std::endl;
@@ -1138,29 +1136,17 @@ Shape shape::build_shape(
     return shape;
 }
 
-double shape::compute_svg_factor(
-        double width)
-{
-    double factor = 1;
-    while (width * factor > 10000)
-        factor /= 10;
-    while (width * factor < 1000)
-        factor *= 10;
-    return factor;
-}
-
 std::string shape::to_svg(
         const Shape& shape,
         const std::vector<Shape>& holes,
-        double factor,
         const std::string& fill_color)
 {
-    std::string s = "<path d=\"" + shape.to_svg(factor);
+    std::string s = "<path d=\"" + shape.to_svg();
     for (const Shape& hole: holes)
-        s += hole.reverse().to_svg(factor);
+        s += hole.reverse().to_svg();
     s += "\""
         " stroke=\"black\""
-        " stroke-width=\"1\"";
+        " stroke-width=\"0.1\"";
     if (!fill_color.empty()) {
         s += " fill=\"" + fill_color + "\""
             " fill-opacity=\"0.2\"";
@@ -1186,20 +1172,18 @@ void shape::write_svg(
     LengthDbl width = (mm.second.x - mm.first.x);
     LengthDbl height = (mm.second.y - mm.first.y);
 
-    double factor = compute_svg_factor(width);
-
     std::string s = "<svg viewBox=\""
-        + std::to_string(mm.first.x * factor)
-        + " " + std::to_string(-mm.first.y * factor - height * factor)
-        + " " + std::to_string(width * factor)
-        + " " + std::to_string(height * factor)
+        + std::to_string(mm.first.x)
+        + " " + std::to_string(-mm.first.y - height)
+        + " " + std::to_string(width)
+        + " " + std::to_string(height)
         + "\" version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\">\n";
     file << s;
 
     file << "<g>" << std::endl;
-    file << to_svg(shape, holes, factor);
-    //file << "<text x=\"" << std::to_string(x * factor)
-    //    << "\" y=\"" << std::to_string(-y * factor)
+    file << to_svg(shape, holes);
+    //file << "<text x=\"" << std::to_string(x)
+    //    << "\" y=\"" << std::to_string(-y)
     //    << "\" dominant-baseline=\"middle\" text-anchor=\"middle\">"
     //    << std::to_string(item_shape_pos)
     //    << "</text>" << std::endl;
