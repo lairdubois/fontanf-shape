@@ -993,12 +993,44 @@ std::string Shape::to_string(
 nlohmann::json Shape::to_json() const
 {
     nlohmann::json json;
+    json["type"] = "general";
     for (ElementPos element_pos = 0;
             element_pos < (ElementPos)elements.size();
             ++element_pos) {
-        json[element_pos] = elements[element_pos].to_json();
+        json["elements"][element_pos] = elements[element_pos].to_json();
     }
     return json;
+}
+
+Shape Shape::read_json(
+        const std::string& file_path)
+{
+    std::ifstream file(file_path);
+    if (!file.good()) {
+        throw std::runtime_error(
+                "shape::Shape::read_json: "
+                "unable to open file \"" + file_path + "\".");
+    }
+
+    nlohmann ::json j;
+    file >> j;
+    return read_json(j);
+}
+
+void Shape::write_json(
+        const std::string& file_path) const
+{
+    if (file_path.empty())
+        return;
+    std::ofstream file{file_path};
+    if (!file.good()) {
+        throw std::runtime_error(
+                "Unable to open file \"" + file_path + "\".");
+    }
+
+    nlohmann::json json = this->to_json();
+
+    file << std::setw(4) << json << std::endl;
 }
 
 std::string Shape::to_svg() const
@@ -1150,6 +1182,49 @@ std::string ShapeWithHoles::to_string(
             s += indent + "  - " + hole.to_string(indentation + 4) + "\n";
     }
     return s;
+}
+
+nlohmann::json ShapeWithHoles::to_json() const
+{
+    nlohmann::json json = this->shape.to_json();
+    for (Counter hole_pos = 0;
+            hole_pos < (Counter)this->holes.size();
+            ++hole_pos) {
+        const Shape& hole = this->holes[hole_pos];
+        json["holes"][hole_pos] = hole.to_json();
+    }
+    return json;
+}
+
+ShapeWithHoles ShapeWithHoles::read_json(
+        const std::string& file_path)
+{
+    std::ifstream file(file_path);
+    if (!file.good()) {
+        throw std::runtime_error(
+                "shape::ShapeWithHoles::read_json: "
+                "unable to open file \"" + file_path + "\".");
+    }
+
+    nlohmann ::json j;
+    file >> j;
+    return read_json(j);
+}
+
+void ShapeWithHoles::write_json(
+        const std::string& file_path) const
+{
+    if (file_path.empty())
+        return;
+    std::ofstream file{file_path};
+    if (!file.good()) {
+        throw std::runtime_error(
+                "Unable to open file \"" + file_path + "\".");
+    }
+
+    nlohmann::json json = this->to_json();
+
+    file << std::setw(4) << json << std::endl;
 }
 
 std::string ShapeWithHoles::to_svg(
