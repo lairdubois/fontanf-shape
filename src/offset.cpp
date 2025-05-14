@@ -56,7 +56,7 @@ ShapeElement inflate_element(
 
 }
 
-std::pair<Shape, std::vector<Shape>> shape::inflate(
+ShapeWithHoles shape::inflate(
         const Shape& shape_orig,
         LengthDbl offset,
         bool remove_self_intersections)

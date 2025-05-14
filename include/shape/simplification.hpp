@@ -14,14 +14,7 @@ struct SimplifyInputShape
     bool outer = true;
 };
 
-struct SimplifyOutputShape
-{
-    Shape shape;
-
-    std::vector<Shape> holes;
-};
-
-std::vector<SimplifyOutputShape> simplify(
+std::vector<ShapeWithHoles> simplify(
         const std::vector<SimplifyInputShape>& shapes,
         AreaDbl maximum_approximation_area);
 

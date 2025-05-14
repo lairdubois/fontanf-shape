@@ -1136,9 +1136,22 @@ Shape shape::build_shape(
     return shape;
 }
 
-std::string shape::to_svg(
-        const Shape& shape,
-        const std::vector<Shape>& holes,
+std::string ShapeWithHoles::to_string(
+        Counter indentation) const
+{
+    std::string s = "";
+    std::string indent = std::string(indentation, ' ');
+    s += "shape " + shape.to_string(indentation);
+    for (ShapePos hole_pos = 0;
+            hole_pos < (ShapePos)this->holes.size();
+            ++hole_pos) {
+        const Shape& hole = this->holes[hole_pos];
+        s += indent + "hole " + std::to_string(hole_pos) + " " + hole.to_string(indentation);
+    }
+    return s;
+}
+
+std::string ShapeWithHoles::to_svg(
         const std::string& fill_color)
 {
     std::string s = "<path d=\"" + shape.to_svg();
@@ -1155,9 +1168,7 @@ std::string shape::to_svg(
     return s;
 }
 
-void shape::write_svg(
-        const Shape& shape,
-        const std::vector<Shape>& holes,
+void ShapeWithHoles::write_svg(
         const std::string& file_path)
 {
     if (file_path.empty())
@@ -1181,7 +1192,7 @@ void shape::write_svg(
     file << s;
 
     file << "<g>" << std::endl;
-    file << to_svg(shape, holes);
+    file << shape.to_svg();
     //file << "<text x=\"" << std::to_string(x)
     //    << "\" y=\"" << std::to_string(-y)
     //    << "\" dominant-baseline=\"middle\" text-anchor=\"middle\">"
@@ -1608,6 +1619,49 @@ bool shape::equal(
         if (!equal(shape_1.elements[element_pos], shape_2.elements[element_pos_2])) {
             return false;
         }
+    }
+
+    return true;
+}
+
+bool shape::operator==(
+        const ShapeWithHoles& shape_1,
+        const ShapeWithHoles& shape_2)
+{
+    if (!(shape_1.shape == shape_2.shape))
+        return false;
+
+    if (shape_1.holes.size() != shape_2.holes.size())
+        return false;
+    for (const Shape& hole_1: shape_1.holes) {
+         if (std::find(
+                    shape_2.holes.begin(),
+                    shape_2.holes.end(),
+                    hole_1) == shape_2.holes.end()) {
+             return false;
+         }
+    }
+
+    return true;
+}
+
+bool shape::equal(
+        const ShapeWithHoles& shape_1,
+        const ShapeWithHoles& shape_2)
+{
+    if (!equal(shape_1.shape, shape_2.shape))
+        return false;
+
+    if (shape_1.holes.size() != shape_2.holes.size())
+        return false;
+    for (const Shape& hole_1: shape_1.holes) {
+         if (std::find_if(
+                    shape_2.holes.begin(),
+                    shape_2.holes.end(),
+                    [&hole_1](const Shape& hole) { return equal(hole, hole_1); })
+                 == shape_2.holes.end()) {
+             return false;
+         }
     }
 
     return true;

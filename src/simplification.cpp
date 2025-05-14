@@ -348,7 +348,7 @@ void apply_approximation(
 
 }
 
-std::vector<SimplifyOutputShape> shape::simplify(
+std::vector<ShapeWithHoles> shape::simplify(
         const std::vector<SimplifyInputShape>& shapes,
         AreaDbl maximum_approximation_area)
 {
@@ -556,24 +556,21 @@ std::vector<SimplifyOutputShape> shape::simplify(
     //std::cout << "end" << std::endl;
 
     // Build output.
-    std::vector<SimplifyOutputShape> shapes_new;
+    std::vector<ShapeWithHoles> shapes_new;
     for (ShapePos shape_pos = 0;
             shape_pos < (ShapePos)shapes.size();
             ++shape_pos) {
         const SimplifyInputShape& shape = shapes[shape_pos];
         const ApproximatedShape& approximated_shape = approximated_shapes[shape_pos];
-        SimplifyOutputShape shape_new;
+        ShapeWithHoles shape_new;
         if (shape.outer) {
-            auto shape_processed = remove_self_intersections(approximated_shape.shape());
-            shape_new.shape = shape_processed.first;
-            shape_new.holes = shape_processed.second;
+            shape_new = remove_self_intersections(approximated_shape.shape());
             if (strictly_lesser(shape_new.shape.compute_area(), shapes[shape_pos].shape.compute_area())) {
                 throw std::logic_error(
                         "shape::remove_self_intersections: inconsistent area.");
             }
         } else {
-            auto shape_processed = extract_all_holes_from_self_intersecting_hole(approximated_shape.shape());
-            shape_new.holes = shape_processed;
+            shape_new.holes = extract_all_holes_from_self_intersecting_hole(approximated_shape.shape());
         }
         shapes_new.push_back(shape_new);
     }

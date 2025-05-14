@@ -435,7 +435,7 @@ std::vector<Shape> shape::merge_intersecting_shapes(
                     continue;
                 stack.push_back(neighbor);
                 visited[neighbor] = 1;
-                shape = compute_union(shape, shapes[neighbor]).first;
+                shape = compute_union(shape, shapes[neighbor]).shape;
             }
         }
 

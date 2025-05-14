@@ -190,7 +190,7 @@ ShapeSelfIntersectionRemovalGraph compute_graph(
 
 }
 
-std::pair<Shape, std::vector<Shape>> shape::remove_self_intersections(
+ShapeWithHoles shape::remove_self_intersections(
         const Shape& shape)
 {
     //std::cout << "remove_self_intersections shape " << shape.to_string(0) << std::endl;
@@ -230,7 +230,7 @@ std::pair<Shape, std::vector<Shape>> shape::remove_self_intersections(
 
     // Find outer loop.
     //std::cout << "find outer loop..." << std::endl;
-    Shape new_shape;
+    ShapeWithHoles new_shape;
     ElementPos element_cur_pos = element_start_pos;
     for (int i = 0;; ++i) {
         // Check infinite loop.
@@ -240,7 +240,7 @@ std::pair<Shape, std::vector<Shape>> shape::remove_self_intersections(
         }
 
         const ShapeElement& element_cur = new_elements[element_cur_pos];
-        new_shape.elements.push_back(element_cur);
+        new_shape.shape.elements.push_back(element_cur);
         element_is_processed[element_cur_pos] = 1;
 
         // Find the next element with the smallest angle.
@@ -315,11 +315,10 @@ std::pair<Shape, std::vector<Shape>> shape::remove_self_intersections(
         if (element_cur_pos == element_start_pos)
             break;
     }
-    new_shape = remove_redundant_vertices(new_shape).second;
-    new_shape = remove_aligned_vertices(new_shape).second;
+    new_shape.shape = remove_redundant_vertices(new_shape.shape).second;
+    new_shape.shape = remove_aligned_vertices(new_shape.shape).second;
 
     // Find holes by finding paths from remaining unprocessed vertices.
-    std::vector<Shape> new_holes;
     for (;;) {
         // Find an unprocessed element.
         ElementPos element_start_pos = -1;
@@ -441,7 +440,7 @@ std::pair<Shape, std::vector<Shape>> shape::remove_self_intersections(
                     if (strictly_greater(new_hole_2.compute_area(), 0)) {
                         new_hole_2 = remove_redundant_vertices(new_hole_2).second;
                         new_hole_2 = remove_aligned_vertices(new_hole_2).second;
-                        new_holes.push_back(new_hole_2);
+                        new_shape.holes.push_back(new_hole_2);
                     }
                 }
                 break;
@@ -450,10 +449,10 @@ std::pair<Shape, std::vector<Shape>> shape::remove_self_intersections(
     }
 
     //std::cout << "remove_self_intersections end" << std::endl;
-    return {new_shape, new_holes};
+    return new_shape;
 }
 
-std::pair<Shape, std::vector<Shape>> shape::compute_union(
+ShapeWithHoles shape::compute_union(
         const Shape& shape_1,
         const Shape& shape_2)
 {

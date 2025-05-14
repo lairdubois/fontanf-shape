@@ -230,11 +230,10 @@ ShapeSupports shape::compute_shape_supports(
 }
 
 ShapeSupports shape::compute_shape_supports(
-        const Shape& shape,
-        const std::vector<Shape>& holes)
+        const ShapeWithHoles& shape)
 {
-    ShapeSupports supports = compute_shape_supports(shape, false);
-    for (const Shape& hole: holes) {
+    ShapeSupports supports = compute_shape_supports(shape.shape, false);
+    for (const Shape& hole: shape.holes) {
         ShapeSupports hole_supports = compute_shape_supports(hole, true);
         supports.supported_parts.insert(
                 supports.supported_parts.end(),

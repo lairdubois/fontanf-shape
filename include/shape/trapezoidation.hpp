@@ -6,7 +6,6 @@ namespace shape
 {
 
 std::vector<GeneralizedTrapezoid> trapezoidation(
-        const Shape& shape,
-        const std::vector<Shape>& holes = {});
+        const ShapeWithHoles& shape);
 
 }

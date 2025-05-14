@@ -324,6 +324,28 @@ Shape approximate_by_line_segments(
         LengthDbl segment_length,
         bool outer);
 
+/**
+ * Structure for a shape with holes.
+ */
+struct ShapeWithHoles
+{
+    Shape shape;
+
+    std::vector<Shape> holes;
+
+    /*
+     * Export
+     */
+
+    std::string to_string(Counter indentation) const;
+
+    std::string to_svg(
+            const std::string& fill_color = "blue");
+
+    void write_svg(
+            const std::string& file_path);
+};
+
 struct BuildShapeElement
 {
     LengthDbl x = 0;
@@ -356,16 +378,6 @@ struct BuildShapeElement
 Shape build_shape(
         const std::vector<BuildShapeElement>& points,
         bool path = false);
-
-std::string to_svg(
-        const Shape& shape,
-        const std::vector<Shape>& holes,
-        const std::string& fill_color = "blue");
-
-void write_svg(
-        const Shape& shape,
-        const std::vector<Shape>& holes,
-        const std::string& file_path);
 
 std::pair<bool, Shape> remove_redundant_vertices(
         const Shape& shape);
@@ -406,5 +418,13 @@ bool operator==(
 bool equal(
         const Shape& shape_1,
         const Shape& shape_2);
+
+bool operator==(
+        const ShapeWithHoles& shape_1,
+        const ShapeWithHoles& shape_2);
+
+bool equal(
+        const ShapeWithHoles& shape_1,
+        const ShapeWithHoles& shape_2);
 
 }
