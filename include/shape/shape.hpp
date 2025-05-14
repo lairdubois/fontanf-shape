@@ -333,6 +333,12 @@ struct ShapeWithHoles
 
     std::vector<Shape> holes;
 
+
+    /** Compute the smallest and greatest x and y of the shape. */
+    std::pair<Point, Point> compute_min_max(
+            Angle angle = 0.0,
+            bool mirror = false) const { return this->shape.compute_min_max(angle, mirror); }
+
     /*
      * Export
      */
@@ -340,10 +346,10 @@ struct ShapeWithHoles
     std::string to_string(Counter indentation) const;
 
     std::string to_svg(
-            const std::string& fill_color = "blue");
+            const std::string& fill_color = "blue") const;
 
     void write_svg(
-            const std::string& file_path);
+            const std::string& file_path) const;
 };
 
 struct BuildShapeElement

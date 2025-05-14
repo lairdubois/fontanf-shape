@@ -1141,18 +1141,19 @@ std::string ShapeWithHoles::to_string(
 {
     std::string s = "";
     std::string indent = std::string(indentation, ' ');
-    s += "shape " + shape.to_string(indentation);
-    for (ShapePos hole_pos = 0;
-            hole_pos < (ShapePos)this->holes.size();
-            ++hole_pos) {
-        const Shape& hole = this->holes[hole_pos];
-        s += indent + "hole " + std::to_string(hole_pos) + " " + hole.to_string(indentation);
+    s += "shape " + shape.to_string(indentation) + "\n";
+    if (holes.size() == 1) {
+        s += indent + "- holes: " + holes.front().to_string(indentation + 2) + "\n";
+    } else if (holes.size() >= 2) {
+        s += indent + "- holes\n";
+        for (const Shape& hole: holes)
+            s += indent + "  - " + hole.to_string(indentation + 4) + "\n";
     }
     return s;
 }
 
 std::string ShapeWithHoles::to_svg(
-        const std::string& fill_color)
+        const std::string& fill_color) const
 {
     std::string s = "<path d=\"" + shape.to_svg();
     for (const Shape& hole: holes)
@@ -1169,7 +1170,7 @@ std::string ShapeWithHoles::to_svg(
 }
 
 void ShapeWithHoles::write_svg(
-        const std::string& file_path)
+        const std::string& file_path) const
 {
     if (file_path.empty())
         return;
