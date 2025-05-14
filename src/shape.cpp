@@ -363,7 +363,7 @@ bool ShapeElement::contains(const Point& point) const
         }
     }
     }
-    return -1;
+    return false;
 }
 
 std::string ShapeElement::to_string() const
