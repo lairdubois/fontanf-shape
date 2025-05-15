@@ -224,7 +224,7 @@ Point ShapeElement::middle() const
         point.y = (this->start.y + this->end.y) / 2;
         return point;
     } case ShapeElementType::CircularArc: {
-        if (this->anticlockwise) {
+        if (this->orientation == ShapeElementOrientation::Anticlockwise) {
             Angle angle = angle_radian(
                     this->start - this->center,
                     this->end - this->center);
@@ -251,7 +251,7 @@ std::pair<Point, Point> ShapeElement::min_max() const
         LengthDbl radius = distance(this->center, this->start);
         Angle starting_angle = shape::angle_radian(this->start - this->center);
         Angle ending_angle = shape::angle_radian(this->end - this->center);
-        if (!this->anticlockwise)
+        if (this->orientation != ShapeElementOrientation::Anticlockwise)
             std::swap(starting_angle, ending_angle);
         //std::cout << "starting_angle " << starting_angle << " ending_angle " << ending_angle << std::endl;
         if (starting_angle <= ending_angle) {
@@ -314,11 +314,13 @@ LengthDbl ShapeElement::length() const
     case ShapeElementType::LineSegment:
         return distance(this->start, this->end);
     case ShapeElementType::CircularArc:
-        LengthDbl r = distance(center, start);
-        if (anticlockwise) {
-            return angle_radian(start - center, end - center) * r;
+        LengthDbl r = distance(this->center, this->start);
+        if (this->orientation == ShapeElementOrientation::Full) {
+            return 2 * M_PI * r;
+        } if (this->orientation == ShapeElementOrientation::Anticlockwise) {
+            return angle_radian(this->start - this->center, this->end - this->center) * r;
         } else {
-            return angle_radian(end - center, start - center) * r;
+            return angle_radian(this->end - this->center, this->start - this->center) * r;
         }
     }
     return -1;
@@ -339,12 +341,15 @@ bool ShapeElement::contains(const Point& point) const
             return false;
         }
 
+        if (this->orientation == ShapeElementOrientation::Full)
+            return true;
+
         // Calculate angles
         Angle point_angle = angle_radian(point - this->center);
         Angle start_angle = angle_radian(this->start - this->center);
         Angle end_angle = angle_radian(this->end - this->center);
 
-        if (this->anticlockwise) {
+        if (this->orientation == ShapeElementOrientation::Anticlockwise) {
             Angle a0 = angle_radian(
                     this->start - this->center,
                     this->end - this->center);
@@ -376,7 +381,7 @@ std::string ShapeElement::to_string() const
         return "CircularArc start " + start.to_string()
             + " end " + end.to_string()
             + " center " + center.to_string()
-            + ((anticlockwise)? " anticlockwise": " clockwise");
+            + " orientation " + orientation2str(orientation);
     }
     }
     return "";
@@ -393,7 +398,7 @@ nlohmann::json ShapeElement::to_json() const
     if (type == ShapeElementType::CircularArc) {
         json["center"]["x"] = center.x;
         json["center"]["y"] = center.y;
-        json["anticlockwise"] = anticlockwise;
+        json["orientation"] = orientation2str(orientation);
     }
     return json;
 }
@@ -421,10 +426,10 @@ ShapeElement ShapeElement::rotate(
 ShapeElement ShapeElement::axial_symmetry_identity_line() const
 {
     ShapeElement element_out = *this;
-    element_out.start = end.axial_symmetry_identity_line();
-    element_out.end = start.axial_symmetry_identity_line();
-    element_out.center = center.axial_symmetry_identity_line();
-    element_out.anticlockwise = !anticlockwise;
+    element_out.start = this->end.axial_symmetry_identity_line();
+    element_out.end = this->start.axial_symmetry_identity_line();
+    element_out.center = this->center.axial_symmetry_identity_line();
+    element_out.orientation = opposite(this->orientation);
     return element_out;
 }
 
@@ -434,7 +439,7 @@ ShapeElement ShapeElement::axial_symmetry_x_axis() const
     element_out.start = end.axial_symmetry_x_axis();
     element_out.end = start.axial_symmetry_x_axis();
     element_out.center = center.axial_symmetry_x_axis();
-    element_out.anticlockwise = !anticlockwise;
+    element_out.orientation = opposite(this->orientation);
     return element_out;
 }
 
@@ -444,7 +449,7 @@ ShapeElement ShapeElement::axial_symmetry_y_axis() const
     element_out.start = end.axial_symmetry_y_axis();
     element_out.end = start.axial_symmetry_y_axis();
     element_out.center = center.axial_symmetry_y_axis();
-    element_out.anticlockwise = !anticlockwise;
+    element_out.orientation = opposite(this->orientation);
     return element_out;
 }
 
@@ -458,7 +463,7 @@ ShapeElement ShapeElement::reverse() const
     element_out.end.y = this->start.y;
     element_out.center.x = this->center.x;
     element_out.center.y = this->center.y;
-    element_out.anticlockwise = !this->anticlockwise;
+    element_out.orientation = opposite(this->orientation);
     return element_out;
 }
 
@@ -504,6 +509,70 @@ char shape::element2char(ShapeElementType type)
     return ' ';
 }
 
+ShapeElementOrientation shape::str2orientation(const std::string& str)
+{
+    if (str == "Anticlockwise"
+            || str == "anticlockwise"
+            || str == "A"
+            || str == "a") {
+        return ShapeElementOrientation::Anticlockwise;
+    } else if (str == "Clockwise"
+            || str == "clockwise"
+            || str == "C"
+            || str == "c") {
+        return ShapeElementOrientation::Clockwise;
+    } else if (str == "Full"
+            || str == "full"
+            || str == "F"
+            || str == "f") {
+        return ShapeElementOrientation::Full;
+    } else {
+        throw std::invalid_argument("");
+        return ShapeElementOrientation::Full;
+    }
+}
+
+std::string shape::orientation2str(ShapeElementOrientation type)
+{
+    switch (type) {
+    case ShapeElementOrientation::Anticlockwise: {
+        return "Anticlockwise";
+    } case ShapeElementOrientation::Clockwise: {
+        return "Clockwise";
+    } case ShapeElementOrientation::Full: {
+        return "Full";
+    }
+    }
+    return "";
+}
+
+char shape::orientation2char(ShapeElementOrientation type)
+{
+    switch (type) {
+    case ShapeElementOrientation::Anticlockwise: {
+        return 'A';
+    } case ShapeElementOrientation::Clockwise: {
+        return 'C';
+    } case ShapeElementOrientation::Full: {
+        return 'F';
+    }
+    }
+    return ' ';
+}
+
+ShapeElementOrientation shape::opposite(ShapeElementOrientation orientation)
+{
+    switch (orientation) {
+    case ShapeElementOrientation::Anticlockwise:
+        return ShapeElementOrientation::Clockwise;
+    case ShapeElementOrientation::Clockwise:
+        return ShapeElementOrientation::Anticlockwise;
+    case ShapeElementOrientation::Full:
+        return ShapeElementOrientation::Full;
+    }
+    return ShapeElementOrientation::Full;
+}
+
 ShapeElement shape::operator*(
         LengthDbl scalar,
         const ShapeElement& element)
@@ -513,7 +582,7 @@ ShapeElement shape::operator*(
     element_out.start = scalar * element.start;
     element_out.end = scalar * element.end;
     element_out.center = scalar * element.center;
-    element_out.anticlockwise = element.anticlockwise;
+    element_out.orientation = element.orientation;
     return element_out;
 }
 
@@ -540,15 +609,15 @@ std::vector<ShapeElement> shape::approximate_circular_arc_by_line_segments(
         //        "number_of_line_segments: " + std::to_string(number_of_line_segments) + ".");
     }
 
-    Angle angle = (circular_arc.anticlockwise)?
+    Angle angle = (circular_arc.orientation == ShapeElementOrientation::Anticlockwise)?
         angle_radian(
             circular_arc.start - circular_arc.center,
             circular_arc.end - circular_arc.center):
         angle_radian(
             circular_arc.end - circular_arc.center,
             circular_arc.start - circular_arc.center);
-    if ((outer && circular_arc.anticlockwise)
-            || (!outer && !circular_arc.anticlockwise)) {
+    if ((outer && circular_arc.orientation == ShapeElementOrientation::Anticlockwise)
+            || (!outer && circular_arc.orientation != ShapeElementOrientation::Anticlockwise)) {
         if (angle < M_PI && number_of_line_segments < 2) {
             number_of_line_segments = 2;
             //throw std::runtime_error(
@@ -578,7 +647,7 @@ std::vector<ShapeElement> shape::approximate_circular_arc_by_line_segments(
             line_segment_id < number_of_line_segments - 1;
             ++line_segment_id) {
         Angle angle_cur = (angle * (line_segment_id + 1)) / (number_of_line_segments - 1);
-        if (!circular_arc.anticlockwise)
+        if (circular_arc.orientation != ShapeElementOrientation::Anticlockwise)
             angle_cur *= -1;
         //std::cout << "angle_cur " << angle_cur << std::endl;
         Point point_circle = circular_arc.start.rotate_radians(
@@ -586,7 +655,8 @@ std::vector<ShapeElement> shape::approximate_circular_arc_by_line_segments(
                 angle_cur);
         //std::cout << "point_circle " << point_circle.to_string() << std::endl;
         Point point_cur;
-        if ((outer && !circular_arc.anticlockwise) || (!outer && circular_arc.anticlockwise)) {
+        if ((outer && circular_arc.orientation != ShapeElementOrientation::Anticlockwise)
+                || (!outer && circular_arc.orientation == ShapeElementOrientation::Anticlockwise)) {
             point_cur = point_circle;
         } else {
             // https://en.wikipedia.org/wiki/Tangent_lines_to_circles#Cartesian_equation
@@ -711,7 +781,7 @@ AreaDbl Shape::compute_area() const
         if (element.type == ShapeElementType::CircularArc) {
             LengthDbl radius = distance(element.center, element.start);
             Angle theta = angle_radian(element.center - element.start, element.center - element.end);
-            if (element.anticlockwise) {
+            if (element.orientation == ShapeElementOrientation::Anticlockwise) {
                 area += radius * radius * ((!(element.start == element.end))? theta: 2.0 * M_PI);
             } else {
                 area -= radius * radius * ((!(element.start == element.end))? 2.0 * M_PI - theta: 2.0 * M_PI);
@@ -826,7 +896,7 @@ bool Shape::contains(
                     //    << " M_PI / 2 " << M_PI / 2
                     //    << " 3 * M_PI / 2 " << 3 * M_PI / 2
                     //    << std::endl;
-                    bool start_upward = (element.anticlockwise)?
+                    bool start_upward = (element.orientation == ShapeElementOrientation::Anticlockwise)?
                         (start_angle < M_PI / 2 || start_angle >= 3 * M_PI / 2):
                         (start_angle > M_PI / 2 && start_angle <= 3 * M_PI / 2);
                     //std::cout << "start_upward " << start_upward << std::endl;
@@ -834,7 +904,7 @@ bool Shape::contains(
                         intersection_count++;
                 } else if (intersection == element.end) {
                     Angle end_angle = angle_radian(element.end - element.center);
-                    bool end_upward = (element.anticlockwise)?
+                    bool end_upward = (element.orientation == ShapeElementOrientation::Anticlockwise)?
                         (end_angle < M_PI / 2 || end_angle >= 3 * M_PI / 2):
                         (end_angle >= M_PI / 2 && end_angle < 3 * M_PI / 2);
                     //std::cout << "end_upward " << end_upward << std::endl;
@@ -1047,7 +1117,7 @@ std::string Shape::to_svg() const
             LengthDbl radius = distance(center, start);
             Angle theta = angle_radian(start - center, end - center);
             int large_arc_flag = (theta > M_PI)? 0: 1;
-            int sweep_flag = (element.anticlockwise)? 0: 1;
+            int sweep_flag = (element.orientation == ShapeElementOrientation::Anticlockwise)? 0: 1;
             s += "A" + std::to_string(radius) + ","
                 + std::to_string(radius) + ",0,"
                 + std::to_string(large_arc_flag) + ","
@@ -1140,7 +1210,7 @@ Shape shape::build_shape(
     Shape shape;
     Point point_prev = {points.front().x, points.front().y};
     ShapeElementType type = ShapeElementType::LineSegment;
-    bool anticlockwise = false;
+    ShapeElementOrientation orientation = ShapeElementOrientation::Anticlockwise;
     Point center = {0, 0};
     for (ElementPos pos = 1; pos <= (ElementPos)points.size(); ++pos) {
         const BuildShapeElement& point = points[(pos != points.size())? pos: 0];
@@ -1152,15 +1222,17 @@ Shape shape::build_shape(
             element.start = point_prev;
             element.end = {point.x, point.y};
             element.center = center;
-            element.anticlockwise = anticlockwise;
+            element.orientation = orientation;
             shape.elements.push_back(element);
 
             point_prev = element.end;
-            anticlockwise = true;
+            orientation = ShapeElementOrientation::Anticlockwise;
             center = {0, 0};
             type = ShapeElementType::LineSegment;
         } else {
-            anticlockwise = (point.type == 1);
+            orientation = (point.type == 1)?
+                ShapeElementOrientation::Anticlockwise:
+                ShapeElementOrientation::Clockwise;
             center = {point.x, point.y};
             type = ShapeElementType::CircularArc;
         }
@@ -1611,7 +1683,7 @@ bool shape::operator==(
     if (element_1.type == ShapeElementType::CircularArc) {
         if (!(element_1.center == element_2.center))
             return false;
-        if (element_1.anticlockwise != element_2.anticlockwise)
+        if (element_1.orientation != element_2.orientation)
             return false;
     }
     return true;
@@ -1630,7 +1702,7 @@ bool shape::equal(
     if (element_1.type == ShapeElementType::CircularArc) {
         if (!equal(element_1.center, element_2.center))
             return false;
-        if (element_1.anticlockwise != element_2.anticlockwise)
+        if (element_1.orientation != element_2.orientation)
             return false;
     }
     return true;

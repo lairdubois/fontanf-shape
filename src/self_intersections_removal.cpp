@@ -260,7 +260,7 @@ ShapeWithHoles shape::remove_self_intersections(
             direction_cur = element_cur.end - element_cur.start;
             break;
         } case ShapeElementType::CircularArc: {
-            if (element_cur.anticlockwise) {
+            if (element_cur.orientation == ShapeElementOrientation::Anticlockwise) {
                 direction_cur = {
                     element_cur.center.y - element_cur.end.y,
                     element_cur.end.x - element_cur.center.x};
@@ -283,7 +283,7 @@ ShapeWithHoles shape::remove_self_intersections(
                 direction_next = element_next.end - element_next.start;
                 break;
             } case ShapeElementType::CircularArc: {
-                if (element_next.anticlockwise) {
+                if (element_next.orientation == ShapeElementOrientation::Anticlockwise) {
                     direction_next = {
                         element_next.center.y - element_next.start.y,
                         element_next.start.x - element_next.center.x};
@@ -366,7 +366,7 @@ ShapeWithHoles shape::remove_self_intersections(
                 direction_cur = element_cur.end - element_cur.start;
                 break;
             } case ShapeElementType::CircularArc: {
-                if (element_cur.anticlockwise) {
+                if (element_cur.orientation == ShapeElementOrientation::Anticlockwise) {
                     direction_cur = {
                         element_cur.center.y - element_cur.end.y,
                         element_cur.end.x - element_cur.center.x};
@@ -389,7 +389,7 @@ ShapeWithHoles shape::remove_self_intersections(
                     direction_next = element_next.end - element_next.start;
                     break;
                 } case ShapeElementType::CircularArc: {
-                    if (element_next.anticlockwise) {
+                    if (element_next.orientation == ShapeElementOrientation::Anticlockwise) {
                         direction_next = {
                             element_next.center.y - element_next.start.y,
                             element_next.start.x - element_next.center.x};
@@ -527,7 +527,7 @@ std::vector<Shape> shape::extract_all_holes_from_self_intersecting_hole(
                 direction_cur = element_cur.end - element_cur.start;
                 break;
             } case ShapeElementType::CircularArc: {
-                if (element_cur.anticlockwise) {
+                if (element_cur.orientation == ShapeElementOrientation::Anticlockwise) {
                     direction_cur = {
                         element_cur.center.y - element_cur.end.y,
                         element_cur.end.x - element_cur.center.x};
@@ -550,7 +550,7 @@ std::vector<Shape> shape::extract_all_holes_from_self_intersecting_hole(
                     direction_next = element_next.end - element_next.start;
                     break;
                 } case ShapeElementType::CircularArc: {
-                    if (element_next.anticlockwise) {
+                    if (element_next.orientation == ShapeElementOrientation::Anticlockwise) {
                         direction_next = {
                             element_next.center.y - element_next.start.y,
                             element_next.start.x - element_next.center.x};

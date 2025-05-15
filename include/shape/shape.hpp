@@ -162,6 +162,20 @@ ShapeElementType str2element(const std::string& str);
 
 char element2char(ShapeElementType type);
 
+enum class ShapeElementOrientation
+{
+    Anticlockwise,
+    Clockwise,
+    Full,
+};
+
+std::string orientation2str(ShapeElementOrientation type);
+ShapeElementOrientation str2orientation(const std::string& str);
+
+char orientation2char(ShapeElementOrientation type);
+
+ShapeElementOrientation opposite(ShapeElementOrientation orientation);
+
 /**
  * Structure for the elementary elements composing a shape.
  */
@@ -180,7 +194,7 @@ struct ShapeElement
     Point center = {0, 0};
 
     /** If the element is a CircularArc, direction of the rotation. */
-    bool anticlockwise = true;
+    ShapeElementOrientation orientation = ShapeElementOrientation::Anticlockwise;
 
     /** Length of the element. */
     LengthDbl length() const;
@@ -473,7 +487,7 @@ ShapeElement ShapeElement::from_json(basic_json& json_element)
     if (element.type == ShapeElementType::CircularArc) {
         element.center.x = json_element["center"]["x"];
         element.center.y = json_element["center"]["y"];
-        element.anticlockwise = json_element["anticlockwise"];
+        element.orientation = str2orientation(json_element["orientation"]);
     }
     return element;
 }

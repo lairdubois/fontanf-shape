@@ -47,7 +47,7 @@ ShapeElement inflate_element(
         element_new.end.x = element.end.x + offset * normal_end.x;
         element_new.end.y = element.end.y + offset * normal_end.y;
         element_new.center = element.center;
-        element_new.anticlockwise = element.anticlockwise;
+        element_new.orientation = element.orientation;
         break;
     }
     }
@@ -97,7 +97,7 @@ ShapeWithHoles shape::inflate(
             element_inter_new.start = element_new_prev.end;
             element_inter_new.end = element_new.start;
             element_inter_new.center = element.start;
-            element_inter_new.anticlockwise = true;
+            element_inter_new.orientation = ShapeElementOrientation::Anticlockwise;
             shape_new.elements.push_back(element_inter_new);
 
             // Check radius.
@@ -170,7 +170,7 @@ std::vector<Shape> shape::deflate(
             element_inter_new.start = element_new_prev.end;
             element_inter_new.end = element_new.start;
             element_inter_new.center = element.start;
-            element_inter_new.anticlockwise = false;
+            element_inter_new.orientation = ShapeElementOrientation::Clockwise;
             shape_new.elements.push_back(element_inter_new);
 
             // Check radius.

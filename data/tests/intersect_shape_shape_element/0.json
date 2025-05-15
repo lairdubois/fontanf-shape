@@ -1,6 +1,6 @@
 {
     "element": {
-        "anticlockwise": true,
+        "orientation": "anticlockwise",
         "center": {
             "x": 25.140000534743415,
             "y": 562.2074008893288

@@ -24,7 +24,7 @@ ShapeSupports shape::compute_shape_supports(
             LengthDbl radius = distance(element.center, element.start);
             Angle starting_angle = angle_radian(element.start - element.center);
             Angle ending_angle = angle_radian(element.end - element.center);
-            if (!element.anticlockwise)
+            if (element.orientation == ShapeElementOrientation::Clockwise)
                 std::swap(starting_angle, ending_angle);
             if (starting_angle <= ending_angle) {
                 if (starting_angle <= M_PI
