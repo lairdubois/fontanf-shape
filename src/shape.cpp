@@ -1012,9 +1012,9 @@ Shape Shape::read_json(
                 "unable to open file \"" + file_path + "\".");
     }
 
-    nlohmann ::json j;
+    nlohmann::json j;
     file >> j;
-    return read_json(j);
+    return from_json(j);
 }
 
 void Shape::write_json(
@@ -1206,9 +1206,9 @@ ShapeWithHoles ShapeWithHoles::read_json(
                 "unable to open file \"" + file_path + "\".");
     }
 
-    nlohmann ::json j;
+    nlohmann::json j;
     file >> j;
-    return read_json(j);
+    return from_json(j);
 }
 
 void ShapeWithHoles::write_json(
