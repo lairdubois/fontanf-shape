@@ -2,8 +2,12 @@
 
 #include <gtest/gtest.h>
 
-using namespace shape;
+#include <boost/filesystem.hpp>
 
+#include <fstream>
+
+using namespace shape;
+namespace fs = boost::filesystem;
 
 struct ComputeIntersectionsTestParams
 {
@@ -236,6 +240,69 @@ INSTANTIATE_TEST_SUITE_P(
                 false,
                 {{1.96721311, -0.78740157}},
             }}));
+
+
+struct IntersectShapeShapeElementTestParams
+{
+    Shape shape;
+    ShapeElement element;
+    bool strict;
+    bool expected_result;
+
+
+    template <class basic_json>
+    static IntersectShapeShapeElementTestParams from_json(basic_json& json_item)
+    {
+        IntersectShapeShapeElementTestParams test_params;
+        test_params.shape = Shape::from_json(json_item["shape"]);
+        test_params.element = ShapeElement::from_json(json_item["element"]);
+        test_params.strict = json_item["strict"];
+        test_params.expected_result = json_item["expected_result"];
+        return test_params;
+    }
+
+    static IntersectShapeShapeElementTestParams read_json(
+            const std::string& file_path)
+    {
+        std::ifstream file(file_path);
+        if (!file.good()) {
+            throw std::runtime_error(
+                    "shape::IntersectShapeShapeElementTestParams::read_json: "
+                    "unable to open file \"" + file_path + "\".");
+        }
+
+        nlohmann::json json;
+        file >> json;
+        return from_json(json);
+    }
+};
+
+class IntersectShapeShapeElementTest: public testing::TestWithParam<IntersectShapeShapeElementTestParams> { };
+
+TEST_P(IntersectShapeShapeElementTest, IntersectShapeShapeElement)
+{
+    IntersectShapeShapeElementTestParams test_params = GetParam();
+    std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
+    std::cout << "element " << test_params.element.to_string() << std::endl;
+    std::cout << "strict " << test_params.strict << std::endl;
+    std::cout << "expected_result " << test_params.expected_result << std::endl;
+
+    bool result = intersect(
+            test_params.shape,
+            test_params.element,
+            test_params.strict);
+    std::cout << "result " << result << std::endl;
+
+    EXPECT_EQ(result, test_params.expected_result);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Shape,
+        IntersectShapeShapeElementTest,
+        testing::ValuesIn(std::vector<IntersectShapeShapeElementTestParams>{
+            IntersectShapeShapeElementTestParams::read_json(
+                    (fs::path("data") / "tests" / "intersect_shape_shape_element" / "0.json").string()),
+            }));
 
 
 struct MergeIntersectingShapesTestParams
