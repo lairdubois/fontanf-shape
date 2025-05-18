@@ -227,8 +227,17 @@ struct ShapeElement
     /** Compute the smallest and greatest x and y of the shape. */
     std::pair<Point, Point> min_max() const;
 
-    /** Compute furthest points according to a given direction. */
+    /**
+     * Compute furthest points according to a given direction.
+     *
+     * If 'angle == 0', return the lowest and highest points.
+     *
+     * If 'angle == 90', return the right-most and left-most points.
+     */
     std::pair<Point, Point> furthest_points(Angle angle) const;
+
+    /** Split an element at a given point. */
+    std::pair<ShapeElement, ShapeElement> split(const Point& point) const;
 
     std::string to_string() const;
 
@@ -237,6 +246,10 @@ struct ShapeElement
 
     nlohmann::json to_json() const;
 };
+
+bool operator<(
+        const ShapeElement& element_1,
+        const ShapeElement& element_2);
 
 ShapeElement operator*(
         LengthDbl scalar,
@@ -312,8 +325,15 @@ struct Shape
             Angle angle = 0.0,
             bool mirror = false) const;
 
+    struct FurthestPoint
+    {
+        Point point;
+
+        ElementPos element_pos;
+    };
+
     /** Compute furthest points according to a given direction. */
-    std::pair<Point, Point> compute_furthest_points(
+    std::pair<FurthestPoint, FurthestPoint> compute_furthest_points(
             Angle angle) const;
 
     /** Check if the shape contains a given point. */
@@ -361,6 +381,11 @@ struct Shape
             const std::string& file_path) const;
 };
 
+Shape build_triangle(
+        const Point& p1,
+        const Point& p2,
+        const Point& p3);
+
 Shape operator*(
         LengthDbl scalar,
         const Shape& shape);
@@ -384,6 +409,17 @@ struct ShapeWithHoles
     std::pair<Point, Point> compute_min_max(
             Angle angle = 0.0,
             bool mirror = false) const { return this->shape.compute_min_max(angle, mirror); }
+
+    /** Check if the shape contains a given point. */
+    bool contains(
+            const Point& point,
+            bool strict = false) const;
+
+    /**
+     * Bridge the holes to convert the ShapeWithHoles into a Shape without
+     * hoels.
+     */
+    Shape bridge_holes() const;
 
     /*
      * Export
@@ -460,9 +496,11 @@ std::pair<bool, Shape> remove_redundant_vertices(
 std::pair<bool, Shape> remove_aligned_vertices(
         const Shape& shape);
 
-Shape clean_extreme_slopes(
-        const Shape& shape,
-        bool outer);
+std::vector<Shape> clean_extreme_slopes_inner(
+        const Shape& shape);
+
+ShapeWithHoles clean_extreme_slopes_outer(
+        const Shape& shape);
 
 inline bool operator==(
         const Point& point_1,

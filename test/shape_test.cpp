@@ -50,7 +50,7 @@ TEST_P(ShapeElementMiddleTest, ShapeElementMiddle)
 
     EXPECT_TRUE(equal(middle, test_params.expected_middle));
 }
- 
+
 INSTANTIATE_TEST_SUITE_P(
         Shape,
         ShapeElementMiddleTest,
@@ -126,8 +126,8 @@ struct ShapeComputeFurthestPointsTestParams
 {
     Shape shape;
     Angle angle;
-    Point expected_point_min;
-    Point expected_point_max;
+    Shape::FurthestPoint expected_point_min;
+    Shape::FurthestPoint expected_point_max;
 };
 
 class ShapeComputeFurthestPointsTest: public testing::TestWithParam<ShapeComputeFurthestPointsTestParams> { };
@@ -137,13 +137,21 @@ TEST_P(ShapeComputeFurthestPointsTest, ShapeComputeFurthestPoints)
     ShapeComputeFurthestPointsTestParams test_params = GetParam();
     std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
     std::cout << "angle " << test_params.angle << std::endl;
-    std::cout << "expected point_min " << test_params.expected_point_min.to_string()
-        << " point_max " << test_params.expected_point_max.to_string() << std::endl;
-    auto mm = test_params.shape.compute_furthest_points(test_params.angle);
-    std::cout << "point_min " << mm.first.to_string()
-        << " point_max " << mm.second.to_string() << std::endl;
-    EXPECT_TRUE(equal(mm.first, test_params.expected_point_min));
-    EXPECT_TRUE(equal(mm.second, test_params.expected_point_max));
+    std::cout << "expected point_min " << test_params.expected_point_min.point.to_string()
+        << " pos " << test_params.expected_point_min.element_pos
+        << " point_max " << test_params.expected_point_max.point.to_string()
+        << " pos " << test_params.expected_point_max.element_pos
+        << std::endl;
+    auto p = test_params.shape.compute_furthest_points(test_params.angle);
+    std::cout << "point_min " << p.first.point.to_string()
+        << " pos " << p.first.element_pos
+        << " point_max " << p.second.point.to_string()
+        << " pos " << p.second.element_pos
+        << std::endl;
+    EXPECT_TRUE(equal(p.first.point, test_params.expected_point_min.point));
+    EXPECT_TRUE(equal(p.first.element_pos, test_params.expected_point_min.element_pos));
+    EXPECT_TRUE(equal(p.second.point, test_params.expected_point_max.point));
+    EXPECT_TRUE(equal(p.second.element_pos, test_params.expected_point_max.element_pos));
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -151,15 +159,20 @@ INSTANTIATE_TEST_SUITE_P(
         ShapeComputeFurthestPointsTest,
         testing::ValuesIn(std::vector<ShapeComputeFurthestPointsTestParams>{
             {
+                build_shape({{1, 0}, {2, 1}, {1, 2}, {0, 1}}),
+                0,
+                {Point{1, 0}, 0},
+                {Point{1, 2}, 1},
+            }, {
                 build_shape({{0, 0}, {2, 0}, {2, 2}, {0, 2}}),
                 45,
-                Point{2, 0},
-                Point{0, 2},
+                {Point{2, 0}, 0},
+                {Point{0, 2}, 2},
             }, {
                 build_shape({{0, 0}, {2, 0}, {4, 2}, {3, 3, 1}, {2, 4}, {0, 2}}),
                 90 + 45,
-                Point{4, 4},
-                Point{0, 0},
+                {Point{4, 4}, 2},
+                {Point{0, 0}, 0},
             },
             }));
 
@@ -366,3 +379,79 @@ INSTANTIATE_TEST_SUITE_P(
                 false,
                 build_shape({{1, 0}, {0.585786437626905, 0}, {0, 0.585786437626905}, {0, 1}}, true).elements
             }}));
+
+
+struct ShapeWithHolesBridgeHolesTestParams
+{
+    ShapeWithHoles shape;
+    Shape expected_shape;
+};
+
+class ShapeWithHolesBridgeHolesTest: public testing::TestWithParam<ShapeWithHolesBridgeHolesTestParams> { };
+
+TEST_P(ShapeWithHolesBridgeHolesTest, ShapeWithHolesBridgeHoles)
+{
+    ShapeWithHolesBridgeHolesTestParams test_params = GetParam();
+    std::cout << "shape " << test_params.shape.to_string(2) << std::endl;
+    std::cout << "expected shape " << test_params.expected_shape.to_string(2) << std::endl;
+    Shape res = test_params.shape.bridge_holes();
+    std::cout << "res " << res.to_string(2) << std::endl;
+    EXPECT_TRUE(equal(res, test_params.expected_shape));
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Shape,
+        ShapeWithHolesBridgeHolesTest,
+        testing::ValuesIn(std::vector<ShapeWithHolesBridgeHolesTestParams>{
+            {  // Shape without hole.
+                {build_shape({{0, 0}, {2, 0}, {2, 2}, {0, 2}})},
+                build_shape({{0, 0}, {2, 0}, {2, 2}, {0, 2}}),
+            }, {  // Shape with one hole touching its outline.
+                {
+                    build_shape({{0, 0}, {20, 0}, {20, 10}, {0, 10}}),
+                    {
+                        build_shape({{19, 4}, {20, 5}, {19, 6}, {18, 5}}),
+                    }
+                },
+                build_shape({
+                        {0, 0}, {20, 0}, {20, 5},
+                        {19, 4}, {18, 5}, {19, 6},
+                        {20, 5}, {20, 10}, {0, 10}}),
+            }, {  // Shape with one hole touching its outline.
+                {
+                    build_shape({{0, 0}, {20, 0}, {19, 5}, {20, 10}, {0, 10}}),
+                    {
+                        build_shape({{19, 4}, {19, 6}, {17, 6}, {17, 4}}),
+                    }
+                },
+                build_shape({
+                        {0, 0}, {20, 0}, {19, 5},
+                        {19, 4}, {17, 4}, {17, 6}, {19, 6},
+                        {19, 5}, {20, 10}, {0, 10}}),
+            }, {  // Shape with one hole not touching its outline.
+                {
+                    build_shape({{0, 0}, {20, 0}, {20, 10}, {0, 10}}),
+                    {
+                        build_shape({{15, 4}, {16, 5}, {15, 6}, {14, 5}}),
+                    }
+                },
+                build_shape({
+                        {0, 0}, {20, 0}, {20, 10}, {0, 10}, {0, 5},
+                        {14, 5}, {15, 6}, {16, 5}, {15, 4}, {14, 5},
+                        {0, 5}}),
+            }, {  // Shape with two holes.
+                {
+                    build_shape({{0, 0}, {20, 0}, {20, 10}, {0, 10}}),
+                    {
+                        build_shape({{15, 4}, {16, 5}, {15, 6}, {14, 5}}),
+                        build_shape({{10, 4}, {11, 5}, {10, 6}, {9, 5}}),
+                    }
+                },
+                build_shape({
+                        {0, 0}, {20, 0}, {20, 10}, {0, 10}, {0, 5},
+                        {9, 5}, {10, 6}, {11, 5},
+                        {14, 5}, {15, 6}, {16, 5}, {15, 4}, {14, 5},
+                        {11, 5}, {10, 4}, {9, 5},
+                        {0, 5}}),
+            },
+            }));

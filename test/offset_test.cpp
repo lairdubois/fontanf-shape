@@ -84,7 +84,7 @@ TEST_P(DeflateTest, Deflate)
 }
 
 INSTANTIATE_TEST_SUITE_P(
-        ,
+        Shape,
         DeflateTest,
         testing::ValuesIn(std::vector<DeflateTestParams>{
             {  // No self intersection

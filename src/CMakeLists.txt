@@ -3,11 +3,12 @@ add_library(Shape_shape)
 target_sources(Shape_shape PRIVATE
     shape.cpp
     element_intersections.cpp
+    boolean_operations.cpp
     convex_hull.cpp
     extract_borders.cpp
-    self_intersections_removal.cpp
     trapezoidation.cpp
     intersection_tree.cpp
+    equalize.cpp
     offset.cpp
     simplification.cpp
     supports.cpp)

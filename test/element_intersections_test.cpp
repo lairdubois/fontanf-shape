@@ -355,66 +355,6 @@ INSTANTIATE_TEST_SUITE_P(
             }));
 
 
-struct MergeIntersectingShapesTestParams
-{
-    std::vector<Shape> shapes;
-    std::vector<Shape> expected_merged_shapes;
-};
-
-class MergeIntersectingShapesTest: public testing::TestWithParam<MergeIntersectingShapesTestParams> { };
-
-TEST_P(MergeIntersectingShapesTest, MergeIntersectingShapes)
-{
-    MergeIntersectingShapesTestParams test_params = GetParam();
-    std::cout << "shapes" << std::endl;
-    for (const Shape& shape: test_params.shapes)
-        std::cout << "- " << shape.to_string(2) << std::endl;
-    std::cout << "expected_merged_shapes" << std::endl;
-    for (const Shape& shape: test_params.expected_merged_shapes)
-        std::cout << "- " << shape.to_string(2) << std::endl;
-
-    std::vector<Shape> merged_shapes = merge_intersecting_shapes(
-            test_params.shapes);
-    std::cout << "merged_shapes" << std::endl;
-    for (const Shape& shape: merged_shapes)
-        std::cout << "- " << shape.to_string(2) << std::endl;
-
-    ASSERT_EQ(merged_shapes.size(), test_params.expected_merged_shapes.size());
-    for (const Shape& expected_shape: test_params.expected_merged_shapes) {
-        EXPECT_NE(std::find_if(
-                    merged_shapes.begin(),
-                    merged_shapes.end(),
-                    [&expected_shape](const Shape& shape) { return equal(shape, expected_shape); }),
-                merged_shapes.end());
-    }
-}
-
-INSTANTIATE_TEST_SUITE_P(
-        Shape,
-        MergeIntersectingShapesTest,
-        testing::ValuesIn(std::vector<MergeIntersectingShapesTestParams>{
-            {
-                {build_shape({{0, 0}, {2, 0}, {2, 2}, {0, 2}})},
-                {build_shape({{0, 0}, {2, 0}, {2, 2}, {0, 2}})},
-            }, {
-                {
-                    build_shape({{0, 0}, {2, 0}, {2, 2}, {0, 2}}),
-                    build_shape({{1, 0}, {3, 0}, {3, 2}, {1, 2}}),
-                },
-                {build_shape({{0, 0}, {3, 0}, {3, 2}, {0, 2}})},
-            }, {
-                {
-                    build_shape({{0, 0}, {2, 0}, {2, 2}, {0, 2}}),
-                    build_shape({{1, 0}, {3, 0}, {3, 2}, {1, 2}}),
-                    build_shape({{5, 0}, {7, 0}, {7, 2}, {5, 2}}),
-                },
-                {
-                    build_shape({{0, 0}, {3, 0}, {3, 2}, {0, 2}}),
-                    build_shape({{5, 0}, {7, 0}, {7, 2}, {5, 2}}),
-                },
-            }}));
-
-
 struct IntersectShapeShapeTestParams
 {
     Shape shape_1;

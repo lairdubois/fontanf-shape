@@ -1,6 +1,6 @@
 #include "shape/simplification.hpp"
 
-#include "shape/self_intersections_removal.hpp"
+#include "shape/boolean_operations.hpp"
 
 #include "optimizationtools/containers/indexed_binary_heap.hpp"
 
@@ -43,6 +43,8 @@ struct ApproximatedShape
     bool outer = true;
 
     std::vector<ApproximatedShapeElement> elements;
+
+    std::vector<ShapeWithHoles> union_input;
 
     Shape shape() const
     {
@@ -282,6 +284,10 @@ void apply_approximation(
                 LengthDbl yp = ((x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4)) / denom;
                 element_prev.element.end = {xp, yp};
                 element_next.element.start = {xp, yp};
+                shape.union_input.push_back({build_triangle(
+                            element.element.start,
+                            {xp, yp},
+                            element.element.end)});
             } else {
                 // No approximation possible.
                 throw std::runtime_error(
@@ -295,6 +301,10 @@ void apply_approximation(
         } else {
             // angle_next < M_PI
             element_next.element.start = element.element.start;
+            shape.union_input.push_back({build_triangle(
+                        element.element.start,
+                        element_next.element.end,
+                        element.element.end)});
         }
     } else {
         // Inner approximation.
@@ -326,6 +336,10 @@ void apply_approximation(
                         {xp, yp});
                 element_prev.element.end = {xp, yp};
                 element_next.element.start = {xp, yp};
+                shape.union_input.push_back({build_triangle(
+                            element.element.start,
+                            element.element.end,
+                            {xp, yp})});
             } else {
                 // No approximation possible.
                 throw std::runtime_error(
@@ -336,6 +350,10 @@ void apply_approximation(
         } else {
             // angle_next < M_PI
             element_next.element.start = element.element.start;
+            shape.union_input.push_back({build_triangle(
+                        element.element.start,
+                        element.element.end,
+                        element_next.element.end)});
         }
     }
     element_prev.element_next_pos = element.element_next_pos;
@@ -564,13 +582,15 @@ std::vector<ShapeWithHoles> shape::simplify(
         const ApproximatedShape& approximated_shape = approximated_shapes[shape_pos];
         ShapeWithHoles shape_new;
         if (shape.outer) {
-            shape_new = remove_self_intersections(approximated_shape.shape());
+            shape_new = compute_union(approximated_shape.union_input).front();
             if (strictly_lesser(shape_new.shape.compute_area(), shapes[shape_pos].shape.compute_area())) {
                 throw std::logic_error(
-                        "shape::remove_self_intersections: inconsistent area.");
+                        "shape::simplify: inconsistent area.");
             }
         } else {
-            shape_new.holes = extract_all_holes_from_self_intersecting_hole(approximated_shape.shape());
+            auto difference_output = compute_difference({shape.shape}, approximated_shape.union_input);
+            for (const ShapeWithHoles& s: difference_output)
+                shape_new.holes.push_back(s.shape);
         }
         shapes_new.push_back(shape_new);
     }

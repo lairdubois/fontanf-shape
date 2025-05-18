@@ -1,6 +1,9 @@
 #include "shape/shape.hpp"
 
 #include "shape/element_intersections.hpp"
+#include "shape/intersection_tree.hpp"
+#include "shape/equalize.hpp"
+#include "shape/boolean_operations.hpp"
 
 #include <cmath>
 #include <fstream>
@@ -342,6 +345,43 @@ std::pair<Point, Point> ShapeElement::furthest_points(Angle angle) const
     return {mm.first.rotate(angle), mm.second.rotate(angle)};
 }
 
+std::pair<ShapeElement, ShapeElement> ShapeElement::split(const Point& point) const
+{
+    switch (this->type) {
+    case ShapeElementType::LineSegment: {
+        ShapeElement element_1 = *this;
+        ShapeElement element_2 = *this;
+        element_1.end = point;
+        element_2.start = point;
+        return {element_1, element_2};
+    } case ShapeElementType::CircularArc: {
+        if (orientation != ShapeElementOrientation::Full) {
+            ShapeElement element_1 = *this;
+            ShapeElement element_2 = *this;
+            element_1.end = point;
+            element_2.start = point;
+            return {element_1, element_2};
+        } else if (!equal(this->start, this->end)) {
+            ShapeElement element_1 = *this;
+            element_1.orientation = ShapeElementOrientation::Anticlockwise;
+            element_1.start = point;
+            element_1.end = point;
+            ShapeElement element_2 = *this;
+            element_2.start = point;
+            element_2.end = point;
+            return {element_1, element_2};
+        } else {
+            ShapeElement element_1 = *this;
+            ShapeElement element_2 = *this;
+            element_1.end = point;
+            element_2.start = point;
+            return {element_1, element_2};
+        }
+    }
+    }
+    return {};
+}
+
 int shape::counter_clockwise(
         const Point& point_1,
         const Point& point_2,
@@ -626,6 +666,29 @@ ShapeElementOrientation shape::opposite(ShapeElementOrientation orientation)
     return ShapeElementOrientation::Full;
 }
 
+bool shape::operator<(
+        const ShapeElement& element_1,
+        const ShapeElement& element_2)
+{
+    if (element_1.type != element_2.type)
+        return element_1.type < element_2.type;
+    if (element_1.start.x != element_2.start.x)
+        return element_1.start.x < element_2.start.x;
+    if (element_1.start.y != element_2.start.y)
+        return element_1.start.y < element_2.start.y;
+    if (element_1.end.x != element_2.end.x)
+        return element_1.end.x < element_2.end.x;
+    if (element_1.end.y != element_2.end.y)
+        return element_1.end.y < element_2.end.y;
+    if (element_1.center.x != element_2.center.x)
+        return element_1.center.x < element_2.center.x;
+    if (element_1.center.y != element_2.center.y)
+        return element_1.center.y < element_2.center.y;
+    if (element_1.orientation != element_2.orientation)
+        return element_1.orientation < element_2.orientation;
+    return true;
+}
+
 ShapeElement shape::operator*(
         LengthDbl scalar,
         const ShapeElement& element)
@@ -865,29 +928,40 @@ std::pair<Point, Point> Shape::compute_min_max(
     return {{x_min, y_min}, {x_max, y_max}};
 }
 
-std::pair<Point, Point> Shape::compute_furthest_points(
+std::pair<Shape::FurthestPoint, Shape::FurthestPoint> Shape::compute_furthest_points(
         Angle angle) const
 {
     if (angle == 0.0) {
         Point point_min;
         point_min.x = std::numeric_limits<LengthDbl>::infinity();
         point_min.y = std::numeric_limits<LengthDbl>::infinity();
+        ElementPos min_element_pos = -1;
         Point point_max;
         point_max.x = -std::numeric_limits<LengthDbl>::infinity();
         point_max.y = -std::numeric_limits<LengthDbl>::infinity();
-        for (const ShapeElement& element: this->elements) {
+        ElementPos max_element_pos = -1;
+        for (ElementPos element_pos = 0;
+                element_pos < (ElementPos)this->elements.size();
+                ++element_pos) {
+            const ShapeElement& element = this->elements[element_pos];
             auto mm = element.furthest_points(0.0);
-            if (point_min.y > mm.first.y)
+            if (point_min.y > mm.first.y) {
                 point_min = mm.first;
-            if (point_max.y < mm.second.y)
+                min_element_pos = element_pos;
+            }
+            if (point_max.y < mm.second.y) {
                 point_max = mm.second;
+                max_element_pos = element_pos;
+            }
         }
-        return {point_min, point_max};
+        return {{point_min, min_element_pos}, {point_max, max_element_pos}};
     }
 
     Shape shape_tmp = this->rotate(-angle);
     auto mm = shape_tmp.compute_furthest_points(0.0);
-    return {mm.first.rotate(angle), mm.second.rotate(angle)};
+    return {
+        {mm.first.point.rotate(angle), mm.first.element_pos},
+        {mm.second.point.rotate(angle), mm.second.element_pos}};
 }
 
 bool Shape::contains(
@@ -1133,8 +1207,9 @@ std::string Shape::to_string(
         for (Counter pos = 0; pos < (Counter)elements.size(); ++pos)
             s += indent + elements[pos].to_string() + ((pos < (Counter)elements.size() - 1)? "\n": "");
     } else if (is_circle()) {
-        LengthDbl radius = distance(elements.front().center, elements.front().start);
-        s += "circle (radius: " + std::to_string(radius) + ")";
+        const Point& center = elements.front().center;
+        LengthDbl radius = distance(center, elements.front().start);
+        s += "circle (center: " + center.to_string() + "; radius: " + std::to_string(radius) + ")";
     } else if (is_square()) {
         s += "square (side: " + std::to_string(elements.front().length()) + ")";
     } else if (is_rectangle()) {
@@ -1256,6 +1331,36 @@ void Shape::write_svg(
     file << "</svg>" << std::endl;
 }
 
+Shape shape::build_triangle(
+        const Point& p1,
+        const Point& p2,
+        const Point& p3)
+{
+    Shape shape;
+    {
+        ShapeElement element;
+        element.type = ShapeElementType::LineSegment;
+        element.start = p1;
+        element.end = p2;
+        shape.elements.push_back(element);
+    }
+    {
+        ShapeElement element;
+        element.type = ShapeElementType::LineSegment;
+        element.start = p2;
+        element.end = p3;
+        shape.elements.push_back(element);
+    }
+    {
+        ShapeElement element;
+        element.type = ShapeElementType::LineSegment;
+        element.start = p3;
+        element.end = p1;
+        shape.elements.push_back(element);
+    }
+    return shape;
+}
+
 Shape shape::operator*(
         LengthDbl scalar,
         const Shape& shape)
@@ -1353,6 +1458,207 @@ ShapeElement shape::build_circular_arc(
         const BuildShapeElement& end)
 {
     return build_shape({start, center, end}, true).elements.front();
+}
+
+bool ShapeWithHoles::contains(
+        const Point& point,
+        bool strict) const
+{
+    if (!this->shape.contains(point, strict))
+        return false;
+    for (const Shape& hole: this->holes)
+        if (hole.contains(point, !strict))
+            return false;
+    return true;
+}
+
+Shape ShapeWithHoles::bridge_holes() const
+{
+    Shape shape = this->shape;
+
+    auto mm = this->compute_min_max();
+
+    // Check if a hole is already touching the outer boundary.
+    std::vector<uint8_t> is_hole_processed(this->holes.size(), 0);
+    IntersectionTree intersection_tree({}, this->shape.elements, {});
+    ElementPos shape_contact_element_pos = -1;
+    ElementPos hole_contact_element_pos = -1;
+    for (ShapePos hole_pos = 0;
+            hole_pos < (ShapePos)this->holes.size();
+            ++hole_pos) {
+        const Shape& hole = this->holes[hole_pos];
+        for (ElementPos hole_element_pos = 0;
+                hole_element_pos < (ElementPos)hole.elements.size();
+                ++hole_element_pos) {
+            const ShapeElement& hole_element = hole.elements[hole_element_pos];
+            auto intersection_output = intersection_tree.intersect(hole_element, false);
+            if (!intersection_output.element_ids.empty()) {
+                hole_contact_element_pos = hole_element_pos;
+                shape_contact_element_pos = intersection_output.element_ids.front();
+                break;
+            }
+        }
+
+        if (hole_contact_element_pos != -1) {
+            const ShapeElement& hole_contact_element = hole.elements[hole_contact_element_pos];
+            const ShapeElement& shape_contact_element = shape.elements[shape_contact_element_pos];
+
+            Shape new_shape;
+            for (ElementPos shape_element_pos = 0;
+                    shape_element_pos < (ElementPos)shape.elements.size();
+                    ++shape_element_pos) {
+                const ShapeElement& shape_element = shape.elements[shape_element_pos];
+                if (shape_element_pos != shape_contact_element_pos) {
+                    new_shape.elements.push_back(shape_element);
+                } else {
+                    auto intersections = compute_intersections(
+                            shape_contact_element,
+                            hole_contact_element);
+                    const Point& intersection = intersections.front();
+                    auto p_shape = shape_element.split(intersection);
+                    auto p_hole = hole_contact_element.reverse().split(intersection);
+                    // Add first part of the shape element.
+                    if (!equal(p_shape.first.start, p_shape.first.end))
+                        new_shape.elements.push_back(p_shape.first);
+                    // Add first part of the hole element.
+                    if (!equal(p_hole.second.start, p_hole.second.end))
+                        new_shape.elements.push_back(p_hole.second);
+                    // Add hole.
+                    for (ElementPos hole_element_pos_tmp = (ElementPos)hole.elements.size() - 1;
+                            hole_element_pos_tmp >= 1;
+                            --hole_element_pos_tmp) {
+                        ElementPos hole_element_pos = (hole_contact_element_pos + hole_element_pos_tmp) % hole.elements.size();
+                        const ShapeElement& hole_element = hole.elements[hole_element_pos];
+                        new_shape.elements.push_back(hole_element.reverse());
+                    }
+                    // Add second part of the hole element.
+                    if (!equal(p_hole.first.start, p_hole.first.end))
+                        new_shape.elements.push_back(p_hole.first);
+                    // Add second part of the element.
+                    if (!equal(p_shape.second.start, p_shape.second.end))
+                        new_shape.elements.push_back(p_shape.second);
+                }
+            }
+            is_hole_processed[hole_pos] = 1;
+            shape = new_shape;
+        }
+    }
+
+    // For each hole, compute_the left-most point.
+    std::vector<Shape::FurthestPoint> holes_left_most_points(this->holes.size());
+    std::vector<ShapePos> sorted_holes;
+    for (ShapePos hole_pos = 0;
+            hole_pos < (ShapePos)this->holes.size();
+            ++hole_pos) {
+        const Shape& hole = this->holes[hole_pos];
+        if (is_hole_processed[hole_pos])
+            continue;
+        holes_left_most_points[hole_pos] = hole.compute_furthest_points(90).second;
+        sorted_holes.push_back(hole_pos);
+    }
+
+    // Sort holes by left-most point.
+    std::iota(sorted_holes.begin(), sorted_holes.end(), 0);
+    std::sort(
+            sorted_holes.begin(),
+            sorted_holes.end(),
+            [&holes_left_most_points](
+                ShapePos hole_pos_1,
+                ShapePos hole_pos_2)
+            {
+                return holes_left_most_points[hole_pos_1].point.x
+                    < holes_left_most_points[hole_pos_2].point.x;
+            });
+
+    for (ShapePos hole_pos: sorted_holes) {
+        const Shape& hole = this->holes[hole_pos];
+        std::cout << "hole_pos " << hole_pos << std::endl;
+
+        // Find point to connect the brige.
+        LengthDbl y = holes_left_most_points[hole_pos].point.y;
+        ShapeElement element_0;
+        element_0.type = ShapeElementType::LineSegment;
+        element_0.start.x = mm.first.x;
+        element_0.start.y = y;
+        element_0.end.x = holes_left_most_points[hole_pos].point.x;
+        element_0.end.y = y;
+        ElementPos shape_element_pos_best = -1;
+        Point intersection_best = {0, 0};
+        for (ElementPos shape_element_pos = 0;
+                shape_element_pos < (ElementPos)shape.elements.size();
+                ++shape_element_pos) {
+            const ShapeElement& shape_element = shape.elements[shape_element_pos];
+            auto shape_element_mm = shape_element.min_max();
+            if (strictly_greater(shape_element_mm.first.y, y))
+                continue;
+            if (strictly_lesser(shape_element_mm.second.y, y))
+                continue;
+            auto intersections = compute_intersections(
+                    element_0,
+                    shape_element,
+                    false);
+            for (const Point& intersection: intersections) {
+                if (shape_element_pos_best == -1
+                        || strictly_lesser(intersection_best.x, intersection.x)) {
+                    intersection_best = intersection;
+                    shape_element_pos_best = shape_element_pos;
+                }
+            }
+        }
+
+        // Build new shape.
+        Shape new_shape;
+        for (ElementPos shape_element_pos = 0;
+                shape_element_pos < (ElementPos)shape.elements.size();
+                ++shape_element_pos) {
+            const ShapeElement& shape_element = shape.elements[shape_element_pos];
+            if (shape_element_pos != shape_element_pos_best) {
+                new_shape.elements.push_back(shape_element);
+            } else {
+                ElementPos hole_contact_element_pos = holes_left_most_points[hole_pos].element_pos;
+                const Point& hole_contact_point = holes_left_most_points[hole_pos].point;
+                std::cout << "hole_contact_point " << hole_contact_point.to_string() << std::endl;
+                std::cout << "intersection_best " << intersection_best.to_string() << std::endl;
+                auto p_hole = hole.elements[hole_contact_element_pos].reverse().split(hole_contact_point);
+                auto p_shape = shape_element.split(intersection_best);
+                // Add first part of the element.
+                if (!equal(p_shape.first.start, p_shape.first.end))
+                    new_shape.elements.push_back(p_shape.first);
+                // Add bridge.
+                ShapeElement line_segment_1;
+                line_segment_1.type = ShapeElementType::LineSegment;
+                line_segment_1.start = intersection_best;
+                line_segment_1.end = hole_contact_point;
+                new_shape.elements.push_back(line_segment_1);
+                // Add first part of the hole element.
+                if (!equal(p_hole.second.start, p_hole.second.end))
+                    new_shape.elements.push_back(p_hole.second);
+                // Add hole.
+                for (ElementPos hole_element_pos_tmp = (ElementPos)hole.elements.size() - 1;
+                        hole_element_pos_tmp >= 1;
+                        --hole_element_pos_tmp) {
+                    ElementPos hole_element_pos = (hole_contact_element_pos + hole_element_pos_tmp) % hole.elements.size();
+                    const ShapeElement& hole_element = hole.elements[hole_element_pos];
+                    new_shape.elements.push_back(hole_element.reverse());
+                }
+                // Add second part of the hole element.
+                if (!equal(p_hole.first.start, p_hole.first.end))
+                    new_shape.elements.push_back(p_hole.first);
+                // Add bridge.
+                ShapeElement line_segment_2;
+                line_segment_2.type = ShapeElementType::LineSegment;
+                line_segment_2.start = hole_contact_point;
+                line_segment_2.end = intersection_best;
+                new_shape.elements.push_back(line_segment_2);
+                // Add second part of the element.
+                if (!equal(p_shape.second.start, p_shape.second.end))
+                    new_shape.elements.push_back(p_shape.second);
+            }
+        }
+        shape = new_shape;
+    }
+
+    return shape;
 }
 
 std::string ShapeWithHoles::to_string(
@@ -1575,9 +1881,15 @@ std::pair<bool, Shape> shape::remove_aligned_vertices(
 namespace
 {
 
-std::pair<bool, Shape> clean_extreme_slopes_rec(
-        const Shape& shape,
-        bool outer)
+struct CleanExtremeSlopesOutput
+{
+    Shape shape;
+
+    std::vector<ShapeWithHoles> union_input;
+};
+
+CleanExtremeSlopesOutput clean_extreme_slopes_outer_rec(
+        const Shape& shape)
 {
     //std::cout << "clean_extreme_slopes " << shape.to_string(2) << std::endl;
     if (!shape.check()) {
@@ -1585,23 +1897,22 @@ std::pair<bool, Shape> clean_extreme_slopes_rec(
                 "shape::clean_extreme_slopes: invalid input shape.");
     }
 
-    bool found = false;
-    Shape shape_new;
+    CleanExtremeSlopesOutput output;
 
     for (ElementPos element_pos = 0;
             element_pos < (ElementPos)shape.elements.size();
             ++element_pos) {
         ShapeElement element = shape.elements[element_pos];
-        const ShapeElement& element_prev = (!shape_new.elements.empty())?
-            shape_new.elements.back():
+        const ShapeElement& element_prev = (!output.shape.elements.empty())?
+            output.shape.elements.back():
             shape.elements.back();
         const ShapeElement& element_next = (element_pos < shape.elements.size() - 1)?
             shape.elements[element_pos + 1]:
-            shape_new.elements.front();
+            output.shape.elements.front();
         if (element_pos > 0)
-            element.start = shape_new.elements.back().end;
+            element.start = output.shape.elements.back().end;
         if (element_pos == shape.elements.size() - 1)
-            element.end = shape_new.elements.front().start;
+            element.end = output.shape.elements.front().start;
 
         double slope
             = (element.end.y - element.start.y)
@@ -1610,179 +1921,229 @@ std::pair<bool, Shape> clean_extreme_slopes_rec(
         //std::cout << "element_prev " << element_prev.to_string() << std::endl;
         if (element.start.x != element.end.x && std::abs(slope) > 1e2) {
             if (equal(element.start.x, element.end.x)) {
-                found = true;
-                //std::cout << "found x" << std::endl;
-                element.end.x = element.start.x;
+                throw std::logic_error(
+                        "shape::clean_extreme_slopes_rec: x");
             } else if (slope > 1e2) {
-                found = true;
-                //std::cout << "found a" << std::endl;
-                //std::cout << "   " << element.to_string() << std::endl;
                 ShapeElement element_new;
                 element_new.type = ShapeElementType::LineSegment;
                 element_new.start = element.start;
-                if (outer) {
-                    element_new.end.x = element.end.x;
-                    element_new.end.y = element.start.y;
-                } else {
-                    element_new.end.x = element.start.x;
-                    element_new.end.y = element.end.y;
-                }
-                Angle angle_1 = angle_radian(
-                            element_prev.start - element_prev.end,
-                            element_new.end - element_new.start);
-                Angle angle_2 = angle_radian(
-                            element_new.start - element_new.end,
-                            element.end - element_new.end);
-                Angle angle_3 = angle_radian(
-                            element_new.end - element.end,
-                            element_next.end - element_next.start);
-                if (angle_1 != 0 && angle_2 != 0 && angle_3 != 0) {
-                    element.start = element_new.end;
-                    shape_new.elements.push_back(element_new);
-                    //std::cout << "angle_1 " << angle_1 << " angle_2 " << angle_2 << " angle_3 " << angle_3 << std::endl;
-                    //std::cout << "-> " << element_new.to_string() << std::endl;
-                    //std::cout << "-> " << element.to_string() << std::endl;
-                } else {
-                    element.end.x = element.start.x;
-                }
+                element_new.end.x = element.end.x;
+                element_new.end.y = element.start.y;
+                element.start = element_new.end;
+                output.shape.elements.push_back(element_new);
+                output.union_input.push_back({build_triangle(
+                            element_new.start,
+                            element.start,
+                            element.end)});
             } else if (slope < -1e2) {
-                found = true;
-                //std::cout << "found b" << std::endl;
-                //std::cout << "   " << element.to_string() << std::endl;
                 ShapeElement element_new;
                 element_new.type = ShapeElementType::LineSegment;
                 element_new.start = element.start;
-                if (outer) {
-                    element_new.end.x = element.start.x;
-                    element_new.end.y = element.end.y;
-                } else {
-                    element_new.end.x = element.end.x;
-                    element_new.end.y = element.start.y;
-                }
-                Angle angle_1 = angle_radian(
-                            element_prev.start - element_prev.end,
-                            element_new.end - element_new.start);
-                Angle angle_2 = angle_radian(
-                            element_new.start - element_new.end,
-                            element.end - element_new.end);
-                Angle angle_3 = angle_radian(
-                            element_new.end - element.end,
-                            element_next.end - element_next.start);
-                if (angle_1 != 0 && angle_2 != 0 && angle_3 != 0) {
-                    element.start = element_new.end;
-                    shape_new.elements.push_back(element_new);
-                    //std::cout << "angle_1 " << angle_1 << " angle_2 " << angle_2 << " angle_3 " << angle_3 << std::endl;
-                    //std::cout << "-> " << element_new.to_string() << std::endl;
-                    //std::cout << "-> " << element.to_string() << std::endl;
-                } else {
-                    element.end.x = element.start.x;
-                }
+                element_new.end.x = element.start.x;
+                element_new.end.y = element.end.y;
+                element.start = element_new.end;
+                output.shape.elements.push_back(element_new);
+                output.union_input.push_back({build_triangle(
+                            element_new.start,
+                            element.start,
+                            element.end)});
             }
         } else if (element.start.y != element.end.y && std::abs(slope) < 1e-2) {
             if (equal(element.start.y, element.end.y)) {
-                found = true;
-                //std::cout << "found y" << std::endl;
-                element.end.y = element.start.y;
+                throw std::logic_error(
+                        "shape::clean_extreme_slopes_rec: y");
             } else if (slope > 0 && slope < 1e-2) {
-                found = true;
-                //std::cout << "found c" << std::endl;
-                //std::cout << "   " << element.to_string() << std::endl;
                 ShapeElement element_new;
                 element_new.type = ShapeElementType::LineSegment;
                 element_new.start = element.start;
-                if (outer) {
-                    element_new.end.x = element.end.x;
-                    element_new.end.y = element.start.y;
-                } else {
-                    element_new.end.x = element.start.x;
-                    element_new.end.y = element.end.y;
-                }
-                Angle angle_1 = angle_radian(
-                            element_prev.start - element_prev.end,
-                            element_new.end - element_new.start);
-                Angle angle_2 = angle_radian(
-                            element_new.start - element_new.end,
-                            element.end - element_new.end);
-                Angle angle_3 = angle_radian(
-                            element_new.end - element.end,
-                            element_next.end - element_next.start);
-                if (angle_1 != 0 && angle_2 != 0 && angle_3 != 0) {
-                    element.start = element_new.end;
-                    shape_new.elements.push_back(element_new);
-                    //std::cout << "angle_1 " << angle_1 << " angle_2 " << angle_2 << " angle_3 " << angle_3 << std::endl;
-                    //std::cout << "-> " << element_new.to_string() << std::endl;
-                    //std::cout << "-> " << element.to_string() << std::endl;
-                } else {
-                    element.end.y = element.start.y;
-                }
+                element_new.end.x = element.end.x;
+                element_new.end.y = element.start.y;
+                element.start = element_new.end;
+                output.shape.elements.push_back(element_new);
+                output.union_input.push_back({build_triangle(
+                            element_new.start,
+                            element.start,
+                            element.end)});
             } else if (slope < 0 && slope > -1e-2) {
-                found = true;
-                //std::cout << "found d" << std::endl;
-                //std::cout << "   " << element.to_string() << std::endl;
                 ShapeElement element_new;
                 element_new.type = ShapeElementType::LineSegment;
                 element_new.start = element.start;
-                if (outer) {
-                    element_new.end.x = element.start.x;
-                    element_new.end.y = element.end.y;
-                } else {
-                    element_new.end.x = element.end.x;
-                    element_new.end.y = element.start.y;
-                }
-                Angle angle_1 = angle_radian(
-                            element_prev.start - element_prev.end,
-                            element_new.end - element_new.start);
-                Angle angle_2 = angle_radian(
-                            element_new.start - element_new.end,
-                            element.end - element_new.end);
-                Angle angle_3 = angle_radian(
-                            element_new.end - element.end,
-                            element_next.end - element_next.start);
-                if (angle_1 != 0 && angle_2 != 0 && angle_3 != 0) {
-                    element.start = element_new.end;
-                    shape_new.elements.push_back(element_new);
-                    //std::cout << "angle_1 " << angle_1 << " angle_2 " << angle_2 << " angle_3 " << angle_3 << std::endl;
-                    //std::cout << "-> " << element_new.to_string() << std::endl;
-                    //std::cout << "-> " << element.to_string() << std::endl;
-                } else {
-                    element.end.y = element.start.y;
-                }
+                element_new.end.x = element.start.x;
+                element_new.end.y = element.end.y;
+                element.start = element_new.end;
+                output.shape.elements.push_back(element_new);
+                output.union_input.push_back({build_triangle(
+                            element_new.start,
+                            element.start,
+                            element.end)});
             }
         }
-        if (!shape_new.elements.empty())
-            shape_new.elements.back().end = element.start;
-        shape_new.elements.push_back(element);
+        if (!output.shape.elements.empty())
+            output.shape.elements.back().end = element.start;
+        output.shape.elements.push_back(element);
     }
-    shape_new.elements.front().start = shape_new.elements.back().end;
+    output.shape.elements.front().start = output.shape.elements.back().end;
 
-    shape_new = remove_aligned_vertices(shape_new).second;
-
-    if (!shape_new.check()) {
+    if (!output.shape.check()) {
         throw std::invalid_argument(
                 "shape::clean_extreme_slopes: invalid output shape.");
     }
-    return {found, shape_new};
+    return output;
 }
 
-}
-
-Shape shape::clean_extreme_slopes(
-        const Shape& shape,
-        bool outer)
+CleanExtremeSlopesOutput clean_extreme_slopes_inner_rec(
+        const Shape& shape)
 {
-    Shape shape_new = shape;
+    //std::cout << "clean_extreme_slopes " << shape.to_string(2) << std::endl;
+    if (!shape.check()) {
+        throw std::invalid_argument(
+                "shape::clean_extreme_slopes: invalid input shape.");
+    }
+
+    CleanExtremeSlopesOutput output;
+
+    for (ElementPos element_pos = 0;
+            element_pos < (ElementPos)shape.elements.size();
+            ++element_pos) {
+        ShapeElement element = shape.elements[element_pos];
+        const ShapeElement& element_prev = (!output.shape.elements.empty())?
+            output.shape.elements.back():
+            shape.elements.back();
+        const ShapeElement& element_next = (element_pos < shape.elements.size() - 1)?
+            shape.elements[element_pos + 1]:
+            output.shape.elements.front();
+        if (element_pos > 0)
+            element.start = output.shape.elements.back().end;
+        if (element_pos == shape.elements.size() - 1)
+            element.end = output.shape.elements.front().start;
+
+        double slope
+            = (element.end.y - element.start.y)
+            / (element.end.x - element.start.x);
+        //std::cout << "element " << element.to_string() << " slope " << slope << std::endl;
+        //std::cout << "element_prev " << element_prev.to_string() << std::endl;
+        if (element.start.x != element.end.x && std::abs(slope) > 1e2) {
+            if (equal(element.start.x, element.end.x)) {
+                throw std::logic_error(
+                        "shape::clean_extreme_slopes_rec: x");
+            } else if (slope > 1e2) {
+                ShapeElement element_new;
+                element_new.type = ShapeElementType::LineSegment;
+                element_new.start = element.start;
+                element_new.end.x = element.start.x;
+                element_new.end.y = element.end.y;
+                element.start = element_new.end;
+                output.shape.elements.push_back(element_new);
+                output.union_input.push_back({build_triangle(
+                            element_new.start,
+                            element.end,
+                            element.start)});
+            } else if (slope < -1e2) {
+                ShapeElement element_new;
+                element_new.type = ShapeElementType::LineSegment;
+                element_new.start = element.start;
+                element_new.end.x = element.end.x;
+                element_new.end.y = element.start.y;
+                element.start = element_new.end;
+                output.shape.elements.push_back(element_new);
+                output.union_input.push_back({build_triangle(
+                            element_new.start,
+                            element.end,
+                            element.start)});
+            }
+        } else if (element.start.y != element.end.y && std::abs(slope) < 1e-2) {
+            if (equal(element.start.y, element.end.y)) {
+                throw std::logic_error(
+                        "shape::clean_extreme_slopes_rec: y");
+            } else if (slope > 0 && slope < 1e-2) {
+                ShapeElement element_new;
+                element_new.type = ShapeElementType::LineSegment;
+                element_new.start = element.start;
+                element_new.end.x = element.start.x;
+                element_new.end.y = element.end.y;
+                element.start = element_new.end;
+                output.shape.elements.push_back(element_new);
+                output.union_input.push_back({build_triangle(
+                            element_new.start,
+                            element.end,
+                            element.start)});
+            } else if (slope < 0 && slope > -1e-2) {
+                ShapeElement element_new;
+                element_new.type = ShapeElementType::LineSegment;
+                element_new.start = element.start;
+                element_new.end.x = element.end.x;
+                element_new.end.y = element.start.y;
+                element.start = element_new.end;
+                output.shape.elements.push_back(element_new);
+                output.union_input.push_back({build_triangle(
+                            element_new.start,
+                            element.end,
+                            element.start)});
+            }
+        }
+        if (!output.shape.elements.empty())
+            output.shape.elements.back().end = element.start;
+        output.shape.elements.push_back(element);
+    }
+    output.shape.elements.front().start = output.shape.elements.back().end;
+
+    if (!output.shape.check()) {
+        throw std::invalid_argument(
+                "shape::clean_extreme_slopes: invalid output shape.");
+    }
+    return output;
+}
+
+}
+
+std::vector<Shape> shape::clean_extreme_slopes_inner(
+        const Shape& shape)
+{
+    Shape equalized_shape = equalize_shape(shape);
+    std::vector<ShapeWithHoles> union_input;
+    Shape shape_new = equalized_shape;
     for (int i = 0;; ++i) {
         if (i == 100) {
             throw std::runtime_error(
                     "packingsolver::irregular::process_shape_outer: "
                     "too many iterations.");
         }
-        auto res = clean_extreme_slopes_rec(shape_new, outer);
-        if (!res.first)
+        auto output = clean_extreme_slopes_inner_rec(shape_new);
+        if (output.union_input.empty())
             break;
-        shape_new = res.second;
+        shape_new = output.shape;
+        for (const ShapeWithHoles& s: output.union_input)
+            union_input.push_back(s);
     }
-    return shape_new;
+    std::vector<ShapeWithHoles> difference_output
+        = compute_difference({equalized_shape}, union_input);
+    std::vector<Shape> output;
+    for (const ShapeWithHoles& difference_output_shape: difference_output)
+        output.push_back(difference_output_shape.shape);
+    return output;
+}
+
+ShapeWithHoles shape::clean_extreme_slopes_outer(
+        const Shape& shape)
+{
+    Shape equalized_shape = equalize_shape(shape);
+    std::vector<ShapeWithHoles> union_input = {{equalized_shape}};
+    Shape shape_new = equalized_shape;
+    for (int i = 0;; ++i) {
+        if (i == 100) {
+            throw std::runtime_error(
+                    "packingsolver::irregular::process_shape_outer: "
+                    "too many iterations.");
+        }
+        auto output = clean_extreme_slopes_outer_rec(shape_new);
+        if (output.union_input.empty())
+            break;
+        shape_new = output.shape;
+        for (const ShapeWithHoles& s: output.union_input)
+            union_input.push_back(s);
+    }
+    std::vector<ShapeWithHoles> union_output = compute_union(union_input);
+    return union_output.front();
 }
 
 bool shape::operator==(

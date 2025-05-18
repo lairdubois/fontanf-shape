@@ -2,26 +2,27 @@
 
 #include "shape/element_intersections.hpp"
 
-#include "optimizationtools/containers/indexed_set.hpp"
-
 //#include <iostream>
 
 using namespace shape;
 
 IntersectionTree::IntersectionTree(
-        const std::vector<Shape>& shapes,
+        const std::vector<ShapeWithHoles>& shapes,
         const std::vector<ShapeElement>& elements,
         const std::vector<Point>& points):
     shapes_(&shapes),
     elements_(&elements),
-    points_(&points)
+    points_(&points),
+    potentially_intersecting_shapes_(this->number_of_shapes()),
+    potentially_intersecting_elements_(this->number_of_elements()),
+    potentially_intersecting_points_(this->number_of_points())
 {
     // Compute min/max of shapes and elements.
     std::vector<std::pair<Point, Point>> shapes_min_max(shapes.size());
     for (ShapePos shape_id = 0;
             shape_id < (ShapePos)shapes.size();
             ++shape_id) {
-        const Shape& shape = shapes[shape_id];
+        const ShapeWithHoles& shape = shapes[shape_id];
         shapes_min_max[shape_id] = shape.compute_min_max();
     }
     std::vector<std::pair<Point, Point>> elements_min_max(elements.size());
@@ -258,20 +259,17 @@ IntersectionTree::IntersectionTree(
 }
 
 IntersectionTree::IntersectOutput IntersectionTree::intersect(
-        const Shape& shape,
+        const ShapeWithHoles& shape,
         bool strict) const
 {
     //std::cout << "intersect..." << std::endl;
     IntersectOutput output;
 
-    if (shapes_->empty())
-        return output;
-
     auto mm = shape.compute_min_max();
 
-    optimizationtools::IndexedSet potentially_intersecting_shapes(shapes_->size());
-    optimizationtools::IndexedSet potentially_intersecting_elements(elements_->size());
-    optimizationtools::IndexedSet potentially_intersecting_points(points_->size());
+    potentially_intersecting_shapes_.clear();
+    potentially_intersecting_elements_.clear();
+    potentially_intersecting_points_.clear();
     std::vector<NodeId> stack = {0};
 
     while (!stack.empty()) {
@@ -282,11 +280,11 @@ IntersectionTree::IntersectOutput IntersectionTree::intersect(
 
         if (node.direction == 'x') {
             for (ShapePos shape_id: node.shape_ids)
-                potentially_intersecting_shapes.add(shape_id);
+                potentially_intersecting_shapes_.add(shape_id);
             for (ElementPos element_id: node.element_ids)
-                potentially_intersecting_elements.add(element_id);
+                potentially_intersecting_elements_.add(element_id);
             for (ElementPos point_id: node.point_ids)
-                potentially_intersecting_points.add(point_id);
+                potentially_intersecting_points_.add(point_id);
         } else if (node.direction == 'v') {
             if (!strictly_greater(mm.first.x, node.position))
                 stack.push_back(node.lesser_child_id);
@@ -300,13 +298,65 @@ IntersectionTree::IntersectOutput IntersectionTree::intersect(
         }
     }
 
-    for (ShapePos shape_id: potentially_intersecting_shapes)
+    for (ShapePos shape_id: potentially_intersecting_shapes_)
         if (shape::intersect(shape, this->shape(shape_id), strict))
             output.shape_ids.push_back(shape_id);
-    for (ShapePos element_id: potentially_intersecting_elements)
+    for (ShapePos element_id: potentially_intersecting_elements_)
         if (shape::intersect(shape, this->element(element_id), strict))
             output.element_ids.push_back(element_id);
-    for (ShapePos point_id: potentially_intersecting_points)
+    for (ShapePos point_id: potentially_intersecting_points_)
+        if (shape.contains(this->point(point_id), strict))
+            output.point_ids.push_back(point_id);
+    return output;
+}
+
+IntersectionTree::IntersectOutput IntersectionTree::intersect(
+        const Shape& shape,
+        bool strict) const
+{
+    //std::cout << "intersect..." << std::endl;
+    IntersectOutput output;
+
+    auto mm = shape.compute_min_max();
+
+    potentially_intersecting_shapes_.clear();
+    potentially_intersecting_elements_.clear();
+    potentially_intersecting_points_.clear();
+    std::vector<NodeId> stack = {0};
+
+    while (!stack.empty()) {
+
+        NodeId node_id = stack.back();
+        stack.pop_back();
+        const Node& node = tree_[node_id];
+
+        if (node.direction == 'x') {
+            for (ShapePos shape_id: node.shape_ids)
+                potentially_intersecting_shapes_.add(shape_id);
+            for (ElementPos element_id: node.element_ids)
+                potentially_intersecting_elements_.add(element_id);
+            for (ElementPos point_id: node.point_ids)
+                potentially_intersecting_points_.add(point_id);
+        } else if (node.direction == 'v') {
+            if (!strictly_greater(mm.first.x, node.position))
+                stack.push_back(node.lesser_child_id);
+            if (!strictly_lesser(mm.second.x, node.position))
+                stack.push_back(node.greater_child_id);
+        } else {  // node.direction == 'h'
+            if (!strictly_greater(mm.first.y, node.position))
+                stack.push_back(node.lesser_child_id);
+            if (!strictly_lesser(mm.second.y, node.position))
+                stack.push_back(node.greater_child_id);
+        }
+    }
+
+    for (ShapePos shape_id: potentially_intersecting_shapes_)
+        if (shape::intersect(shape, this->shape(shape_id), strict))
+            output.shape_ids.push_back(shape_id);
+    for (ShapePos element_id: potentially_intersecting_elements_)
+        if (shape::intersect(shape, this->element(element_id), strict))
+            output.element_ids.push_back(element_id);
+    for (ShapePos point_id: potentially_intersecting_points_)
         if (shape.contains(this->point(point_id), strict))
             output.point_ids.push_back(point_id);
     return output;
@@ -318,14 +368,11 @@ IntersectionTree::IntersectOutput IntersectionTree::intersect(
 {
     IntersectOutput output;
 
-    if (shapes_->empty())
-        return output;
-
     auto mm = element.min_max();
 
-    optimizationtools::IndexedSet potentially_intersecting_shapes(shapes_->size());
-    optimizationtools::IndexedSet potentially_intersecting_elements(elements_->size());
-    optimizationtools::IndexedSet potentially_intersecting_points(points_->size());
+    potentially_intersecting_shapes_.clear();
+    potentially_intersecting_elements_.clear();
+    potentially_intersecting_points_.clear();
     std::vector<NodeId> stack = {0};
 
     while (!stack.empty()) {
@@ -336,11 +383,11 @@ IntersectionTree::IntersectOutput IntersectionTree::intersect(
 
         if (node.direction == 'x') {
             for (ShapePos shape_id: node.shape_ids)
-                potentially_intersecting_shapes.add(shape_id);
+                potentially_intersecting_shapes_.add(shape_id);
             for (ElementPos element_id: node.element_ids)
-                potentially_intersecting_elements.add(element_id);
+                potentially_intersecting_elements_.add(element_id);
             for (ElementPos point_id: node.point_ids)
-                potentially_intersecting_points.add(point_id);
+                potentially_intersecting_points_.add(point_id);
         } else if (node.direction == 'v') {
             if (!strictly_greater(mm.first.x, node.position))
                 stack.push_back(node.lesser_child_id);
@@ -355,14 +402,14 @@ IntersectionTree::IntersectOutput IntersectionTree::intersect(
     }
 
     std::vector<ShapePos> intersecting_shapes;
-    for (ShapePos shape_id: potentially_intersecting_shapes)
+    for (ShapePos shape_id: potentially_intersecting_shapes_)
         if (shape::intersect(this->shape(shape_id), element, strict))
             output.shape_ids.push_back(shape_id);
-    for (ElementPos element_id: potentially_intersecting_elements)
+    for (ElementPos element_id: potentially_intersecting_elements_)
         if (!compute_intersections(this->element(element_id), element, strict).empty())
             output.element_ids.push_back(element_id);
     if (!strict) {
-        for (ShapePos point_id: potentially_intersecting_points)
+        for (ShapePos point_id: potentially_intersecting_points_)
             if (element.contains(this->point(point_id)))
                 output.point_ids.push_back(point_id);
     }
@@ -375,12 +422,9 @@ IntersectionTree::IntersectOutput IntersectionTree::intersect(
 {
     IntersectOutput output;
 
-    if (shapes_->empty())
-        return output;
-
-    optimizationtools::IndexedSet potentially_intersecting_shapes(shapes_->size());
-    optimizationtools::IndexedSet potentially_intersecting_elements(elements_->size());
-    optimizationtools::IndexedSet potentially_intersecting_points(points_->size());
+    potentially_intersecting_shapes_.clear();
+    potentially_intersecting_elements_.clear();
+    potentially_intersecting_points_.clear();
     std::vector<NodeId> stack = {0};
 
     while (!stack.empty()) {
@@ -391,11 +435,11 @@ IntersectionTree::IntersectOutput IntersectionTree::intersect(
 
         if (node.direction == 'x') {
             for (ShapePos shape_id: node.shape_ids)
-                potentially_intersecting_shapes.add(shape_id);
+                potentially_intersecting_shapes_.add(shape_id);
             for (ElementPos element_id: node.element_ids)
-                potentially_intersecting_elements.add(element_id);
+                potentially_intersecting_elements_.add(element_id);
             for (ElementPos point_id: node.point_ids)
-                potentially_intersecting_points.add(point_id);
+                potentially_intersecting_points_.add(point_id);
         } else if (node.direction == 'v') {
             if (!strictly_greater(point.x, node.position))
                 stack.push_back(node.lesser_child_id);
@@ -410,14 +454,14 @@ IntersectionTree::IntersectOutput IntersectionTree::intersect(
     }
 
     std::vector<ShapePos> intersecting_shapes;
-    for (ShapePos shape_id: potentially_intersecting_shapes)
+    for (ShapePos shape_id: potentially_intersecting_shapes_)
         if (this->shape(shape_id).contains(point, strict))
             output.shape_ids.push_back(shape_id);
     if (!strict) {
-        for (ElementPos element_id: potentially_intersecting_elements)
+        for (ElementPos element_id: potentially_intersecting_elements_)
             if (this->element(element_id).contains(point))
                 output.element_ids.push_back(element_id);
-        for (ShapePos point_id: potentially_intersecting_points)
+        for (ShapePos point_id: potentially_intersecting_points_)
             if (equal(point, this->point(point_id)))
                 output.point_ids.push_back(point_id);
     }
