@@ -123,17 +123,35 @@ std::vector<Point> compute_line_arc_intersections(
     LengthDbl rsq = squared_distance(arc.center, arc.start);
     LengthDbl c_prime = c - a * xm - b * ym;
 
+    // No intersection.
+    if (strictly_lesser(rsq * (a * a + b * b), c_prime * c_prime))
+        return {};
+
+    std::vector<Point> intersections;
+    LengthDbl discriminant = rsq * (a * a + b * b) - c_prime * c_prime;
+    if (discriminant < 0)
+        discriminant = 0;
+    LengthDbl denom = a * a + b * b;
+    LengthDbl eta_1 = (a * c_prime + b * std::sqrt(discriminant)) / denom;
+    LengthDbl eta_2 = (a * c_prime - b * std::sqrt(discriminant)) / denom;
+    LengthDbl teta_1 = (b * c_prime - a * std::sqrt(discriminant)) / denom;
+    LengthDbl teta_2 = (b * c_prime + a * std::sqrt(discriminant)) / denom;
+    Point ps[2];
+    ps[0].x = xm + eta_1;
+    ps[0].y = ym + teta_1;
+    ps[1].x = xm + eta_2;
+    ps[1].y = ym + teta_2;
+    //std::cout << "p1 " << ps[0].to_string() << std::endl;
+    //std::cout << "p2 " << ps[1].to_string() << std::endl;
+
     // Single intersection point.
-    if (equal(rsq * (a * a + b * b), c_prime * c_prime)) {
+    if (equal(ps[0], ps[1])) {
         if (strict)
             return {};
 
-        LengthDbl denom = a * a + b * b;
-        LengthDbl eta = (a * c_prime) / denom;
-        LengthDbl teta = (b * c_prime) / denom;
         Point p;
-        p.x = xm + eta;
-        p.y = ym + teta;
+        p.x = (ps[0].x + ps[1].x) / 2.0;
+        p.y = (ps[0].y + ps[1].y) / 2.0;
         //std::cout << "p " << p.to_string() << std::endl;
 
         if (equal(p, line.start)) {
@@ -151,25 +169,6 @@ std::vector<Point> compute_line_arc_intersections(
             return {};
         }
     }
-
-    // No intersection.
-    if (strictly_lesser(rsq * (a * a + b * b), c_prime * c_prime))
-        return {};
-
-    std::vector<Point> intersections;
-    LengthDbl discriminant = rsq * (a * a + b * b) - c_prime * c_prime;
-    LengthDbl denom = a * a + b * b;
-    LengthDbl eta_1 = (a * c_prime + b * std::sqrt(discriminant)) / denom;
-    LengthDbl eta_2 = (a * c_prime - b * std::sqrt(discriminant)) / denom;
-    LengthDbl teta_1 = (b * c_prime - a * std::sqrt(discriminant)) / denom;
-    LengthDbl teta_2 = (b * c_prime + a * std::sqrt(discriminant)) / denom;
-    Point ps[2];
-    ps[0].x = xm + eta_1;
-    ps[0].y = ym + teta_1;
-    ps[1].x = xm + eta_2;
-    ps[1].y = ym + teta_2;
-    //std::cout << "p1 " << ps[0].to_string() << std::endl;
-    //std::cout << "p2 " << ps[1].to_string() << std::endl;
 
     for (Point& p: ps) {
         // Check if any intersection coincides with an arc endpoint
@@ -246,17 +245,33 @@ std::vector<Point> compute_arc_arc_intersections(
 
     LengthDbl c_prime = c - a * xm - b * ym;
 
+    // No intersection.
+    if (strictly_lesser(rsq * (a * a + b * b), c_prime * c_prime))
+        return {};
+
+    std::vector<Point> intersections;
+    LengthDbl discriminant = rsq * (a * a + b * b) - c_prime * c_prime;
+    if (discriminant < 0)
+        discriminant = 0;
+    LengthDbl denom = a * a + b * b;
+    LengthDbl eta_1 = (a * c_prime + b * std::sqrt(discriminant)) / denom;
+    LengthDbl eta_2 = (a * c_prime - b * std::sqrt(discriminant)) / denom;
+    LengthDbl teta_1 = (b * c_prime - a * std::sqrt(discriminant)) / denom;
+    LengthDbl teta_2 = (b * c_prime + a * std::sqrt(discriminant)) / denom;
+    Point ps[2];
+    ps[0].x = xm + eta_1;
+    ps[0].y = ym + teta_1;
+    ps[1].x = xm + eta_2;
+    ps[1].y = ym + teta_2;
+
     // Single intersection point.
-    if (equal(rsq * (a * a + b * b), c_prime * c_prime)) {
+    if (equal(ps[0], ps[1])) {
         if (strict)
             return {};
 
-        LengthDbl denom = a * a + b * b;
-        LengthDbl eta = (a * c_prime) / denom;
-        LengthDbl teta = (b * c_prime) / denom;
         Point p;
-        p.x = xm + eta;
-        p.y = ym + teta;
+        p.x = (ps[0].x + ps[1].x) / 2.0;
+        p.y = (ps[0].y + ps[1].y) / 2.0;
         //std::cout << "p " << p.to_string() << std::endl;
 
         if (equal(p, arc.start)) {
@@ -274,23 +289,6 @@ std::vector<Point> compute_arc_arc_intersections(
             return {};
         }
     }
-
-    // No intersection.
-    if (strictly_lesser(rsq * (a * a + b * b), c_prime * c_prime))
-        return {};
-
-    std::vector<Point> intersections;
-    LengthDbl discriminant = rsq * (a * a + b * b) - c_prime * c_prime;
-    LengthDbl denom = a * a + b * b;
-    LengthDbl eta_1 = (a * c_prime + b * std::sqrt(discriminant)) / denom;
-    LengthDbl eta_2 = (a * c_prime - b * std::sqrt(discriminant)) / denom;
-    LengthDbl teta_1 = (b * c_prime - a * std::sqrt(discriminant)) / denom;
-    LengthDbl teta_2 = (b * c_prime + a * std::sqrt(discriminant)) / denom;
-    Point ps[2];
-    ps[0].x = xm + eta_1;
-    ps[0].y = ym + teta_1;
-    ps[1].x = xm + eta_2;
-    ps[1].y = ym + teta_2;
 
     for (Point& p: ps) {
         // Check if any intersection coincides with an arc endpoint
@@ -321,6 +319,7 @@ std::vector<Point> compute_arc_arc_intersections(
 
     return intersections;
 }
+
 
 }
 
@@ -401,7 +400,7 @@ bool shape::intersect(
 std::vector<Shape> shape::merge_intersecting_shapes(
         const std::vector<Shape>& shapes)
 {
-    IntersectionTree intersection_tree(shapes);
+    IntersectionTree intersection_tree(shapes, {}, {});
     std::vector<std::pair<ShapePos, ShapePos>> intersecting_shapes
         = intersection_tree.compute_intersecting_shapes(false);
 
@@ -435,7 +434,7 @@ std::vector<Shape> shape::merge_intersecting_shapes(
                     continue;
                 stack.push_back(neighbor);
                 visited[neighbor] = 1;
-                shape = compute_union(shape, shapes[neighbor]).first;
+                shape = compute_union(shape, shapes[neighbor]).shape;
             }
         }
 
@@ -443,4 +442,51 @@ std::vector<Shape> shape::merge_intersecting_shapes(
     }
 
     return new_shapes;
+}
+
+std::vector<Point> shape::equalize_points(
+        const std::vector<Point>& points)
+{
+    IntersectionTree intersection_tree({}, {}, points);
+    std::vector<std::pair<ElementPos, ElementPos>> equal_points
+        = intersection_tree.compute_equal_points();
+
+    // Build graph.
+    std::vector<std::vector<ElementPos>> graph(points.size());
+    for (auto p: equal_points) {
+        graph[p.first].push_back(p.second);
+        graph[p.second].push_back(p.first);
+    }
+
+    // For each connected component, build a point.
+    ElementPos node_id = 0;
+    std::vector<uint8_t> visited(points.size(), 0);
+    std::vector<Point> new_points = points;
+    for (;;) {
+        while (node_id < points.size()
+                && visited[node_id]) {
+            node_id++;
+        }
+        if (node_id == points.size())
+            break;
+
+        const Point& point = points[node_id];
+        visited[node_id] = 1;
+        std::vector<ElementPos> stack = {node_id};
+        while (!stack.empty()) {
+            ElementPos node_id_cur = stack.back();
+            stack.pop_back();
+            for (ElementPos neighbor: graph[node_id_cur]) {
+                if (visited[neighbor])
+                    continue;
+                stack.push_back(neighbor);
+                visited[neighbor] = 1;
+                new_points[neighbor] = point;
+                //std::cout << "new_points[neighbor] " << new_points[neighbor].to_string()
+                //    << " -> " << point.to_string() << std::endl;
+            }
+        }
+    }
+
+    return new_points;
 }

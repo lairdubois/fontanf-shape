@@ -224,7 +224,7 @@ Point ShapeElement::middle() const
         point.y = (this->start.y + this->end.y) / 2;
         return point;
     } case ShapeElementType::CircularArc: {
-        if (this->anticlockwise) {
+        if (this->orientation == ShapeElementOrientation::Anticlockwise) {
             Angle angle = angle_radian(
                     this->start - this->center,
                     this->end - this->center);
@@ -251,7 +251,7 @@ std::pair<Point, Point> ShapeElement::min_max() const
         LengthDbl radius = distance(this->center, this->start);
         Angle starting_angle = shape::angle_radian(this->start - this->center);
         Angle ending_angle = shape::angle_radian(this->end - this->center);
-        if (!this->anticlockwise)
+        if (this->orientation != ShapeElementOrientation::Anticlockwise)
             std::swap(starting_angle, ending_angle);
         //std::cout << "starting_angle " << starting_angle << " ending_angle " << ending_angle << std::endl;
         if (starting_angle <= ending_angle) {
@@ -314,11 +314,13 @@ LengthDbl ShapeElement::length() const
     case ShapeElementType::LineSegment:
         return distance(this->start, this->end);
     case ShapeElementType::CircularArc:
-        LengthDbl r = distance(center, start);
-        if (anticlockwise) {
-            return angle_radian(start - center, end - center) * r;
+        LengthDbl r = distance(this->center, this->start);
+        if (this->orientation == ShapeElementOrientation::Full) {
+            return 2 * M_PI * r;
+        } if (this->orientation == ShapeElementOrientation::Anticlockwise) {
+            return angle_radian(this->start - this->center, this->end - this->center) * r;
         } else {
-            return angle_radian(end - center, start - center) * r;
+            return angle_radian(this->end - this->center, this->start - this->center) * r;
         }
     }
     return -1;
@@ -339,12 +341,15 @@ bool ShapeElement::contains(const Point& point) const
             return false;
         }
 
+        if (this->orientation == ShapeElementOrientation::Full)
+            return true;
+
         // Calculate angles
         Angle point_angle = angle_radian(point - this->center);
         Angle start_angle = angle_radian(this->start - this->center);
         Angle end_angle = angle_radian(this->end - this->center);
 
-        if (this->anticlockwise) {
+        if (this->orientation == ShapeElementOrientation::Anticlockwise) {
             Angle a0 = angle_radian(
                     this->start - this->center,
                     this->end - this->center);
@@ -363,7 +368,7 @@ bool ShapeElement::contains(const Point& point) const
         }
     }
     }
-    return -1;
+    return false;
 }
 
 std::string ShapeElement::to_string() const
@@ -376,7 +381,7 @@ std::string ShapeElement::to_string() const
         return "CircularArc start " + start.to_string()
             + " end " + end.to_string()
             + " center " + center.to_string()
-            + ((anticlockwise)? " anticlockwise": " clockwise");
+            + " orientation " + orientation2str(orientation);
     }
     }
     return "";
@@ -393,7 +398,7 @@ nlohmann::json ShapeElement::to_json() const
     if (type == ShapeElementType::CircularArc) {
         json["center"]["x"] = center.x;
         json["center"]["y"] = center.y;
-        json["anticlockwise"] = anticlockwise;
+        json["orientation"] = orientation2str(orientation);
     }
     return json;
 }
@@ -421,10 +426,10 @@ ShapeElement ShapeElement::rotate(
 ShapeElement ShapeElement::axial_symmetry_identity_line() const
 {
     ShapeElement element_out = *this;
-    element_out.start = end.axial_symmetry_identity_line();
-    element_out.end = start.axial_symmetry_identity_line();
-    element_out.center = center.axial_symmetry_identity_line();
-    element_out.anticlockwise = !anticlockwise;
+    element_out.start = this->end.axial_symmetry_identity_line();
+    element_out.end = this->start.axial_symmetry_identity_line();
+    element_out.center = this->center.axial_symmetry_identity_line();
+    element_out.orientation = opposite(this->orientation);
     return element_out;
 }
 
@@ -434,7 +439,7 @@ ShapeElement ShapeElement::axial_symmetry_x_axis() const
     element_out.start = end.axial_symmetry_x_axis();
     element_out.end = start.axial_symmetry_x_axis();
     element_out.center = center.axial_symmetry_x_axis();
-    element_out.anticlockwise = !anticlockwise;
+    element_out.orientation = opposite(this->orientation);
     return element_out;
 }
 
@@ -444,7 +449,7 @@ ShapeElement ShapeElement::axial_symmetry_y_axis() const
     element_out.start = end.axial_symmetry_y_axis();
     element_out.end = start.axial_symmetry_y_axis();
     element_out.center = center.axial_symmetry_y_axis();
-    element_out.anticlockwise = !anticlockwise;
+    element_out.orientation = opposite(this->orientation);
     return element_out;
 }
 
@@ -458,7 +463,7 @@ ShapeElement ShapeElement::reverse() const
     element_out.end.y = this->start.y;
     element_out.center.x = this->center.x;
     element_out.center.y = this->center.y;
-    element_out.anticlockwise = !this->anticlockwise;
+    element_out.orientation = opposite(this->orientation);
     return element_out;
 }
 
@@ -504,6 +509,70 @@ char shape::element2char(ShapeElementType type)
     return ' ';
 }
 
+ShapeElementOrientation shape::str2orientation(const std::string& str)
+{
+    if (str == "Anticlockwise"
+            || str == "anticlockwise"
+            || str == "A"
+            || str == "a") {
+        return ShapeElementOrientation::Anticlockwise;
+    } else if (str == "Clockwise"
+            || str == "clockwise"
+            || str == "C"
+            || str == "c") {
+        return ShapeElementOrientation::Clockwise;
+    } else if (str == "Full"
+            || str == "full"
+            || str == "F"
+            || str == "f") {
+        return ShapeElementOrientation::Full;
+    } else {
+        throw std::invalid_argument("");
+        return ShapeElementOrientation::Full;
+    }
+}
+
+std::string shape::orientation2str(ShapeElementOrientation type)
+{
+    switch (type) {
+    case ShapeElementOrientation::Anticlockwise: {
+        return "Anticlockwise";
+    } case ShapeElementOrientation::Clockwise: {
+        return "Clockwise";
+    } case ShapeElementOrientation::Full: {
+        return "Full";
+    }
+    }
+    return "";
+}
+
+char shape::orientation2char(ShapeElementOrientation type)
+{
+    switch (type) {
+    case ShapeElementOrientation::Anticlockwise: {
+        return 'A';
+    } case ShapeElementOrientation::Clockwise: {
+        return 'C';
+    } case ShapeElementOrientation::Full: {
+        return 'F';
+    }
+    }
+    return ' ';
+}
+
+ShapeElementOrientation shape::opposite(ShapeElementOrientation orientation)
+{
+    switch (orientation) {
+    case ShapeElementOrientation::Anticlockwise:
+        return ShapeElementOrientation::Clockwise;
+    case ShapeElementOrientation::Clockwise:
+        return ShapeElementOrientation::Anticlockwise;
+    case ShapeElementOrientation::Full:
+        return ShapeElementOrientation::Full;
+    }
+    return ShapeElementOrientation::Full;
+}
+
 ShapeElement shape::operator*(
         LengthDbl scalar,
         const ShapeElement& element)
@@ -513,7 +582,7 @@ ShapeElement shape::operator*(
     element_out.start = scalar * element.start;
     element_out.end = scalar * element.end;
     element_out.center = scalar * element.center;
-    element_out.anticlockwise = element.anticlockwise;
+    element_out.orientation = element.orientation;
     return element_out;
 }
 
@@ -540,15 +609,15 @@ std::vector<ShapeElement> shape::approximate_circular_arc_by_line_segments(
         //        "number_of_line_segments: " + std::to_string(number_of_line_segments) + ".");
     }
 
-    Angle angle = (circular_arc.anticlockwise)?
+    Angle angle = (circular_arc.orientation == ShapeElementOrientation::Anticlockwise)?
         angle_radian(
             circular_arc.start - circular_arc.center,
             circular_arc.end - circular_arc.center):
         angle_radian(
             circular_arc.end - circular_arc.center,
             circular_arc.start - circular_arc.center);
-    if ((outer && circular_arc.anticlockwise)
-            || (!outer && !circular_arc.anticlockwise)) {
+    if ((outer && circular_arc.orientation == ShapeElementOrientation::Anticlockwise)
+            || (!outer && circular_arc.orientation != ShapeElementOrientation::Anticlockwise)) {
         if (angle < M_PI && number_of_line_segments < 2) {
             number_of_line_segments = 2;
             //throw std::runtime_error(
@@ -578,7 +647,7 @@ std::vector<ShapeElement> shape::approximate_circular_arc_by_line_segments(
             line_segment_id < number_of_line_segments - 1;
             ++line_segment_id) {
         Angle angle_cur = (angle * (line_segment_id + 1)) / (number_of_line_segments - 1);
-        if (!circular_arc.anticlockwise)
+        if (circular_arc.orientation != ShapeElementOrientation::Anticlockwise)
             angle_cur *= -1;
         //std::cout << "angle_cur " << angle_cur << std::endl;
         Point point_circle = circular_arc.start.rotate_radians(
@@ -586,7 +655,8 @@ std::vector<ShapeElement> shape::approximate_circular_arc_by_line_segments(
                 angle_cur);
         //std::cout << "point_circle " << point_circle.to_string() << std::endl;
         Point point_cur;
-        if ((outer && !circular_arc.anticlockwise) || (!outer && circular_arc.anticlockwise)) {
+        if ((outer && circular_arc.orientation != ShapeElementOrientation::Anticlockwise)
+                || (!outer && circular_arc.orientation == ShapeElementOrientation::Anticlockwise)) {
             point_cur = point_circle;
         } else {
             // https://en.wikipedia.org/wiki/Tangent_lines_to_circles#Cartesian_equation
@@ -711,7 +781,7 @@ AreaDbl Shape::compute_area() const
         if (element.type == ShapeElementType::CircularArc) {
             LengthDbl radius = distance(element.center, element.start);
             Angle theta = angle_radian(element.center - element.start, element.center - element.end);
-            if (element.anticlockwise) {
+            if (element.orientation == ShapeElementOrientation::Anticlockwise) {
                 area += radius * radius * ((!(element.start == element.end))? theta: 2.0 * M_PI);
             } else {
                 area -= radius * radius * ((!(element.start == element.end))? 2.0 * M_PI - theta: 2.0 * M_PI);
@@ -826,7 +896,7 @@ bool Shape::contains(
                     //    << " M_PI / 2 " << M_PI / 2
                     //    << " 3 * M_PI / 2 " << 3 * M_PI / 2
                     //    << std::endl;
-                    bool start_upward = (element.anticlockwise)?
+                    bool start_upward = (element.orientation == ShapeElementOrientation::Anticlockwise)?
                         (start_angle < M_PI / 2 || start_angle >= 3 * M_PI / 2):
                         (start_angle > M_PI / 2 && start_angle <= 3 * M_PI / 2);
                     //std::cout << "start_upward " << start_upward << std::endl;
@@ -834,7 +904,7 @@ bool Shape::contains(
                         intersection_count++;
                 } else if (intersection == element.end) {
                     Angle end_angle = angle_radian(element.end - element.center);
-                    bool end_upward = (element.anticlockwise)?
+                    bool end_upward = (element.orientation == ShapeElementOrientation::Anticlockwise)?
                         (end_angle < M_PI / 2 || end_angle >= 3 * M_PI / 2):
                         (end_angle >= M_PI / 2 && end_angle < 3 * M_PI / 2);
                     //std::cout << "end_upward " << end_upward << std::endl;
@@ -947,15 +1017,15 @@ bool Shape::check() const
                 std::cout << "angle  " << angle << std::endl;
                 return false;
             }
-        }
 
-        if (element_prev.start == element.end) {
-            std::cout << this->to_string(1) << std::endl;
-            std::cout << "element_pos       " << element_cur_pos << std::endl;
-            std::cout << "element_prev_pos  " << element_prev_pos << std::endl;
-            std::cout << "element       " << element.to_string() << std::endl;
-            std::cout << "element_prev  " << element_prev.to_string() << std::endl;
-            return false;
+            if (element_prev.start == element.end) {
+                std::cout << this->to_string(1) << std::endl;
+                std::cout << "element_pos       " << element_cur_pos << std::endl;
+                std::cout << "element_prev_pos  " << element_prev_pos << std::endl;
+                std::cout << "element       " << element.to_string() << std::endl;
+                std::cout << "element_prev  " << element_prev.to_string() << std::endl;
+                return false;
+            }
         }
 
         element_prev_pos = element_cur_pos;
@@ -993,21 +1063,53 @@ std::string Shape::to_string(
 nlohmann::json Shape::to_json() const
 {
     nlohmann::json json;
+    json["type"] = "general";
     for (ElementPos element_pos = 0;
             element_pos < (ElementPos)elements.size();
             ++element_pos) {
-        json[element_pos] = elements[element_pos].to_json();
+        json["elements"][element_pos] = elements[element_pos].to_json();
     }
     return json;
 }
 
-std::string Shape::to_svg(double factor) const
+Shape Shape::read_json(
+        const std::string& file_path)
+{
+    std::ifstream file(file_path);
+    if (!file.good()) {
+        throw std::runtime_error(
+                "shape::Shape::read_json: "
+                "unable to open file \"" + file_path + "\".");
+    }
+
+    nlohmann::json j;
+    file >> j;
+    return from_json(j);
+}
+
+void Shape::write_json(
+        const std::string& file_path) const
+{
+    if (file_path.empty())
+        return;
+    std::ofstream file{file_path};
+    if (!file.good()) {
+        throw std::runtime_error(
+                "Unable to open file \"" + file_path + "\".");
+    }
+
+    nlohmann::json json = this->to_json();
+
+    file << std::setw(4) << json << std::endl;
+}
+
+std::string Shape::to_svg() const
 {
     std::string s = "M";
     for (const ShapeElement& element: elements) {
-        Point center = {element.center.x * factor, -(element.center.y * factor)};
-        Point start = {element.start.x * factor, -(element.start.y * factor)};
-        Point end = {element.end.x * factor, -(element.end.y * factor)};
+        Point center = {element.center.x, -(element.center.y)};
+        Point start = {element.start.x, -(element.start.y)};
+        Point end = {element.end.x, -(element.end.y)};
         s += std::to_string(start.x) + "," + std::to_string(start.y);
         if (element.type == ShapeElementType::LineSegment) {
             s += "L";
@@ -1015,15 +1117,15 @@ std::string Shape::to_svg(double factor) const
             LengthDbl radius = distance(center, start);
             Angle theta = angle_radian(start - center, end - center);
             int large_arc_flag = (theta > M_PI)? 0: 1;
-            int sweep_flag = (element.anticlockwise)? 0: 1;
+            int sweep_flag = (element.orientation == ShapeElementOrientation::Anticlockwise)? 0: 1;
             s += "A" + std::to_string(radius) + ","
                 + std::to_string(radius) + ",0,"
                 + std::to_string(large_arc_flag) + ","
                 + std::to_string(sweep_flag) + ",";
         }
     }
-    s += std::to_string(elements.front().start.x * factor)
-        + "," + std::to_string(-(elements.front().start.y * factor))
+    s += std::to_string(elements.front().start.x)
+        + "," + std::to_string(-(elements.front().start.y))
         + "Z";
     return s;
 }
@@ -1043,19 +1145,17 @@ void Shape::write_svg(
     LengthDbl width = (mm.second.x - mm.first.x);
     LengthDbl height = (mm.second.y - mm.first.y);
 
-    double factor = compute_svg_factor(width);
-
     std::string s = "<svg viewBox=\""
-        + std::to_string(mm.first.x * factor)
-        + " " + std::to_string(-mm.first.y * factor - height * factor)
-        + " " + std::to_string(width * factor)
-        + " " + std::to_string(height * factor)
+        + std::to_string(mm.first.x)
+        + " " + std::to_string(-mm.first.y - height)
+        + " " + std::to_string(width)
+        + " " + std::to_string(height)
         + "\" version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\">\n";
     file << s;
 
-    file << "<path d=\"" << to_svg(factor) << "\""
+    file << "<path d=\"" << to_svg() << "\""
         << " stroke=\"black\""
-        << " stroke-width=\"1\""
+        << " stroke-width=\"0.1\""
         << " fill=\"blue\""
         << " fill-opacity=\"0.2\""
         << "/>" << std::endl;
@@ -1110,25 +1210,29 @@ Shape shape::build_shape(
     Shape shape;
     Point point_prev = {points.front().x, points.front().y};
     ShapeElementType type = ShapeElementType::LineSegment;
-    bool anticlockwise = false;
+    ShapeElementOrientation orientation = ShapeElementOrientation::Anticlockwise;
     Point center = {0, 0};
     for (ElementPos pos = 1; pos <= (ElementPos)points.size(); ++pos) {
         const BuildShapeElement& point = points[(pos != points.size())? pos: 0];
+        if (path && pos == points.size())
+            break;
         if (point.type == 0) {
             ShapeElement element;
             element.type = type;
             element.start = point_prev;
             element.end = {point.x, point.y};
             element.center = center;
-            element.anticlockwise = anticlockwise;
-            if (!path || pos > 0)
-                shape.elements.push_back(element);
+            element.orientation = orientation;
+            shape.elements.push_back(element);
+
             point_prev = element.end;
-            anticlockwise = true;
+            orientation = ShapeElementOrientation::Anticlockwise;
             center = {0, 0};
             type = ShapeElementType::LineSegment;
         } else {
-            anticlockwise = (point.type == 1);
+            orientation = (point.type == 1)?
+                ShapeElementOrientation::Anticlockwise:
+                ShapeElementOrientation::Clockwise;
             center = {point.x, point.y};
             type = ShapeElementType::CircularArc;
         }
@@ -1136,29 +1240,74 @@ Shape shape::build_shape(
     return shape;
 }
 
-double shape::compute_svg_factor(
-        double width)
+std::string ShapeWithHoles::to_string(
+        Counter indentation) const
 {
-    double factor = 1;
-    while (width * factor > 10000)
-        factor /= 10;
-    while (width * factor < 1000)
-        factor *= 10;
-    return factor;
+    std::string s = "";
+    std::string indent = std::string(indentation, ' ');
+    s += "shape " + shape.to_string(indentation) + "\n";
+    if (holes.size() == 1) {
+        s += indent + "- holes: " + holes.front().to_string(indentation + 2) + "\n";
+    } else if (holes.size() >= 2) {
+        s += indent + "- holes\n";
+        for (const Shape& hole: holes)
+            s += indent + "  - " + hole.to_string(indentation + 4) + "\n";
+    }
+    return s;
 }
 
-std::string shape::to_svg(
-        const Shape& shape,
-        const std::vector<Shape>& holes,
-        double factor,
-        const std::string& fill_color)
+nlohmann::json ShapeWithHoles::to_json() const
 {
-    std::string s = "<path d=\"" + shape.to_svg(factor);
+    nlohmann::json json = this->shape.to_json();
+    for (Counter hole_pos = 0;
+            hole_pos < (Counter)this->holes.size();
+            ++hole_pos) {
+        const Shape& hole = this->holes[hole_pos];
+        json["holes"][hole_pos] = hole.to_json();
+    }
+    return json;
+}
+
+ShapeWithHoles ShapeWithHoles::read_json(
+        const std::string& file_path)
+{
+    std::ifstream file(file_path);
+    if (!file.good()) {
+        throw std::runtime_error(
+                "shape::ShapeWithHoles::read_json: "
+                "unable to open file \"" + file_path + "\".");
+    }
+
+    nlohmann::json j;
+    file >> j;
+    return from_json(j);
+}
+
+void ShapeWithHoles::write_json(
+        const std::string& file_path) const
+{
+    if (file_path.empty())
+        return;
+    std::ofstream file{file_path};
+    if (!file.good()) {
+        throw std::runtime_error(
+                "Unable to open file \"" + file_path + "\".");
+    }
+
+    nlohmann::json json = this->to_json();
+
+    file << std::setw(4) << json << std::endl;
+}
+
+std::string ShapeWithHoles::to_svg(
+        const std::string& fill_color) const
+{
+    std::string s = "<path d=\"" + shape.to_svg();
     for (const Shape& hole: holes)
-        s += hole.reverse().to_svg(factor);
+        s += hole.reverse().to_svg();
     s += "\""
         " stroke=\"black\""
-        " stroke-width=\"1\"";
+        " stroke-width=\"0.1\"";
     if (!fill_color.empty()) {
         s += " fill=\"" + fill_color + "\""
             " fill-opacity=\"0.2\"";
@@ -1167,10 +1316,8 @@ std::string shape::to_svg(
     return s;
 }
 
-void shape::write_svg(
-        const Shape& shape,
-        const std::vector<Shape>& holes,
-        const std::string& file_path)
+void ShapeWithHoles::write_svg(
+        const std::string& file_path) const
 {
     if (file_path.empty())
         return;
@@ -1184,20 +1331,18 @@ void shape::write_svg(
     LengthDbl width = (mm.second.x - mm.first.x);
     LengthDbl height = (mm.second.y - mm.first.y);
 
-    double factor = compute_svg_factor(width);
-
     std::string s = "<svg viewBox=\""
-        + std::to_string(mm.first.x * factor)
-        + " " + std::to_string(-mm.first.y * factor - height * factor)
-        + " " + std::to_string(width * factor)
-        + " " + std::to_string(height * factor)
+        + std::to_string(mm.first.x)
+        + " " + std::to_string(-mm.first.y - height)
+        + " " + std::to_string(width)
+        + " " + std::to_string(height)
         + "\" version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\">\n";
     file << s;
 
     file << "<g>" << std::endl;
-    file << to_svg(shape, holes, factor);
-    //file << "<text x=\"" << std::to_string(x * factor)
-    //    << "\" y=\"" << std::to_string(-y * factor)
+    file << shape.to_svg();
+    //file << "<text x=\"" << std::to_string(x)
+    //    << "\" y=\"" << std::to_string(-y)
     //    << "\" dominant-baseline=\"middle\" text-anchor=\"middle\">"
     //    << std::to_string(item_shape_pos)
     //    << "</text>" << std::endl;
@@ -1312,7 +1457,10 @@ std::pair<bool, Shape> shape::remove_aligned_vertices(
     return {(number_of_elements_removed > 0), shape_new};
 }
 
-std::pair<bool, Shape> shape::clean_extreme_slopes(
+namespace
+{
+
+std::pair<bool, Shape> clean_extreme_slopes_rec(
         const Shape& shape,
         bool outer)
 {
@@ -1501,6 +1649,27 @@ std::pair<bool, Shape> shape::clean_extreme_slopes(
     return {found, shape_new};
 }
 
+}
+
+Shape shape::clean_extreme_slopes(
+        const Shape& shape,
+        bool outer)
+{
+    Shape shape_new = shape;
+    for (int i = 0;; ++i) {
+        if (i == 100) {
+            throw std::runtime_error(
+                    "packingsolver::irregular::process_shape_outer: "
+                    "too many iterations.");
+        }
+        auto res = clean_extreme_slopes_rec(shape_new, outer);
+        if (!res.first)
+            break;
+        shape_new = res.second;
+    }
+    return shape_new;
+}
+
 bool shape::operator==(
         const ShapeElement& element_1,
         const ShapeElement& element_2)
@@ -1514,7 +1683,7 @@ bool shape::operator==(
     if (element_1.type == ShapeElementType::CircularArc) {
         if (!(element_1.center == element_2.center))
             return false;
-        if (element_1.anticlockwise != element_2.anticlockwise)
+        if (element_1.orientation != element_2.orientation)
             return false;
     }
     return true;
@@ -1533,7 +1702,7 @@ bool shape::equal(
     if (element_1.type == ShapeElementType::CircularArc) {
         if (!equal(element_1.center, element_2.center))
             return false;
-        if (element_1.anticlockwise != element_2.anticlockwise)
+        if (element_1.orientation != element_2.orientation)
             return false;
     }
     return true;
@@ -1598,6 +1767,49 @@ bool shape::equal(
         if (!equal(shape_1.elements[element_pos], shape_2.elements[element_pos_2])) {
             return false;
         }
+    }
+
+    return true;
+}
+
+bool shape::operator==(
+        const ShapeWithHoles& shape_1,
+        const ShapeWithHoles& shape_2)
+{
+    if (!(shape_1.shape == shape_2.shape))
+        return false;
+
+    if (shape_1.holes.size() != shape_2.holes.size())
+        return false;
+    for (const Shape& hole_1: shape_1.holes) {
+         if (std::find(
+                    shape_2.holes.begin(),
+                    shape_2.holes.end(),
+                    hole_1) == shape_2.holes.end()) {
+             return false;
+         }
+    }
+
+    return true;
+}
+
+bool shape::equal(
+        const ShapeWithHoles& shape_1,
+        const ShapeWithHoles& shape_2)
+{
+    if (!equal(shape_1.shape, shape_2.shape))
+        return false;
+
+    if (shape_1.holes.size() != shape_2.holes.size())
+        return false;
+    for (const Shape& hole_1: shape_1.holes) {
+         if (std::find_if(
+                    shape_2.holes.begin(),
+                    shape_2.holes.end(),
+                    [&hole_1](const Shape& hole) { return equal(hole, hole_1); })
+                 == shape_2.holes.end()) {
+             return false;
+         }
     }
 
     return true;

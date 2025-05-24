@@ -17,7 +17,6 @@ ShapeSupports compute_shape_supports(
         bool is_hole);
 
 ShapeSupports compute_shape_supports(
-        const Shape& shape,
-        const std::vector<Shape>& holes);
+        const ShapeWithHoles& shape);
 
 }

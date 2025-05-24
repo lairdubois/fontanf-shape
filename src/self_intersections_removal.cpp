@@ -1,6 +1,7 @@
 #include "shape/self_intersections_removal.hpp"
 
 #include "shape/element_intersections.hpp"
+#include "shape/intersection_tree.hpp"
 
 //#include <iostream>
 
@@ -12,31 +13,50 @@ namespace
 std::vector<ShapeElement> compute_splitted_elements(
         const std::vector<ShapeElement>& elements)
 {
-    //std::cout << "compute_splitted_elements" << std::endl;
+    //std::cout << "compute_splitted_elements"
+    //    " elements.size() " << elements.size() << std::endl;
+
+    IntersectionTree intersection_tree({}, elements, {});
+    std::vector<IntersectionTree::ElementElementIntersection> intersections
+        = intersection_tree.compute_intersecting_elements(false);
     std::vector<std::vector<Point>> element_intersections(elements.size());
-    for (ElementPos element_pos_1 = 0;
-            element_pos_1 < (ElementPos)elements.size();
-            ++element_pos_1) {
-        const ShapeElement& element_1 = elements[element_pos_1];
-        for (ElementPos element_pos_2 = element_pos_1 + 1;
-                element_pos_2 < (ElementPos)elements.size();
-                ++element_pos_2) {
-            const ShapeElement& element_2 = elements[element_pos_2];
-            auto intersection_points = compute_intersections(
-                    element_1,
-                    element_2);
-            for (const Point& point: intersection_points) {
-                //std::cout << "element_pos_1 " << element_pos_1
-                //    << " " << element_1.to_string()
-                //    << " element_pos_2 " << element_pos_2
-                //    << " " << element_2.to_string()
-                //    << " intersection " << point.to_string()
-                //    << std::endl;
-                element_intersections[element_pos_1].push_back(point);
-                element_intersections[element_pos_2].push_back(point);
-            }
+    for (const IntersectionTree::ElementElementIntersection& intersection: intersections) {
+        for (const Point& point: intersection.intersections) {
+            //std::cout << "element_pos_1 " << element_pos_1
+            //    << " " << element_1.to_string()
+            //    << " element_pos_2 " << element_pos_2
+            //    << " " << element_2.to_string()
+            //    << " intersection " << point.to_string()
+            //    << std::endl;
+            element_intersections[intersection.element_id_1].push_back(point);
+            element_intersections[intersection.element_id_2].push_back(point);
         }
     }
+
+    // Equalize points.
+    std::vector<Point*> equalize_to_orig;
+    std::vector<Point> equalize_input;
+    std::vector<ShapeElement> elements_tmp = elements;
+    for (ElementPos element_pos = 0;
+            element_pos < (ElementPos)elements.size();
+            ++element_pos) {
+        ShapeElement& element = elements_tmp[element_pos];
+        equalize_input.push_back(element.start);
+        equalize_to_orig.push_back(&element.start);
+        equalize_input.push_back(element.end);
+        equalize_to_orig.push_back(&element.end);
+        if (element.type == ShapeElementType::CircularArc) {
+            equalize_input.push_back(element.center);
+            equalize_to_orig.push_back(&element.center);
+        }
+        for (Point& intersection: element_intersections[element_pos]) {
+            equalize_input.push_back(intersection);
+            equalize_to_orig.push_back(&intersection);
+        }
+    }
+    std::vector<Point> equalize_output = equalize_points(equalize_input);
+    for (ElementPos pos = 0; pos < (ElementPos)equalize_output.size(); ++pos)
+        *equalize_to_orig[pos] = equalize_output[pos];
 
     std::vector<ShapeElement> new_elements;
     for (ElementPos element_pos = 0;
@@ -79,6 +99,7 @@ std::vector<ShapeElement> compute_splitted_elements(
         //std::cout << "- " << new_element.to_string() << std::endl;
         new_elements.push_back(new_element);
     }
+
     //std::cout << "compute_splitted_elements end" << std::endl;
     return new_elements;
 }
@@ -169,7 +190,7 @@ ShapeSelfIntersectionRemovalGraph compute_graph(
 
 }
 
-std::pair<Shape, std::vector<Shape>> shape::remove_self_intersections(
+ShapeWithHoles shape::remove_self_intersections(
         const Shape& shape)
 {
     //std::cout << "remove_self_intersections shape " << shape.to_string(0) << std::endl;
@@ -209,7 +230,7 @@ std::pair<Shape, std::vector<Shape>> shape::remove_self_intersections(
 
     // Find outer loop.
     //std::cout << "find outer loop..." << std::endl;
-    Shape new_shape;
+    ShapeWithHoles new_shape;
     ElementPos element_cur_pos = element_start_pos;
     for (int i = 0;; ++i) {
         // Check infinite loop.
@@ -219,7 +240,7 @@ std::pair<Shape, std::vector<Shape>> shape::remove_self_intersections(
         }
 
         const ShapeElement& element_cur = new_elements[element_cur_pos];
-        new_shape.elements.push_back(element_cur);
+        new_shape.shape.elements.push_back(element_cur);
         element_is_processed[element_cur_pos] = 1;
 
         // Find the next element with the smallest angle.
@@ -239,7 +260,7 @@ std::pair<Shape, std::vector<Shape>> shape::remove_self_intersections(
             direction_cur = element_cur.end - element_cur.start;
             break;
         } case ShapeElementType::CircularArc: {
-            if (element_cur.anticlockwise) {
+            if (element_cur.orientation == ShapeElementOrientation::Anticlockwise) {
                 direction_cur = {
                     element_cur.center.y - element_cur.end.y,
                     element_cur.end.x - element_cur.center.x};
@@ -262,7 +283,7 @@ std::pair<Shape, std::vector<Shape>> shape::remove_self_intersections(
                 direction_next = element_next.end - element_next.start;
                 break;
             } case ShapeElementType::CircularArc: {
-                if (element_next.anticlockwise) {
+                if (element_next.orientation == ShapeElementOrientation::Anticlockwise) {
                     direction_next = {
                         element_next.center.y - element_next.start.y,
                         element_next.start.x - element_next.center.x};
@@ -294,11 +315,10 @@ std::pair<Shape, std::vector<Shape>> shape::remove_self_intersections(
         if (element_cur_pos == element_start_pos)
             break;
     }
-    new_shape = remove_redundant_vertices(new_shape).second;
-    new_shape = remove_aligned_vertices(new_shape).second;
+    new_shape.shape = remove_redundant_vertices(new_shape.shape).second;
+    new_shape.shape = remove_aligned_vertices(new_shape.shape).second;
 
     // Find holes by finding paths from remaining unprocessed vertices.
-    std::vector<Shape> new_holes;
     for (;;) {
         // Find an unprocessed element.
         ElementPos element_start_pos = -1;
@@ -346,7 +366,7 @@ std::pair<Shape, std::vector<Shape>> shape::remove_self_intersections(
                 direction_cur = element_cur.end - element_cur.start;
                 break;
             } case ShapeElementType::CircularArc: {
-                if (element_cur.anticlockwise) {
+                if (element_cur.orientation == ShapeElementOrientation::Anticlockwise) {
                     direction_cur = {
                         element_cur.center.y - element_cur.end.y,
                         element_cur.end.x - element_cur.center.x};
@@ -369,7 +389,7 @@ std::pair<Shape, std::vector<Shape>> shape::remove_self_intersections(
                     direction_next = element_next.end - element_next.start;
                     break;
                 } case ShapeElementType::CircularArc: {
-                    if (element_next.anticlockwise) {
+                    if (element_next.orientation == ShapeElementOrientation::Anticlockwise) {
                         direction_next = {
                             element_next.center.y - element_next.start.y,
                             element_next.start.x - element_next.center.x};
@@ -417,10 +437,10 @@ std::pair<Shape, std::vector<Shape>> shape::remove_self_intersections(
                         new_hole_2.elements.push_back(new_hole.elements[pos]);
                     }
                     new_hole_2 = new_hole_2.reverse();
-                    if (new_hole_2.compute_area() > 0) {
+                    if (strictly_greater(new_hole_2.compute_area(), 0)) {
                         new_hole_2 = remove_redundant_vertices(new_hole_2).second;
                         new_hole_2 = remove_aligned_vertices(new_hole_2).second;
-                        new_holes.push_back(new_hole_2);
+                        new_shape.holes.push_back(new_hole_2);
                     }
                 }
                 break;
@@ -429,10 +449,10 @@ std::pair<Shape, std::vector<Shape>> shape::remove_self_intersections(
     }
 
     //std::cout << "remove_self_intersections end" << std::endl;
-    return {new_shape, new_holes};
+    return new_shape;
 }
 
-std::pair<Shape, std::vector<Shape>> shape::compute_union(
+ShapeWithHoles shape::compute_union(
         const Shape& shape_1,
         const Shape& shape_2)
 {
@@ -507,7 +527,7 @@ std::vector<Shape> shape::extract_all_holes_from_self_intersecting_hole(
                 direction_cur = element_cur.end - element_cur.start;
                 break;
             } case ShapeElementType::CircularArc: {
-                if (element_cur.anticlockwise) {
+                if (element_cur.orientation == ShapeElementOrientation::Anticlockwise) {
                     direction_cur = {
                         element_cur.center.y - element_cur.end.y,
                         element_cur.end.x - element_cur.center.x};
@@ -530,7 +550,7 @@ std::vector<Shape> shape::extract_all_holes_from_self_intersecting_hole(
                     direction_next = element_next.end - element_next.start;
                     break;
                 } case ShapeElementType::CircularArc: {
-                    if (element_next.anticlockwise) {
+                    if (element_next.orientation == ShapeElementOrientation::Anticlockwise) {
                         direction_next = {
                             element_next.center.y - element_next.start.y,
                             element_next.start.x - element_next.center.x};
@@ -576,7 +596,7 @@ std::vector<Shape> shape::extract_all_holes_from_self_intersecting_hole(
                         new_hole_2.elements.push_back(new_hole.elements[pos]);
                     }
                     //std::cout << "area " << new_hole_2.compute_area() << std::endl;
-                    if (new_hole_2.compute_area() > 0) {
+                    if (strictly_greater(new_hole_2.compute_area(), 0)) {
                         new_hole_2 = remove_redundant_vertices(new_hole_2).second;
                         new_hole_2 = remove_aligned_vertices(new_hole_2).second;
                         new_holes.push_back(new_hole_2);

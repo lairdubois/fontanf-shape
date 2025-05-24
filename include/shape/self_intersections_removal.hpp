@@ -5,10 +5,10 @@
 namespace shape
 {
 
-std::pair<Shape, std::vector<Shape>> remove_self_intersections(
+ShapeWithHoles remove_self_intersections(
         const Shape& shape);
 
-std::pair<Shape, std::vector<Shape>> compute_union(
+ShapeWithHoles compute_union(
         const Shape& shape_1,
         const Shape& shape_2);
 

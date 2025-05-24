@@ -9,8 +9,7 @@ struct InflateTestParams
 {
     Shape shape;
     LengthDbl offset;
-    Shape expected_shape;
-    std::vector<Shape> expected_holes;
+    ShapeWithHoles expected_shape;
 };
 
 class InflateTest: public testing::TestWithParam<InflateTestParams> { };
@@ -21,25 +20,11 @@ TEST_P(InflateTest, Inflate)
     std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
     std::cout << "offset " << test_params.offset << std::endl;
     std::cout << "expected_shape " << test_params.expected_shape.to_string(0) << std::endl;
-    std::cout << "expected_holes" << std::endl;
-    for (const Shape& hole: test_params.expected_holes)
-        std::cout << "- " << hole.to_string(2) << std::endl;
 
-    auto p = inflate(test_params.shape, test_params.offset);
-    std::cout << "shape " << p.first.to_string(0) << std::endl;
-    std::cout << "holes" << std::endl;
-    for (const Shape& hole: p.second)
-        std::cout << "- " << hole.to_string(2) << std::endl;
+    ShapeWithHoles shape = inflate(test_params.shape, test_params.offset);
+    std::cout << "shape " << shape.to_string(0) << std::endl;
 
-    EXPECT_TRUE(equal(p.first, test_params.expected_shape));
-    ASSERT_EQ(p.second.size(), test_params.expected_holes.size());
-    for (const Shape& expected_hole: test_params.expected_holes) {
-        EXPECT_NE(std::find(
-                    p.second.begin(),
-                    p.second.end(),
-                    expected_hole),
-                p.second.end());
-    }
+    EXPECT_TRUE(equal(shape, test_params.expected_shape));
 }
 
 INSTANTIATE_TEST_SUITE_P(

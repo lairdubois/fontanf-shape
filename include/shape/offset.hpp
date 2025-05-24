@@ -5,7 +5,7 @@
 namespace shape
 {
 
-std::pair<Shape, std::vector<Shape>> inflate(
+ShapeWithHoles inflate(
         const Shape& shape,
         LengthDbl offset,
         bool remove_self_intersections = true);

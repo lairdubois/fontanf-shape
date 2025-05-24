@@ -8,8 +8,7 @@ using namespace shape;
 struct SelfIntersectionsRemovalTestParams
 {
     Shape shape;
-    Shape expected_shape;
-    std::vector<Shape> expected_holes;
+    ShapeWithHoles expected_shape;
 };
 
 class SelfIntersectionsRemovalTest: public testing::TestWithParam<SelfIntersectionsRemovalTestParams> { };
@@ -19,25 +18,11 @@ TEST_P(SelfIntersectionsRemovalTest, SelfIntersectionsRemoval)
     SelfIntersectionsRemovalTestParams test_params = GetParam();
     std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
     std::cout << "expected_shape " << test_params.expected_shape.to_string(0) << std::endl;
-    std::cout << "expected_holes" << std::endl;
-    for (const Shape& hole: test_params.expected_holes)
-        std::cout << "- " << hole.to_string(2) << std::endl;
 
-    auto p = remove_self_intersections(test_params.shape);
-    std::cout << "shape " << p.first.to_string(0) << std::endl;
-    std::cout << "holes" << std::endl;
-    for (const Shape& hole: p.second)
-        std::cout << "- " << hole.to_string(2) << std::endl;
+    auto shape = remove_self_intersections(test_params.shape);
+    std::cout << "shape " << shape.to_string(0) << std::endl;
 
-    EXPECT_TRUE(equal(p.first, test_params.expected_shape));
-    ASSERT_EQ(p.second.size(), test_params.expected_holes.size());
-    for (const Shape& expected_hole: test_params.expected_holes) {
-        EXPECT_NE(std::find(
-                    p.second.begin(),
-                    p.second.end(),
-                    expected_hole),
-                p.second.end());
-    }
+    EXPECT_TRUE(equal(shape, test_params.expected_shape));
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -129,8 +114,7 @@ struct ComputeUnionTestParams
 {
     Shape shape_1;
     Shape shape_2;
-    Shape expected_shape;
-    std::vector<Shape> expected_holes;
+    ShapeWithHoles expected_shape;
 };
 
 class ComputeUnionTest: public testing::TestWithParam<ComputeUnionTestParams> { };
@@ -141,27 +125,13 @@ TEST_P(ComputeUnionTest, ComputeUnion)
     std::cout << "shape_1 " << test_params.shape_1.to_string(0) << std::endl;
     std::cout << "shape_2 " << test_params.shape_2.to_string(0) << std::endl;
     std::cout << "expected_shape " << test_params.expected_shape.to_string(0) << std::endl;
-    std::cout << "expected_holes" << std::endl;
-    for (const Shape& hole: test_params.expected_holes)
-        std::cout << "- " << hole.to_string(2) << std::endl;
 
-    auto p = compute_union(
+    ShapeWithHoles shape = compute_union(
             test_params.shape_1,
             test_params.shape_2);
-    std::cout << "shape " << p.first.to_string(0) << std::endl;
-    std::cout << "holes" << std::endl;
-    for (const Shape& hole: p.second)
-        std::cout << "- " << hole.to_string(2) << std::endl;
+    std::cout << "shape " << shape.to_string(0) << std::endl;
 
-    EXPECT_TRUE(equal(p.first, test_params.expected_shape));
-    ASSERT_EQ(p.second.size(), test_params.expected_holes.size());
-    for (const Shape& expected_hole: test_params.expected_holes) {
-        EXPECT_NE(std::find(
-                    p.second.begin(),
-                    p.second.end(),
-                    expected_hole),
-                p.second.end());
-    }
+    EXPECT_TRUE(equal(shape, test_params.expected_shape));
 }
 
 INSTANTIATE_TEST_SUITE_P(

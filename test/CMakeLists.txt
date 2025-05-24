@@ -19,6 +19,7 @@ target_include_directories(Shape_shape_test PRIVATE
     ${PROJECT_SOURCE_DIR}/src)
 target_link_libraries(Shape_shape_test
     Shape_shape
+    Boost::filesystem
     GTest::gtest_main)
 gtest_discover_tests(Shape_shape_test
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})

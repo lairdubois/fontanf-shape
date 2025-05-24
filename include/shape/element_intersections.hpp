@@ -23,4 +23,7 @@ bool intersect(
 std::vector<Shape> merge_intersecting_shapes(
         const std::vector<Shape>& shapes);
 
+std::vector<Point> equalize_points(
+        const std::vector<Point>& points);
+
 }

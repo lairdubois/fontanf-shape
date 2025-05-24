@@ -162,6 +162,20 @@ ShapeElementType str2element(const std::string& str);
 
 char element2char(ShapeElementType type);
 
+enum class ShapeElementOrientation
+{
+    Anticlockwise,
+    Clockwise,
+    Full,
+};
+
+std::string orientation2str(ShapeElementOrientation type);
+ShapeElementOrientation str2orientation(const std::string& str);
+
+char orientation2char(ShapeElementOrientation type);
+
+ShapeElementOrientation opposite(ShapeElementOrientation orientation);
+
 /**
  * Structure for the elementary elements composing a shape.
  */
@@ -180,7 +194,7 @@ struct ShapeElement
     Point center = {0, 0};
 
     /** If the element is a CircularArc, direction of the rotation. */
-    bool anticlockwise = true;
+    ShapeElementOrientation orientation = ShapeElementOrientation::Anticlockwise;
 
     /** Length of the element. */
     LengthDbl length() const;
@@ -209,6 +223,9 @@ struct ShapeElement
     std::pair<Point, Point> min_max() const;
 
     std::string to_string() const;
+
+    template <class basic_json>
+    static ShapeElement from_json(basic_json& json_element);
 
     nlohmann::json to_json() const;
 };
@@ -258,6 +275,7 @@ struct Shape
      */
     std::vector<ShapeElement> elements;
 
+
     /** Return true iff the shape is a circle. */
     bool is_circle() const;
 
@@ -305,11 +323,24 @@ struct Shape
 
     Shape reverse() const;
 
+    /*
+     * Export
+     */
+
     std::string to_string(Counter indentation) const;
+
+    template <class basic_json>
+    static Shape from_json(basic_json& json_shape);
+
+    static Shape read_json(
+            const std::string& file_path);
 
     nlohmann::json to_json() const;
 
-    std::string to_svg(double factor) const;
+    void write_json(
+            const std::string& file_path) const;
+
+    std::string to_svg() const;
 
     void write_svg(
             const std::string& file_path) const;
@@ -323,6 +354,45 @@ Shape approximate_by_line_segments(
         const Shape& shape,
         LengthDbl segment_length,
         bool outer);
+
+/**
+ * Structure for a shape with holes.
+ */
+struct ShapeWithHoles
+{
+    Shape shape;
+
+    std::vector<Shape> holes;
+
+
+    /** Compute the smallest and greatest x and y of the shape. */
+    std::pair<Point, Point> compute_min_max(
+            Angle angle = 0.0,
+            bool mirror = false) const { return this->shape.compute_min_max(angle, mirror); }
+
+    /*
+     * Export
+     */
+
+    std::string to_string(Counter indentation) const;
+
+    template <class basic_json>
+    static ShapeWithHoles from_json(basic_json& json_shape);
+
+    static ShapeWithHoles read_json(
+            const std::string& file_path);
+
+    nlohmann::json to_json() const;
+
+    void write_json(
+            const std::string& file_path) const;
+
+    std::string to_svg(
+            const std::string& fill_color = "blue") const;
+
+    void write_svg(
+            const std::string& file_path) const;
+};
 
 struct BuildShapeElement
 {
@@ -357,26 +427,13 @@ Shape build_shape(
         const std::vector<BuildShapeElement>& points,
         bool path = false);
 
-double compute_svg_factor(double width);
-
-std::string to_svg(
-        const Shape& shape,
-        const std::vector<Shape>& holes,
-        double factor,
-        const std::string& fill_color = "blue");
-
-void write_svg(
-        const Shape& shape,
-        const std::vector<Shape>& holes,
-        const std::string& file_path);
-
 std::pair<bool, Shape> remove_redundant_vertices(
         const Shape& shape);
 
 std::pair<bool, Shape> remove_aligned_vertices(
         const Shape& shape);
 
-std::pair<bool, Shape> clean_extreme_slopes(
+Shape clean_extreme_slopes(
         const Shape& shape,
         bool outer);
 
@@ -409,5 +466,107 @@ bool operator==(
 bool equal(
         const Shape& shape_1,
         const Shape& shape_2);
+
+bool operator==(
+        const ShapeWithHoles& shape_1,
+        const ShapeWithHoles& shape_2);
+
+bool equal(
+        const ShapeWithHoles& shape_1,
+        const ShapeWithHoles& shape_2);
+
+template <class basic_json>
+ShapeElement ShapeElement::from_json(basic_json& json_element)
+{
+    ShapeElement element;
+    element.type = str2element(json_element["type"]);
+    element.start.x = json_element["start"]["x"];
+    element.start.y = json_element["start"]["y"];
+    element.end.x = json_element["end"]["x"];
+    element.end.y = json_element["end"]["y"];
+    if (element.type == ShapeElementType::CircularArc) {
+        element.center.x = json_element["center"]["x"];
+        element.center.y = json_element["center"]["y"];
+        element.orientation = str2orientation(json_element["orientation"]);
+    }
+    return element;
+}
+
+template <class basic_json>
+Shape Shape::from_json(basic_json& json_shape)
+{
+    Shape shape;
+    if (json_shape["type"] == "circle") {
+        ShapeElement element;
+        element.type = ShapeElementType::CircularArc;
+        element.center = {0.0, 0.0};
+        element.start = {json_shape["radius"], 0.0};
+        element.end = element.start;
+        shape.elements.push_back(element);
+    } else if (json_shape["type"] == "rectangle") {
+        ShapeElement element_1;
+        ShapeElement element_2;
+        ShapeElement element_3;
+        ShapeElement element_4;
+        element_1.type = ShapeElementType::LineSegment;
+        element_2.type = ShapeElementType::LineSegment;
+        element_3.type = ShapeElementType::LineSegment;
+        element_4.type = ShapeElementType::LineSegment;
+        element_1.start = {0.0, 0.0};
+        element_1.end = {json_shape["width"], 0.0};
+        element_2.start = {json_shape["width"], 0.0};
+        element_2.end = {json_shape["width"], json_shape["height"]};
+        element_3.start = {json_shape["width"], json_shape["height"]};
+        element_3.end = {0.0, json_shape["height"]};
+        element_4.start = {0.0, json_shape["height"]};
+        element_4.end = {0.0, 0.0};
+        shape.elements.push_back(element_1);
+        shape.elements.push_back(element_2);
+        shape.elements.push_back(element_3);
+        shape.elements.push_back(element_4);
+    } else if (json_shape["type"] == "polygon") {
+        for (auto it = json_shape["vertices"].begin();
+                it != json_shape["vertices"].end();
+                ++it) {
+            auto it_next = it + 1;
+            if (it_next == json_shape["vertices"].end())
+                it_next = json_shape["vertices"].begin();
+            ShapeElement element;
+            element.type = ShapeElementType::LineSegment;
+            element.start = {(*it)["x"], (*it)["y"]};
+            element.end = {(*it_next)["x"], (*it_next)["y"]};
+            shape.elements.push_back(element);
+        }
+    } else if (json_shape["type"] == "general") {
+        for (auto it = json_shape["elements"].begin();
+                it != json_shape["elements"].end();
+                ++it) {
+            ShapeElement element = ShapeElement::from_json(*it);
+            shape.elements.push_back(element);
+        }
+    } else {
+        throw std::invalid_argument("");
+    }
+    return shape;
+}
+
+template <class basic_json>
+ShapeWithHoles ShapeWithHoles::from_json(basic_json& json_shape)
+{
+    ShapeWithHoles shape;
+    shape.shape = Shape::from_json(json_shape);
+
+    if (json_shape.contains("holes")) {
+        for (auto it_hole = json_shape["holes"].begin();
+                it_hole != json_shape["holes"].end();
+                ++it_hole) {
+            auto json_hole = *it_hole;
+            Shape hole = Shape::from_json(json_hole);
+            shape.holes.push_back(hole);
+        }
+    }
+
+    return shape;
+}
 
 }
