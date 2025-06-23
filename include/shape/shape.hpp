@@ -222,6 +222,9 @@ struct ShapeElement
     /** Compute the smallest and greatest x and y of the shape. */
     std::pair<Point, Point> min_max() const;
 
+    /** Compute furthest points according to a given direction. */
+    std::pair<Point, Point> furthest_points(Angle angle) const;
+
     std::string to_string() const;
 
     template <class basic_json>
@@ -302,6 +305,10 @@ struct Shape
     std::pair<LengthDbl, LengthDbl> compute_width_and_height(
             Angle angle = 0.0,
             bool mirror = false) const;
+
+    /** Compute furthest points according to a given direction. */
+    std::pair<Point, Point> compute_furthest_points(
+            Angle angle) const;
 
     /** Check if the shape contains a given point. */
     bool contains(
@@ -431,6 +438,15 @@ Shape build_shape(
 
 Shape build_path(
         const std::vector<BuildShapeElement>& points);
+
+ShapeElement build_line_segment(
+        const BuildShapeElement& start,
+        const BuildShapeElement& end);
+
+ShapeElement build_circular_arc(
+        const BuildShapeElement& start,
+        const BuildShapeElement& center,
+        const BuildShapeElement& end);
 
 std::pair<bool, Shape> remove_redundant_vertices(
         const Shape& shape);

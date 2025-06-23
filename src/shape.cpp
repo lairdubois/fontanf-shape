@@ -289,6 +289,59 @@ std::pair<Point, Point> ShapeElement::min_max() const
     return {{x_min, y_min}, {x_max, y_max}};
 }
 
+std::pair<Point, Point> ShapeElement::furthest_points(Angle angle) const
+{
+    if (angle == 0.0) {
+        Point point_min;
+        Point point_max;
+        if (this->start.y < this->end.y) {
+            point_min = this->start;
+            point_max = this->end;
+        } else {
+            point_min = this->end;
+            point_max = this->start;
+        }
+
+        if (this->type == ShapeElementType::CircularArc) {
+            LengthDbl radius = distance(this->center, this->start);
+            Angle starting_angle = shape::angle_radian(this->start - this->center);
+            Angle ending_angle = shape::angle_radian(this->end - this->center);
+            if (this->orientation != ShapeElementOrientation::Anticlockwise)
+                std::swap(starting_angle, ending_angle);
+            //std::cout << "starting_angle " << starting_angle << " ending_angle " << ending_angle << std::endl;
+            if (starting_angle <= ending_angle) {
+                if (starting_angle <= 3 * M_PI / 2
+                        && ending_angle >= 3 * M_PI / 2 ) {
+                    point_min.y = this->center.y - radius;
+                    point_min.x = this->center.x;
+                }
+                if (starting_angle <= M_PI / 2
+                        && ending_angle >= M_PI / 2) {
+                    point_max.y = this->center.y + radius;
+                    point_max.x = this->center.x;
+                }
+            } else {  // starting_angle > ending_angle
+                if (starting_angle <= 3 * M_PI / 2
+                        || ending_angle >= 3 * M_PI / 2) {
+                    point_min.y = this->center.y - radius;
+                    point_min.x = this->center.x;
+                }
+                if (starting_angle <= M_PI / 2
+                        || ending_angle >= M_PI / 2) {
+                    point_max.y = this->center.y + radius;
+                    point_max.x = this->center.x;
+                }
+            }
+        }
+
+        return {point_min, point_max};
+    }
+
+    ShapeElement element_tmp = this->rotate(-angle);
+    auto mm = element_tmp.furthest_points(0.0);
+    return {mm.first.rotate(angle), mm.second.rotate(angle)};
+}
+
 int shape::counter_clockwise(
         const Point& point_1,
         const Point& point_2,
@@ -817,6 +870,31 @@ std::pair<Point, Point> Shape::compute_min_max(
     return {{x_min, y_min}, {x_max, y_max}};
 }
 
+std::pair<Point, Point> Shape::compute_furthest_points(
+        Angle angle) const
+{
+    if (angle == 0.0) {
+        Point point_min;
+        point_min.x = std::numeric_limits<LengthDbl>::infinity();
+        point_min.y = std::numeric_limits<LengthDbl>::infinity();
+        Point point_max;
+        point_max.x = -std::numeric_limits<LengthDbl>::infinity();
+        point_max.y = -std::numeric_limits<LengthDbl>::infinity();
+        for (const ShapeElement& element: this->elements) {
+            auto mm = element.furthest_points(0.0);
+            if (point_min.y > mm.first.y)
+                point_min = mm.first;
+            if (point_max.y < mm.second.y)
+                point_max = mm.second;
+        }
+        return {point_min, point_max};
+    }
+
+    Shape shape_tmp = this->rotate(-angle);
+    auto mm = shape_tmp.compute_furthest_points(0.0);
+    return {mm.first.rotate(angle), mm.second.rotate(angle)};
+}
+
 bool Shape::contains(
         const Point& point,
         bool strict) const
@@ -1249,6 +1327,21 @@ Shape shape::build_path(
         const std::vector<BuildShapeElement>& points)
 {
     return build_shape(points, true);
+}
+
+ShapeElement build_line_segment(
+        const BuildShapeElement& start,
+        const BuildShapeElement& end)
+{
+    return build_shape({start, end}, true).elements.front();
+}
+
+ShapeElement build_circular_arc(
+        const BuildShapeElement& start,
+        const BuildShapeElement& center,
+        const BuildShapeElement& end)
+{
+    return build_shape({start, center, end}, true).elements.front();
 }
 
 std::string ShapeWithHoles::to_string(

@@ -108,7 +108,7 @@ TEST_P(ShapeElementMinMaxTest, ShapeElementMinMax)
 }
 
 INSTANTIATE_TEST_SUITE_P(
-        ,
+        Shape,
         ShapeElementMinMaxTest,
         testing::ValuesIn(std::vector<ShapeElementMinMaxTestParams>{
             {build_shape({{0, 1}, {2, 3}}, true).elements.front(), 0, 1, 2, 3 },
@@ -119,6 +119,48 @@ INSTANTIATE_TEST_SUITE_P(
             {build_shape({{-1, 0}, {0, 0, 1}, {0, 1}}, true).elements.front(), -1, -1, 1, 1 },
             {build_shape({{0, -1}, {0, 0, 1}, {-1, 0}}, true).elements.front(), -1, -1, 1, 1 },
             {build_shape({{1, 0}, {0, 0, 1}, {0, -1}}, true).elements.front(), -1, -1, 1, 1 },
+            }));
+
+
+struct ShapeComputeFurthestPointsTestParams
+{
+    Shape shape;
+    Angle angle;
+    Point expected_point_min;
+    Point expected_point_max;
+};
+
+class ShapeComputeFurthestPointsTest: public testing::TestWithParam<ShapeComputeFurthestPointsTestParams> { };
+
+TEST_P(ShapeComputeFurthestPointsTest, ShapeComputeFurthestPoints)
+{
+    ShapeComputeFurthestPointsTestParams test_params = GetParam();
+    std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
+    std::cout << "angle " << test_params.angle << std::endl;
+    std::cout << "expected point_min " << test_params.expected_point_min.to_string()
+        << " point_max " << test_params.expected_point_max.to_string() << std::endl;
+    auto mm = test_params.shape.compute_furthest_points(test_params.angle);
+    std::cout << "point_min " << mm.first.to_string()
+        << " point_max " << mm.second.to_string() << std::endl;
+    EXPECT_TRUE(equal(mm.first, test_params.expected_point_min));
+    EXPECT_TRUE(equal(mm.second, test_params.expected_point_max));
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Shape,
+        ShapeComputeFurthestPointsTest,
+        testing::ValuesIn(std::vector<ShapeComputeFurthestPointsTestParams>{
+            {
+                build_shape({{0, 0}, {2, 0}, {2, 2}, {0, 2}}),
+                45,
+                Point{2, 0},
+                Point{0, 2},
+            }, {
+                build_shape({{0, 0}, {2, 0}, {4, 2}, {3, 3, 1}, {2, 4}, {0, 2}}),
+                90 + 45,
+                Point{4, 4},
+                Point{0, 0},
+            },
             }));
 
 
