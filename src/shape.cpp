@@ -721,6 +721,11 @@ std::string shape::shape2str(ShapeType type)
     return "";
 }
 
+bool Shape::is_path() const
+{
+    return (!equal(elements.back().end, elements.front().start));
+}
+
 bool Shape::is_circle() const
 {
     return (elements.size() == 1
@@ -1238,6 +1243,12 @@ Shape shape::build_shape(
         }
     }
     return shape;
+}
+
+Shape shape::build_path(
+        const std::vector<BuildShapeElement>& points)
+{
+    return build_shape(points, true);
 }
 
 std::string ShapeWithHoles::to_string(

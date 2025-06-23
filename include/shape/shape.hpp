@@ -275,6 +275,8 @@ struct Shape
      */
     std::vector<ShapeElement> elements;
 
+    /** Return true iff the shape is a path. */
+    bool is_path() const;
 
     /** Return true iff the shape is a circle. */
     bool is_circle() const;
@@ -426,6 +428,9 @@ struct BuildShapeElement
 Shape build_shape(
         const std::vector<BuildShapeElement>& points,
         bool path = false);
+
+Shape build_path(
+        const std::vector<BuildShapeElement>& points);
 
 std::pair<bool, Shape> remove_redundant_vertices(
         const Shape& shape);

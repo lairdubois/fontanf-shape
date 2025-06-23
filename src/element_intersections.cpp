@@ -364,15 +364,19 @@ bool shape::intersect(
                 return true;
         }
     }
-    for (const ShapeElement& element_1: shape_1.elements) {
-        Point middle = element_1.middle();
-        if (shape_2.contains(middle, strict))
-            return true;
+    if (!shape_2.is_path()) {
+        for (const ShapeElement& element_1: shape_1.elements) {
+            Point middle = element_1.middle();
+            if (shape_2.contains(middle, strict))
+                return true;
+        }
     }
-    for (const ShapeElement& element_2: shape_2.elements) {
-        Point middle = element_2.middle();
-        if (shape_1.contains(middle, strict))
-            return true;
+    if (!shape_1.is_path()) {
+        for (const ShapeElement& element_2: shape_2.elements) {
+            Point middle = element_2.middle();
+            if (shape_1.contains(middle, strict))
+                return true;
+        }
     }
 
     return false;

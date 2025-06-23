@@ -363,3 +363,90 @@ INSTANTIATE_TEST_SUITE_P(
                     build_shape({{5, 0}, {7, 0}, {7, 2}, {5, 2}}),
                 },
             }}));
+
+
+struct IntersectShapeShapeTestParams
+{
+    Shape shape_1;
+    Shape shape_2;
+    bool strict;
+    bool expected_result;
+
+
+    template <class basic_json>
+    static IntersectShapeShapeTestParams from_json(basic_json& json_item)
+    {
+        IntersectShapeShapeTestParams test_params;
+        test_params.shape_1 = Shape::from_json(json_item["shape_1"]);
+        test_params.shape_2 = Shape::from_json(json_item["shape_2"]);
+        test_params.strict = json_item["strict"];
+        test_params.expected_result = json_item["expected_result"];
+        return test_params;
+    }
+
+    static IntersectShapeShapeTestParams read_json(
+            const std::string& file_path)
+    {
+        std::ifstream file(file_path);
+        if (!file.good()) {
+            throw std::runtime_error(
+                    "shape::IntersectShapeShapeTestParams::read_json: "
+                    "unable to open file \"" + file_path + "\".");
+        }
+
+        nlohmann::json json;
+        file >> json;
+        return from_json(json);
+    }
+};
+
+class IntersectShapeShapeTest: public testing::TestWithParam<IntersectShapeShapeTestParams> { };
+
+TEST_P(IntersectShapeShapeTest, IntersectShapeShapeElement)
+{
+    IntersectShapeShapeTestParams test_params = GetParam();
+    std::cout << "shape_1 " << test_params.shape_1.to_string(0) << std::endl;
+    std::cout << "shape_2 " << test_params.shape_2.to_string(0) << std::endl;
+    std::cout << "strict " << test_params.strict << std::endl;
+    std::cout << "expected_result " << test_params.expected_result << std::endl;
+
+    bool result = intersect(
+            test_params.shape_1,
+            test_params.shape_2,
+            test_params.strict);
+    std::cout << "result " << result << std::endl;
+
+    EXPECT_EQ(result, test_params.expected_result);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Shape,
+        IntersectShapeShapeTest,
+        testing::ValuesIn(std::vector<IntersectShapeShapeTestParams>{
+            {
+                build_shape({{0, 0}, {2, 0}, {2, 2}, {0, 2}}),
+                build_path({{3, 0}, {3, 2}}),
+                false,
+                false,
+            }, {
+                build_shape({{0, 0}, {2, 0}, {2, 4}, {0, 4}}),
+                build_path({{1, 1}, {1, 3}}),
+                false,
+                true,
+            }, {
+                build_path({{1, 1}, {1, 3}}),
+                build_shape({{0, 0}, {2, 0}, {2, 4}, {0, 4}}),
+                false,
+                true,
+            }, {
+                build_path({{0, 0}, {2, 0}, {2, 4}, {0, 4}}),
+                build_path({{1, 1}, {1, 3}}),
+                false,
+                false,
+            }, {
+                build_path({{1, 1}, {1, 3}}),
+                build_path({{0, 0}, {2, 0}, {2, 4}, {0, 4}}),
+                false,
+                false,
+            },
+            }));
