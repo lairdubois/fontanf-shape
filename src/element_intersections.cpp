@@ -396,8 +396,9 @@ bool shape::intersect(
             return true;
     }
     Point middle = element.middle();
-    if (shape.contains(middle, strict))
-        return true;
+    if (!shape.is_path())
+        if (shape.contains(middle, strict))
+            return true;
     return false;
 }
 

@@ -1329,14 +1329,14 @@ Shape shape::build_path(
     return build_shape(points, true);
 }
 
-ShapeElement build_line_segment(
+ShapeElement shape::build_line_segment(
         const BuildShapeElement& start,
         const BuildShapeElement& end)
 {
     return build_shape({start, end}, true).elements.front();
 }
 
-ShapeElement build_circular_arc(
+ShapeElement shape::build_circular_arc(
         const BuildShapeElement& start,
         const BuildShapeElement& center,
         const BuildShapeElement& end)
