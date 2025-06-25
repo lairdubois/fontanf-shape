@@ -774,11 +774,6 @@ std::string shape::shape2str(ShapeType type)
     return "";
 }
 
-bool Shape::is_path() const
-{
-    return (!equal(elements.back().end, elements.front().start));
-}
-
 bool Shape::is_circle() const
 {
     return (elements.size() == 1
@@ -1077,6 +1072,17 @@ bool Shape::check() const
     // Check that the shape is not empty.
     if (elements.empty())
         return false;
+
+    // If the shape is not a path, check that it is closed.
+    if (!this->is_path) {
+        if (!equal(this->elements.back().end, this->elements.front().start)) {
+            std::cout << this->to_string(1) << std::endl;
+            std::cout << "shape is not closed." << std::endl;
+            return false;
+        }
+    }
+
+    // Check that the shape doesn't contain null angles.
     ElementPos element_prev_pos = this->elements.size() - 1;
     for (ElementPos element_cur_pos = 0;
             element_cur_pos < (ElementPos)this->elements.size();
@@ -1122,7 +1128,11 @@ std::string Shape::to_string(
 {
     std::string s = "";
     std::string indent = std::string(indentation, ' ');
-    if (is_circle()) {
+    if (is_path) {
+        s += "path (# elements " + std::to_string(elements.size()) + ")\n";
+        for (Counter pos = 0; pos < (Counter)elements.size(); ++pos)
+            s += indent + elements[pos].to_string() + ((pos < (Counter)elements.size() - 1)? "\n": "");
+    } else if (is_circle()) {
         LengthDbl radius = distance(elements.front().center, elements.front().start);
         s += "circle (radius: " + std::to_string(radius) + ")";
     } else if (is_square()) {
@@ -1135,7 +1145,7 @@ std::string Shape::to_string(
         s += "polygon (# edges " + std::to_string(elements.size()) + ")\n";
         for (Counter pos = 0; pos < (Counter)elements.size(); ++pos)
             s += indent + elements[pos].to_string() + ((pos < (Counter)elements.size() - 1)? "\n": "");
-    } else  {
+    } else {
         s += "shape (# elements " + std::to_string(elements.size()) + ")\n";
         for (Counter pos = 0; pos < (Counter)elements.size(); ++pos)
             s += indent + elements[pos].to_string() + ((pos < (Counter)elements.size() - 1)? "\n": "");
@@ -1288,7 +1298,7 @@ Shape shape::approximate_by_line_segments(
 
 Shape shape::build_shape(
         const std::vector<BuildShapeElement>& points,
-        bool path)
+        bool is_path)
 {
     Shape shape;
     Point point_prev = {points.front().x, points.front().y};
@@ -1297,7 +1307,7 @@ Shape shape::build_shape(
     Point center = {0, 0};
     for (ElementPos pos = 1; pos <= (ElementPos)points.size(); ++pos) {
         const BuildShapeElement& point = points[(pos != points.size())? pos: 0];
-        if (path && pos == points.size())
+        if (is_path && pos == points.size())
             break;
         if (point.type == 0) {
             ShapeElement element;
@@ -1320,6 +1330,7 @@ Shape shape::build_shape(
             type = ShapeElementType::CircularArc;
         }
     }
+    shape.is_path = is_path;
     return shape;
 }
 

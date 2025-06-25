@@ -278,8 +278,9 @@ struct Shape
      */
     std::vector<ShapeElement> elements;
 
-    /** Return true iff the shape is a path. */
-    bool is_path() const;
+    /** Boolean indicating if the shape is actually a path. */
+    bool is_path = false;
+
 
     /** Return true iff the shape is a circle. */
     bool is_circle() const;
@@ -434,7 +435,7 @@ struct BuildShapeElement
  */
 Shape build_shape(
         const std::vector<BuildShapeElement>& points,
-        bool path = false);
+        bool is_path = false);
 
 Shape build_path(
         const std::vector<BuildShapeElement>& points);
