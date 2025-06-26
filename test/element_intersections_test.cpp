@@ -15,6 +15,39 @@ struct ComputeIntersectionsTestParams
     ShapeElement element_2;
     bool strict;
     std::vector<Point> expected_intersections;
+
+
+    template <class basic_json>
+    static ComputeIntersectionsTestParams from_json(basic_json& json_item)
+    {
+        ComputeIntersectionsTestParams test_params;
+        test_params.element_1 = ShapeElement::from_json(json_item["element_1"]);
+        test_params.element_2 = ShapeElement::from_json(json_item["element_2"]);
+        test_params.strict = json_item["strict"];
+        for (auto it = json_item["expected_intersections"].begin();
+                it != json_item["expected_intersections"].end();
+                ++it) {
+            auto json_point = *it;
+            Point point = Point::from_json(json_point);
+            test_params.expected_intersections.push_back(point);
+        }
+        return test_params;
+    }
+
+    static ComputeIntersectionsTestParams read_json(
+            const std::string& file_path)
+    {
+        std::ifstream file(file_path);
+        if (!file.good()) {
+            throw std::runtime_error(
+                    "shape::IntersectShapeShapeElementTestParams::read_json: "
+                    "unable to open file \"" + file_path + "\".");
+        }
+
+        nlohmann::json json;
+        file >> json;
+        return from_json(json);
+    }
 };
 
 class ComputeIntersectionsTest: public testing::TestWithParam<ComputeIntersectionsTestParams> { };
@@ -239,7 +272,8 @@ INSTANTIATE_TEST_SUITE_P(
                 build_shape({{1.941450017182601, -0.7869799841717368}, {1.96721311, -0, 1}, {1.96721311, -0.78740157}}, true).elements.front(),
                 false,
                 {{1.96721311, -0.78740157}},
-            }}));
+            },
+            }));
 
 
 struct IntersectShapeShapeElementTestParams

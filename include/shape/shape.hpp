@@ -83,6 +83,11 @@ struct Point
      */
 
     std::string to_string() const;
+
+    template <class basic_json>
+    static Point from_json(basic_json& json_element);
+
+    nlohmann::json to_json() const;
 };
 
 Point operator+(
@@ -498,17 +503,23 @@ bool equal(
         const ShapeWithHoles& shape_2);
 
 template <class basic_json>
+Point Point::from_json(basic_json& json_element)
+{
+    Point point;
+    point.x = json_element["x"];
+    point.y = json_element["y"];
+    return point;
+}
+
+template <class basic_json>
 ShapeElement ShapeElement::from_json(basic_json& json_element)
 {
     ShapeElement element;
     element.type = str2element(json_element["type"]);
-    element.start.x = json_element["start"]["x"];
-    element.start.y = json_element["start"]["y"];
-    element.end.x = json_element["end"]["x"];
-    element.end.y = json_element["end"]["y"];
+    element.start = Point::from_json(json_element["start"]);
+    element.end = Point::from_json(json_element["end"]);
     if (element.type == ShapeElementType::CircularArc) {
-        element.center.x = json_element["center"]["x"];
-        element.center.y = json_element["center"]["y"];
+        element.center = Point::from_json(json_element["center"]);
         element.orientation = str2orientation(json_element["orientation"]);
     }
     return element;

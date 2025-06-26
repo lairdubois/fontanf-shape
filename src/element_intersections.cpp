@@ -251,6 +251,7 @@ std::vector<Point> compute_arc_arc_intersections(
 
     std::vector<Point> intersections;
     LengthDbl discriminant = rsq * (a * a + b * b) - c_prime * c_prime;
+    //std::cout << "discriminant " << discriminant << std::endl;
     if (discriminant < 0)
         discriminant = 0;
     LengthDbl denom = a * a + b * b;
@@ -263,6 +264,8 @@ std::vector<Point> compute_arc_arc_intersections(
     ps[0].y = ym + teta_1;
     ps[1].x = xm + eta_2;
     ps[1].y = ym + teta_2;
+    //std::cout << "ps[0] " << ps[0].to_string() << std::endl;
+    //std::cout << "ps[1] " << ps[1].to_string() << std::endl;
 
     // Single intersection point.
     if (equal(ps[0], ps[1])) {
@@ -291,6 +294,7 @@ std::vector<Point> compute_arc_arc_intersections(
     }
 
     for (Point& p: ps) {
+        //std::cout << "p " << p.to_string() << std::endl;
         // Check if any intersection coincides with an arc endpoint
         if (strict) {
             if (equal(p, arc.start)) {

@@ -72,46 +72,50 @@ with open(args.path, 'r') as f:
     j = json.load(f)
 
     # Plot shapes.
-    shape_x = []
-    shape_y = []
-    for shape_pos, shape in enumerate(j["shapes"]):
+    if "shapes" in j:
+        shape_x = []
+        shape_y = []
+        for shape_pos, shape in enumerate(j["shapes"]):
 
-        shape_path(shape_x, shape_y, shape)
-        for hole in (shape["holes"]
-                     if "holes" in shape else []):
-            element_x.append(None)
-            element_y.append(None)
-            shape_path(shape_x, shape_y, hole, True)
+            shape_path(shape_x, shape_y, shape)
+            for hole in (shape["holes"]
+                         if "holes" in shape else []):
+                element_x.append(None)
+                element_y.append(None)
+                shape_path(shape_x, shape_y, hole, True)
 
-        fig.add_trace(go.Scatter(
-            x=shape_x,
-            y=shape_y,
-            name="Shape {shape_pos}",
-            # legendgroup=filepath,
-                showlegend=True,
-                fillcolor=colors[shape_pos],
-                opacity=0.2,
-                fill="toself",
-                marker=dict(
-                    color='black',
-                    size=1)))
+            fig.add_trace(go.Scatter(
+                x=shape_x,
+                y=shape_y,
+                name="Shape {shape_pos}",
+                # legendgroup=filepath,
+                    showlegend=True,
+                    fillcolor=colors[shape_pos],
+                    opacity=0.2,
+                    fill="toself",
+                    marker=dict(
+                        color='black',
+                        size=1)))
 
-        # Plot elements.
+    # Plot elements.
+    if "elements" in j:
         element_x = []
         element_y = []
         for element_pos, element in enumerate(j["elements"]):
             element_path(element_x, element_y, element)
+            element_x.append(None)
+            element_y.append(None)
 
-        fig.add_trace(go.Scatter(
-            x=element_x,
-            y=element_y,
-            name=f"Element {element_pos}",
-            # legendgroup=filepath,
-            showlegend=True,
-            opacity=0.2,
-            marker=dict(
-                color='black',
-                size=1)))
+            fig.add_trace(go.Scatter(
+                x=element_x,
+                y=element_y,
+                name=f"Element {element_pos}",
+                # legendgroup=filepath,
+                showlegend=True,
+                opacity=0.2,
+                marker=dict(
+                    color='black',
+                    size=1)))
 
 
 # Plot.
