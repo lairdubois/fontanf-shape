@@ -76,6 +76,7 @@ ShapeWithHoles shape::inflate(
         return {shape, {}};
 
     Shape shape_new;
+    shape_new.is_path = shape_orig.is_path;
     shape_new.elements.push_back(inflate_element(shape.elements[0], offset));
     for (ElementPos element_pos = 1;
             element_pos <= (ElementPos)shape.elements.size();
