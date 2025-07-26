@@ -447,6 +447,11 @@ struct ShapeWithHoles
             const std::string& file_path) const;
 };
 
+void write_json(
+        const std::vector<ShapeWithHoles>& shapes,
+        const std::vector<ShapeElement>& elements,
+        const std::string& file_path);
+
 struct BuildShapeElement
 {
     LengthDbl x = 0;
