@@ -667,7 +667,7 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
                     break;
                 } case BooleanOperation::Intersection: {
                     // Fast check.
-                    bool ok = false;
+                    bool ok = true;
                     for (ShapePos shape_pos = 0;
                             shape_pos < (ShapePos)shapes.size();
                             ++shape_pos) {
@@ -676,7 +676,8 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
                             break;
                         }
                     }
-                    if (!ok) {
+                    std::cout << "ok " << ok << std::endl;
+                    if (ok) {
                         face = remove_redundant_vertices(face).second;
                         face = remove_aligned_vertices(face).second;
                         new_shapes.push_back({face});
@@ -686,6 +687,7 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
                     // Real check.
                     IntersectionTree::IntersectOutput intersection_output = intersection_tree.intersect(face, true);
                     if (intersection_output.shape_ids.size() == shapes.size()) {
+                        std::cout << "add face" << std::endl;
                         face = remove_redundant_vertices(face).second;
                         face = remove_aligned_vertices(face).second;
                         new_shapes.push_back({face});
@@ -747,6 +749,7 @@ std::vector<ShapeWithHoles> compute_boolean_operation(
         BooleanOperation boolean_operation)
 {
     std::vector<ShapeWithHoles> output;
+    //write_json(shapes, {}, "input.json");
 
     // Union
     // - outline
@@ -794,6 +797,7 @@ std::vector<ShapeWithHoles> compute_boolean_operation(
             output.push_back(new_shape);
     }
 
+    //write_json(output, {}, "output.json");
     return output;
 }
 
