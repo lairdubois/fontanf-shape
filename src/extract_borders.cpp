@@ -15,6 +15,7 @@ std::vector<Shape> shape::extract_borders(
     //    << std::endl;
 
     Shape shape_border;
+    shape_border.is_path = false;
     ElementPos element_0_pos = 0;
     for (ElementPos element_pos = 0;
             element_pos < shape.elements.size();

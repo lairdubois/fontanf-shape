@@ -1115,6 +1115,7 @@ Shape& Shape::shift(
 Shape Shape::rotate(Angle angle) const
 {
     Shape shape;
+    shape.is_path = this->is_path;
     for (const ShapeElement& element: elements) {
         ShapeElement element_new = element.rotate(angle);
         shape.elements.push_back(element_new);
@@ -1125,6 +1126,7 @@ Shape Shape::rotate(Angle angle) const
 Shape Shape::axial_symmetry_identity_line() const
 {
     Shape shape;
+    shape.is_path = this->is_path;
     for (auto it = elements.rbegin(); it != elements.rend(); ++it) {
         ShapeElement element_new = it->axial_symmetry_identity_line();
         shape.elements.push_back(element_new);
@@ -1135,6 +1137,7 @@ Shape Shape::axial_symmetry_identity_line() const
 Shape Shape::axial_symmetry_x_axis() const
 {
     Shape shape;
+    shape.is_path = this->is_path;
     for (auto it = elements.rbegin(); it != elements.rend(); ++it) {
         ShapeElement element_new = it->axial_symmetry_x_axis();
         shape.elements.push_back(element_new);
@@ -1145,6 +1148,7 @@ Shape Shape::axial_symmetry_x_axis() const
 Shape Shape::axial_symmetry_y_axis() const
 {
     Shape shape;
+    shape.is_path = this->is_path;
     for (auto it = elements.rbegin(); it != elements.rend(); ++it) {
         ShapeElement element_new = it->axial_symmetry_y_axis();
         shape.elements.push_back(element_new);
@@ -1155,6 +1159,7 @@ Shape Shape::axial_symmetry_y_axis() const
 Shape Shape::reverse() const
 {
     Shape shape;
+    shape.is_path = this->is_path;
     for (auto it = elements.rbegin(); it != elements.rend(); ++it)
         shape.elements.push_back(it->reverse());
     return shape;
@@ -1260,11 +1265,12 @@ std::string Shape::to_string(
 nlohmann::json Shape::to_json() const
 {
     nlohmann::json json;
+    json["is_path"] = this->is_path;
     json["type"] = "general";
     for (ElementPos element_pos = 0;
-            element_pos < (ElementPos)elements.size();
+            element_pos < (ElementPos)this->elements.size();
             ++element_pos) {
-        json["elements"][element_pos] = elements[element_pos].to_json();
+        json["elements"][element_pos] = this->elements[element_pos].to_json();
     }
     return json;
 }
@@ -1410,6 +1416,7 @@ Shape shape::operator*(
         const Shape& shape)
 {
     Shape shape_new;
+    shape_new.is_path = shape.is_path;
     for (const ShapeElement& element: shape.elements)
         shape_new.elements.push_back(scalar * element);
     return shape_new;
@@ -1423,6 +1430,7 @@ Shape shape::approximate_by_line_segments(
     Shape shape = remove_redundant_vertices(shape_orig).second;
 
     Shape shape_new;
+    shape_new.is_path = shape.is_path;
     for (const ShapeElement& element: shape.elements) {
         switch (element.type) {
         case ShapeElementType::LineSegment: {
@@ -1911,6 +1919,7 @@ std::pair<bool, Shape> shape::remove_redundant_vertices(
 
     ElementPos number_of_elements_removed = 0;
     Shape shape_new;
+    shape_new.is_path = shape.is_path;
 
     ElementPos element_prev_pos = shape.elements.size() - 1;
     for (ElementPos element_cur_pos = 0;
@@ -1980,6 +1989,7 @@ std::pair<bool, Shape> shape::remove_aligned_vertices(
 
     ElementPos number_of_elements_removed = 0;
     Shape shape_new;
+    shape_new.is_path = shape.is_path;
 
     ElementPos element_prev_pos = shape.elements.size() - 1;
     for (ElementPos element_cur_pos = 0;
