@@ -6,13 +6,15 @@ namespace shape
 {
 
 ShapeWithHoles inflate(
+        const ShapeWithHoles& shape,
+        LengthDbl offset);
+
+ShapeWithHoles inflate(
         const Shape& shape,
-        LengthDbl offset,
-        bool remove_self_intersections = true);
+        LengthDbl offset);
 
 std::vector<Shape> deflate(
         const Shape& shape,
-        LengthDbl offset,
-        bool extract_all_holes = true);
+        LengthDbl offset);
 
 }

@@ -2,6 +2,8 @@
 
 #include "shape/shape.hpp"
 
+#include "optimizationtools/containers/indexed_set.hpp"
+
 namespace shape
 {
 
@@ -12,7 +14,7 @@ public:
 
     /** Constructor. */
     IntersectionTree(
-            const std::vector<Shape>& shapes,
+            const std::vector<ShapeWithHoles>& shapes,
             const std::vector<ShapeElement>& elements,
             const std::vector<Point>& points);
 
@@ -25,6 +27,11 @@ public:
 
         std::vector<ShapePos> point_ids;
     };
+
+    /** Check if a given shape intersects one of the tree shapes. */
+    IntersectOutput intersect(
+            const ShapeWithHoles& shape,
+            bool strict) const;
 
     /** Check if a given shape intersects one of the tree shapes. */
     IntersectOutput intersect(
@@ -99,9 +106,17 @@ private:
             NodeId node_id,
             const std::vector<ShapePos>& shape_ids);
 
+    /** Get the number of shapes. */
+    ShapePos number_of_shapes() const { if (shapes_ == nullptr) return 0; return shapes_->size(); }
+
+    /** Get the number of elements. */
+    ShapePos number_of_elements() const { if (elements_ == nullptr) return 0; return elements_->size(); }
+
+    /** Get the number of points. */
+    ShapePos number_of_points() const { if (points_ == nullptr) return 0; return points_->size(); }
 
     /** Get a shape of the intersection tree. */
-    const Shape& shape(ShapePos shape_pos) const { return (*shapes_)[shape_pos]; }
+    const ShapeWithHoles& shape(ShapePos shape_pos) const { return (*shapes_)[shape_pos]; }
 
     /** Get a shape element of the intersection tree. */
     const ShapeElement& element(ElementPos element_pos) const { return (*elements_)[element_pos]; }
@@ -111,13 +126,19 @@ private:
 
 
     /** Shapes. */
-    const std::vector<Shape>* shapes_ = nullptr;
+    const std::vector<ShapeWithHoles>* shapes_ = nullptr;
 
     /** Shape elements. */
     const std::vector<ShapeElement>* elements_ = nullptr;
 
     /** Points. */
     const std::vector<Point>* points_ = nullptr;
+
+    mutable optimizationtools::IndexedSet potentially_intersecting_shapes_;
+
+    mutable optimizationtools::IndexedSet potentially_intersecting_elements_;
+
+    mutable optimizationtools::IndexedSet potentially_intersecting_points_;
 
     std::vector<Node> tree_;
 

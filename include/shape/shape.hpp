@@ -43,6 +43,8 @@ LengthDbl largest_power_of_two_lesser_or_equal(LengthDbl value);
 
 LengthDbl smallest_power_of_two_greater_or_equal(LengthDbl value);
 
+std::string to_string(double value);
+
 ////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////// Point /////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -227,8 +229,17 @@ struct ShapeElement
     /** Compute the smallest and greatest x and y of the shape. */
     std::pair<Point, Point> min_max() const;
 
-    /** Compute furthest points according to a given direction. */
+    /**
+     * Compute furthest points according to a given direction.
+     *
+     * If 'angle == 0', return the lowest and highest points.
+     *
+     * If 'angle == 90', return the right-most and left-most points.
+     */
     std::pair<Point, Point> furthest_points(Angle angle) const;
+
+    /** Split an element at a given point. */
+    std::pair<ShapeElement, ShapeElement> split(const Point& point) const;
 
     std::string to_string() const;
 
@@ -237,6 +248,10 @@ struct ShapeElement
 
     nlohmann::json to_json() const;
 };
+
+bool operator<(
+        const ShapeElement& element_1,
+        const ShapeElement& element_2);
 
 ShapeElement operator*(
         LengthDbl scalar,
@@ -312,8 +327,15 @@ struct Shape
             Angle angle = 0.0,
             bool mirror = false) const;
 
+    struct FurthestPoint
+    {
+        Point point;
+
+        ElementPos element_pos;
+    };
+
     /** Compute furthest points according to a given direction. */
-    std::pair<Point, Point> compute_furthest_points(
+    std::pair<FurthestPoint, FurthestPoint> compute_furthest_points(
             Angle angle) const;
 
     /** Check if the shape contains a given point. */
@@ -361,6 +383,11 @@ struct Shape
             const std::string& file_path) const;
 };
 
+Shape build_triangle(
+        const Point& p1,
+        const Point& p2,
+        const Point& p3);
+
 Shape operator*(
         LengthDbl scalar,
         const Shape& shape);
@@ -385,6 +412,17 @@ struct ShapeWithHoles
             Angle angle = 0.0,
             bool mirror = false) const { return this->shape.compute_min_max(angle, mirror); }
 
+    /** Check if the shape contains a given point. */
+    bool contains(
+            const Point& point,
+            bool strict = false) const;
+
+    /**
+     * Bridge the holes to convert the ShapeWithHoles into a Shape without
+     * hoels.
+     */
+    Shape bridge_holes() const;
+
     /*
      * Export
      */
@@ -408,6 +446,18 @@ struct ShapeWithHoles
     void write_svg(
             const std::string& file_path) const;
 };
+
+void write_json(
+        const std::vector<ShapeWithHoles>& shapes,
+        const std::vector<ShapeElement>& elements,
+        const std::string& file_path);
+
+std::pair<Point, Point> compute_min_max(
+        const std::vector<ShapeWithHoles>& shapes);
+
+void write_svg(
+        const std::vector<ShapeWithHoles>& shapes,
+        const std::string& file_path);
 
 struct BuildShapeElement
 {
@@ -457,12 +507,17 @@ ShapeElement build_circular_arc(
 std::pair<bool, Shape> remove_redundant_vertices(
         const Shape& shape);
 
+std::pair<bool, ShapeWithHoles> remove_redundant_vertices(
+        const ShapeWithHoles& shape);
+
 std::pair<bool, Shape> remove_aligned_vertices(
         const Shape& shape);
 
-Shape clean_extreme_slopes(
-        const Shape& shape,
-        bool outer);
+std::vector<Shape> clean_extreme_slopes_inner(
+        const Shape& shape);
+
+ShapeWithHoles clean_extreme_slopes_outer(
+        const Shape& shape);
 
 inline bool operator==(
         const Point& point_1,
@@ -531,12 +586,20 @@ Shape Shape::from_json(basic_json& json_shape)
     Shape shape;
     if (json_shape["type"] == "circle") {
         ShapeElement element;
+        LengthDbl x = json_shape.value("x", 0.0);
+        LengthDbl y = json_shape.value("y", 0.0);
+        LengthDbl radius = json_shape["radius"];
         element.type = ShapeElementType::CircularArc;
-        element.center = {0.0, 0.0};
-        element.start = {json_shape["radius"], 0.0};
+        element.orientation = ShapeElementOrientation::Full;
+        element.center = {x, y};
+        element.start = {x + radius, y};
         element.end = element.start;
         shape.elements.push_back(element);
     } else if (json_shape["type"] == "rectangle") {
+        LengthDbl x = json_shape.value("x", 0.0);
+        LengthDbl y = json_shape.value("y", 0.0);
+        LengthDbl width = json_shape["width"];
+        LengthDbl height = json_shape["height"];
         ShapeElement element_1;
         ShapeElement element_2;
         ShapeElement element_3;
@@ -545,14 +608,14 @@ Shape Shape::from_json(basic_json& json_shape)
         element_2.type = ShapeElementType::LineSegment;
         element_3.type = ShapeElementType::LineSegment;
         element_4.type = ShapeElementType::LineSegment;
-        element_1.start = {0.0, 0.0};
-        element_1.end = {json_shape["width"], 0.0};
-        element_2.start = {json_shape["width"], 0.0};
-        element_2.end = {json_shape["width"], json_shape["height"]};
-        element_3.start = {json_shape["width"], json_shape["height"]};
-        element_3.end = {0.0, json_shape["height"]};
-        element_4.start = {0.0, json_shape["height"]};
-        element_4.end = {0.0, 0.0};
+        element_1.start = {x, y};
+        element_1.end = {x + width, y};
+        element_2.start = {x + width, y};
+        element_2.end = {x + width, y + height};
+        element_3.start = {x + width, y + height};
+        element_3.end = {x, y + height};
+        element_4.start = {x, y + height};
+        element_4.end = {x, y};
         shape.elements.push_back(element_1);
         shape.elements.push_back(element_2);
         shape.elements.push_back(element_3);

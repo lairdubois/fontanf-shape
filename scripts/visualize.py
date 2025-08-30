@@ -24,6 +24,11 @@ def element_path(path_x, path_y, element, is_hole=False):
 
     if is_hole:
         xs, ys, xe, ye = xe, ye, xs, ys
+        if t == "CircularArc":
+            if orientation in ["Anticlockwise", "anticlockwise", "A", "a"]:
+                orientation = "Clockwise"
+            if orientation in ["Clockwise", "clockwise", "C", "c"]:
+                orientation = "Anticlockwise"
 
     if len(path_x) == 0 or path_x[-1] is None:
         path_x.append(xs)
@@ -39,6 +44,8 @@ def element_path(path_x, path_y, element, is_hole=False):
         end_cos = (xe - xc) / rc
         end_sin = (ye - yc) / rc
         end_angle = math.atan2(end_sin, end_cos)
+        if orientation in ["Full", "full", "F", "f"]:
+            end_angle += 2 * math.pi
         if (orientation in ["Anticlockwise", "anticlockwise", "A", "a"]
                 and end_angle <= start_angle):
             end_angle += 2 * math.pi
@@ -73,24 +80,24 @@ with open(args.path, 'r') as f:
 
     # Plot shapes.
     if "shapes" in j:
-        shape_x = []
-        shape_y = []
         for shape_pos, shape in enumerate(j["shapes"]):
+            shape_x = []
+            shape_y = []
 
             shape_path(shape_x, shape_y, shape)
             for hole in (shape["holes"]
                          if "holes" in shape else []):
-                element_x.append(None)
-                element_y.append(None)
+                shape_x.append(None)
+                shape_y.append(None)
                 shape_path(shape_x, shape_y, hole, True)
 
             fig.add_trace(go.Scatter(
                 x=shape_x,
                 y=shape_y,
-                name="Shape {shape_pos}",
+                name=f"Shape {shape_pos}",
                 # legendgroup=filepath,
                     showlegend=True,
-                    fillcolor=colors[shape_pos],
+                    fillcolor=colors[shape_pos % len(colors)],
                     opacity=0.2,
                     fill="toself",
                     marker=dict(

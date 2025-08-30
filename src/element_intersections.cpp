@@ -1,8 +1,5 @@
 #include "shape/element_intersections.hpp"
 
-#include "shape/intersection_tree.hpp"
-#include "shape/self_intersections_removal.hpp"
-
 //#include <iostream>
 
 using namespace shape;
@@ -27,10 +24,10 @@ std::vector<Point> compute_line_line_intersections(
 
     // Check if both line segments are colinear.
     LengthDbl denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
-    if (denom == 0.0) {
+    if (equal(denom, 0.0))
         if (strict)
             return {};
-
+    if (denom == 0.0) {
         // If they are colinear, check if they are aligned.
         LengthDbl denom_2 = (x1 - x2) * (y3 - y1) - (y1 - y2) * (x3 - x1);
         if (denom_2 != 0.0)
@@ -114,33 +111,59 @@ std::vector<Point> compute_line_arc_intersections(
         const ShapeElement& arc,
         bool strict)
 {
-    // x (y1 - y2) + y (x2 - x1) + (x1 y2 - x2 y1) = 0
-    LengthDbl xm = arc.center.x;
-    LengthDbl ym = arc.center.y;
-    LengthDbl a = line.start.y - line.end.y;
-    LengthDbl b = line.end.x - line.start.x;
-    LengthDbl c = line.end.x * line.start.y - line.start.x * line.end.y;
-    LengthDbl rsq = squared_distance(arc.center, arc.start);
-    LengthDbl c_prime = c - a * xm - b * ym;
+    //std::cout << "line " << line.to_string() << std::endl;
+    //std::cout << "arc " << arc.to_string() << std::endl;
 
-    // No intersection.
-    if (strictly_lesser(rsq * (a * a + b * b), c_prime * c_prime))
-        return {};
-
-    std::vector<Point> intersections;
-    LengthDbl discriminant = rsq * (a * a + b * b) - c_prime * c_prime;
-    if (discriminant < 0)
-        discriminant = 0;
-    LengthDbl denom = a * a + b * b;
-    LengthDbl eta_1 = (a * c_prime + b * std::sqrt(discriminant)) / denom;
-    LengthDbl eta_2 = (a * c_prime - b * std::sqrt(discriminant)) / denom;
-    LengthDbl teta_1 = (b * c_prime - a * std::sqrt(discriminant)) / denom;
-    LengthDbl teta_2 = (b * c_prime + a * std::sqrt(discriminant)) / denom;
     Point ps[2];
-    ps[0].x = xm + eta_1;
-    ps[0].y = ym + teta_1;
-    ps[1].x = xm + eta_2;
-    ps[1].y = ym + teta_2;
+    if (line.start == arc.start
+            || line.start == arc.end) {
+        ps[0] = line.start;
+        Point d = line.end - line.start;
+        LengthDbl dd = d.x * d.x + d.y * d.y;
+        LengthDbl dc = d.x * (ps[0].x - arc.center.x) + d.y * (ps[0].y - arc.center.y);
+        LengthDbl t2 = -2 * dc / dd;
+        //std::cout << "t2 " << t2 << std::endl;
+        ps[1].x = ps[0].x + t2 * d.x;
+        ps[1].y = ps[0].y + t2 * d.y;
+    } else if (line.end == arc.start
+            || line.end == arc.end) {
+        ps[0] = line.end;
+        Point d = line.end - line.start;
+        LengthDbl dd = d.x * d.x + d.y * d.y;
+        LengthDbl dc = d.x * (ps[0].x - arc.center.x) + d.y * (ps[0].y - arc.center.y);
+        LengthDbl t2 = -2 * dc / dd;
+        //std::cout << "t2 " << t2 << std::endl;
+        ps[1].x = ps[0].x + t2 * d.x;
+        ps[1].y = ps[0].y + t2 * d.y;
+    } else {
+
+        // x (y1 - y2) + y (x2 - x1) + (x1 y2 - x2 y1) = 0
+        LengthDbl xm = arc.center.x;
+        LengthDbl ym = arc.center.y;
+        LengthDbl a = line.start.y - line.end.y;
+        LengthDbl b = line.end.x - line.start.x;
+        LengthDbl c = line.end.x * line.start.y - line.start.x * line.end.y;
+        LengthDbl rsq = squared_distance(arc.center, arc.start);
+        LengthDbl c_prime = c - a * xm - b * ym;
+
+        // No intersection.
+        if (strictly_lesser(rsq * (a * a + b * b), c_prime * c_prime))
+            return {};
+
+        LengthDbl discriminant = rsq * (a * a + b * b) - c_prime * c_prime;
+        //std::cout << "discriminant " << discriminant << std::endl;
+        if (discriminant < 0)
+            discriminant = 0;
+        LengthDbl denom = a * a + b * b;
+        LengthDbl eta_1 = (a * c_prime + b * std::sqrt(discriminant)) / denom;
+        LengthDbl eta_2 = (a * c_prime - b * std::sqrt(discriminant)) / denom;
+        LengthDbl teta_1 = (b * c_prime - a * std::sqrt(discriminant)) / denom;
+        LengthDbl teta_2 = (b * c_prime + a * std::sqrt(discriminant)) / denom;
+        ps[0].x = xm + eta_1;
+        ps[0].y = ym + teta_1;
+        ps[1].x = xm + eta_2;
+        ps[1].y = ym + teta_2;
+    }
     //std::cout << "p1 " << ps[0].to_string() << std::endl;
     //std::cout << "p2 " << ps[1].to_string() << std::endl;
 
@@ -170,6 +193,7 @@ std::vector<Point> compute_line_arc_intersections(
         }
     }
 
+    std::vector<Point> intersections;
     for (Point& p: ps) {
         // Check if any intersection coincides with an arc endpoint
         if (strict) {
@@ -324,7 +348,6 @@ std::vector<Point> compute_arc_arc_intersections(
     return intersections;
 }
 
-
 }
 
 std::vector<Point> shape::compute_intersections(
@@ -354,6 +377,39 @@ std::vector<Point> shape::compute_intersections(
 }
 
 bool shape::intersect(
+        const Shape& shape)
+{
+    for (ElementPos element_pos = 0;
+            element_pos < (ElementPos)shape.elements.size();
+            ++element_pos) {
+        const ShapeElement& element_1 = shape.elements[element_pos];
+        for (ElementPos element_pos_2 = element_pos + 2;
+                element_pos_2 < (ElementPos)shape.elements.size();
+                ++element_pos_2) {
+            if (element_pos == 0
+                    && element_pos_2 == shape.elements.size() - 1) {
+                continue;
+            }
+            const ShapeElement& element_2 = shape.elements[element_pos_2];
+            auto intersections = compute_intersections(
+                    element_1,
+                    element_2,
+                    false);
+            if (!intersections.empty()) {
+                //write_json({{shape}}, {}, "intersect.json");
+                //std::cout << "shape " << shape.to_string(2) << std::endl;
+                //std::cout << "element " << element_pos << " " << element_1.to_string() << std::endl;
+                //std::cout << "element " << element_pos_2 << " " << element_2.to_string() << std::endl;
+                //for (const Point& intersection: intersections)
+                //    std::cout << "intersection " << intersection.to_string() << std::endl;
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool shape::intersect(
         const Shape& shape_1,
         const Shape& shape_2,
         bool strict)
@@ -367,6 +423,11 @@ bool shape::intersect(
             if (!intersections.empty())
                 return true;
         }
+    }
+    if (!shape_1.is_path
+            && !shape_2.is_path
+            && equal(shape_1, shape_2)) {
+        return true;
     }
     if (!shape_2.is_path) {
         for (const ShapeElement& element_1: shape_1.elements) {
@@ -406,96 +467,181 @@ bool shape::intersect(
     return false;
 }
 
-std::vector<Shape> shape::merge_intersecting_shapes(
-        const std::vector<Shape>& shapes)
+bool shape::intersect(
+        const ShapeWithHoles& shape_1,
+        const ShapeWithHoles& shape_2,
+        bool strict)
 {
-    IntersectionTree intersection_tree(shapes, {}, {});
-    std::vector<std::pair<ShapePos, ShapePos>> intersecting_shapes
-        = intersection_tree.compute_intersecting_shapes(false);
-
-    // Build graph.
-    std::vector<std::vector<ShapePos>> graph(shapes.size());
-    for (auto p: intersecting_shapes) {
-        graph[p.first].push_back(p.second);
-        graph[p.second].push_back(p.first);
-    }
-
-    // For each connected component, build a shape.
-    ShapePos node_id = 0;
-    std::vector<uint8_t> visited(shapes.size(), 0);
-    std::vector<Shape> new_shapes;
-    for (;;) {
-        while (node_id < shapes.size()
-                && visited[node_id]) {
-            node_id++;
+    for (const ShapeElement& element_1: shape_1.shape.elements) {
+        for (const ShapeElement& element_2: shape_2.shape.elements) {
+            auto intersections = compute_intersections(
+                    element_1,
+                    element_2,
+                    strict);
+            if (!intersections.empty())
+                return true;
         }
-        if (node_id == shapes.size())
-            break;
 
-        Shape shape = shapes[node_id];
-        visited[node_id] = 1;
-        std::vector<ShapePos> stack = {node_id};
-        while (!stack.empty()) {
-            ShapePos node_id_cur = stack.back();
-            stack.pop_back();
-            for (ShapePos neighbor: graph[node_id_cur]) {
-                if (visited[neighbor])
-                    continue;
-                stack.push_back(neighbor);
-                visited[neighbor] = 1;
-                shape = compute_union(shape, shapes[neighbor]).shape;
+        for (const Shape& hole_2: shape_2.holes) {
+            for (const ShapeElement& element_2: hole_2.elements) {
+                auto intersections = compute_intersections(
+                        element_1,
+                        element_2,
+                        strict);
+                if (!intersections.empty())
+                    return true;
             }
         }
+    }
+    if (equal(shape_1, shape_2))
+        return true;
 
-        new_shapes.push_back(shape);
+    for (const Shape& hole_1: shape_1.holes) {
+        for (const ShapeElement& element_1: hole_1.elements) {
+            for (const ShapeElement& element_2: shape_2.shape.elements) {
+                auto intersections = compute_intersections(
+                        element_1,
+                        element_2,
+                        strict);
+                if (!intersections.empty())
+                    return true;
+            }
+
+            for (const Shape& hole_2: shape_2.holes) {
+                for (const ShapeElement& element_2: hole_2.elements) {
+                    auto intersections = compute_intersections(
+                            element_1,
+                            element_2,
+                            strict);
+                    if (!intersections.empty())
+                        return true;
+                }
+            }
+        }
     }
 
-    return new_shapes;
+    // Check if shape_1 is in a hole of shape_2.
+    for (const ShapeElement& element_1: shape_1.shape.elements) {
+        Point middle = element_1.middle();
+        for (const Shape& hole_2: shape_2.holes) {
+            if (hole_2.contains(middle, strict))
+                return false;
+        }
+    }
+
+    // Check if shape_2 is in a hole of shape_1.
+    for (const ShapeElement& element_2: shape_2.shape.elements) {
+        Point middle = element_2.middle();
+        for (const Shape& hole_1: shape_1.holes) {
+            if (hole_1.contains(middle, strict))
+                return false;
+        }
+    }
+
+    for (const ShapeElement& element_1: shape_1.shape.elements) {
+        Point middle = element_1.middle();
+        if (shape_2.contains(middle, strict))
+            return true;
+    }
+    for (const ShapeElement& element_2: shape_2.shape.elements) {
+        Point middle = element_2.middle();
+        if (shape_1.contains(middle, strict))
+            return true;
+    }
+
+    return false;
 }
 
-std::vector<Point> shape::equalize_points(
-        const std::vector<Point>& points)
+bool shape::intersect(
+        const ShapeWithHoles& shape_1,
+        const Shape& shape_2,
+        bool strict)
 {
-    IntersectionTree intersection_tree({}, {}, points);
-    std::vector<std::pair<ElementPos, ElementPos>> equal_points
-        = intersection_tree.compute_equal_points();
-
-    // Build graph.
-    std::vector<std::vector<ElementPos>> graph(points.size());
-    for (auto p: equal_points) {
-        graph[p.first].push_back(p.second);
-        graph[p.second].push_back(p.first);
-    }
-
-    // For each connected component, build a point.
-    ElementPos node_id = 0;
-    std::vector<uint8_t> visited(points.size(), 0);
-    std::vector<Point> new_points = points;
-    for (;;) {
-        while (node_id < points.size()
-                && visited[node_id]) {
-            node_id++;
+    for (const ShapeElement& element_1: shape_1.shape.elements) {
+        for (const ShapeElement& element_2: shape_2.elements) {
+            auto intersections = compute_intersections(
+                    element_1,
+                    element_2,
+                    strict);
+            if (!intersections.empty())
+                return true;
         }
-        if (node_id == points.size())
-            break;
+    }
+    if (!shape_2.is_path && equal(shape_1.shape, shape_2))
+        return true;
 
-        const Point& point = points[node_id];
-        visited[node_id] = 1;
-        std::vector<ElementPos> stack = {node_id};
-        while (!stack.empty()) {
-            ElementPos node_id_cur = stack.back();
-            stack.pop_back();
-            for (ElementPos neighbor: graph[node_id_cur]) {
-                if (visited[neighbor])
-                    continue;
-                stack.push_back(neighbor);
-                visited[neighbor] = 1;
-                new_points[neighbor] = point;
-                //std::cout << "new_points[neighbor] " << new_points[neighbor].to_string()
-                //    << " -> " << point.to_string() << std::endl;
+    for (const Shape& hole_1: shape_1.holes) {
+        for (const ShapeElement& element_1: hole_1.elements) {
+            for (const ShapeElement& element_2: shape_2.elements) {
+                auto intersections = compute_intersections(
+                        element_1,
+                        element_2,
+                        strict);
+                if (!intersections.empty())
+                    return true;
             }
         }
     }
 
-    return new_points;
+    // Check if shape_2 is in a hole of shape_1.
+    for (const ShapeElement& element_2: shape_2.elements) {
+        Point middle = element_2.middle();
+        for (const Shape& hole_1: shape_1.holes) {
+            if (hole_1.contains(middle, strict))
+                return false;
+        }
+    }
+
+    if (!shape_2.is_path) {
+        for (const ShapeElement& element_1: shape_1.shape.elements) {
+            Point middle = element_1.middle();
+            if (shape_2.contains(middle, strict))
+                return true;
+        }
+    }
+    for (const ShapeElement& element_2: shape_2.elements) {
+        Point middle = element_2.middle();
+        if (shape_1.contains(middle, strict))
+            return true;
+    }
+
+    return false;
+}
+
+bool shape::intersect(
+        const ShapeWithHoles& shape,
+        const ShapeElement& element,
+        bool strict)
+{
+    for (const ShapeElement& shape_element: shape.shape.elements) {
+        auto intersections = compute_intersections(
+                element,
+                shape_element,
+                strict);
+        if (!intersections.empty())
+            return true;
+    }
+    for (const Shape& hole: shape.holes) {
+        for (const ShapeElement& shape_element: hole.elements) {
+            auto intersections = compute_intersections(
+                    element,
+                    shape_element,
+                    strict);
+            if (!intersections.empty())
+                return true;
+        }
+    }
+
+    // Check if the shape element is inside a hole of the shape.
+    Point middle = element.middle();
+    for (const Shape& hole: shape.holes) {
+        if (hole.contains(middle, strict))
+            return false;
+    }
+
+    // Shape if the element is inside the shape.
+    if (shape.contains(middle, strict))
+        return true;
+
+    return false;
 }

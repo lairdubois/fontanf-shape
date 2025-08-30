@@ -1,20 +1,21 @@
 #include "shape/offset.hpp"
 
-#include "shape/self_intersections_removal.hpp"
+#include "shape/boolean_operations.hpp"
 
 //#include <iostream>
+//#include <fstream>
 
 using namespace shape;
 
 namespace
 {
 
-ShapeElement inflate_element(
+Shape inflate_element(
         const ShapeElement& element,
-        double offset)
+        double inflate,
+        double deflate)
 {
-    ShapeElement element_new;
-
+    Shape shape;
     switch (element.type) {
     case shape::ShapeElementType::LineSegment: {
         Point normal;
@@ -24,11 +25,39 @@ ShapeElement inflate_element(
         normal.x = normal.x / normal_length;
         normal.y = normal.y / normal_length;
 
-        element_new.type = ShapeElementType::LineSegment;
-        element_new.start.x = element.start.x + offset * normal.x;
-        element_new.start.y = element.start.y + offset * normal.y;
-        element_new.end.x = element.end.x + offset * normal.x;
-        element_new.end.y = element.end.y + offset * normal.y;
+        Point p1;
+        p1.x = element.start.x + inflate * normal.x;
+        p1.y = element.start.y + inflate * normal.y;
+        Point p2;
+        p2.x = element.end.x + inflate * normal.x;
+        p2.y = element.end.y + inflate * normal.y;
+        Point p3;
+        p3.x = element.end.x - deflate * normal.x;
+        p3.y = element.end.y - deflate * normal.y;
+        Point p4;
+        p4.x = element.start.x - deflate * normal.x;
+        p4.y = element.start.y - deflate * normal.y;
+
+        ShapeElement element_1;
+        element_1.type = ShapeElementType::LineSegment;
+        element_1.start = p1;
+        element_1.end = p2;
+        shape.elements.push_back(element_1);
+        ShapeElement element_2;
+        element_2.type = ShapeElementType::LineSegment;
+        element_2.start = p2;
+        element_2.end = p3;
+        shape.elements.push_back(element_2);
+        ShapeElement element_3;
+        element_3.type = ShapeElementType::LineSegment;
+        element_3.start = p3;
+        element_3.end = p4;
+        shape.elements.push_back(element_3);
+        ShapeElement element_4;
+        element_4.type = ShapeElementType::LineSegment;
+        element_4.start = p4;
+        element_4.end = p1;
+        shape.elements.push_back(element_4);
         break;
 
     } case shape::ShapeElementType::CircularArc: {
@@ -41,25 +70,199 @@ ShapeElement inflate_element(
         normal_end.x = normal_end.x / normal_end_length;
         normal_end.y = normal_end.y / normal_end_length;
 
-        element_new.type = ShapeElementType::CircularArc;
-        element_new.start.x = element.start.x + offset * normal_start.x;
-        element_new.start.y = element.start.y + offset * normal_start.y;
-        element_new.end.x = element.end.x + offset * normal_end.x;
-        element_new.end.y = element.end.y + offset * normal_end.y;
-        element_new.center = element.center;
-        element_new.orientation = element.orientation;
+        Point p1;
+        p1.x = element.start.x + inflate * normal_start.x;
+        p1.y = element.start.y + inflate * normal_start.y;
+        Point p2;
+        p2.x = element.end.x + inflate * normal_end.x;
+        p2.y = element.end.y + inflate * normal_end.y;
+        Point p3;
+        p3.x = element.end.x + deflate * normal_end.x;
+        p3.y = element.end.y + deflate * normal_end.y;
+        Point p4;
+        p4.x = element.start.x + deflate * normal_start.x;
+        p4.y = element.start.y + deflate * normal_start.y;
+
+        ShapeElement element_1;
+        element_1.type = ShapeElementType::CircularArc;
+        element_1.start = p1;
+        element_1.end = p2;
+        element_1.center = element.center;
+        element_1.orientation = element.orientation;
+        shape.elements.push_back(element_1);
+        ShapeElement element_2;
+        element_2.type = ShapeElementType::LineSegment;
+        element_2.start = p2;
+        element_2.end = p3;
+        shape.elements.push_back(element_2);
+        ShapeElement element_3;
+        element_3.type = ShapeElementType::CircularArc;
+        element_3.start = p3;
+        element_3.end = p4;
+        element_3.center = element.center;
+        element_3.orientation = element.orientation;
+        shape.elements.push_back(element_3);
+        ShapeElement element_4;
+        element_4.type = ShapeElementType::LineSegment;
+        element_4.start = p4;
+        element_4.end = p1;
+        shape.elements.push_back(element_4);
         break;
     }
     }
-    return element_new;
+    return shape;
 }
 
 }
 
 ShapeWithHoles shape::inflate(
+        const ShapeWithHoles& shape,
+        LengthDbl offset)
+{
+    if (offset < 0.0) {
+        throw std::invalid_argument(
+                "shape::inflate: offset must be >= 0.0; "
+                "offset: " + std::to_string(offset) + ".");
+    }
+
+    if (offset == 0.0)
+        return shape;
+
+    // Write input to json for tests.
+    //{
+    //    std::string file_path = "inflate_input.json";
+    //    std::ofstream file{file_path};
+    //    nlohmann::json json;
+    //    json["shape"] = shape.to_json();
+    //    json["offset"] = offset;
+    //    file << std::setw(4) << json << std::endl;
+    //}
+
+    std::vector<ShapeWithHoles> union_input = {{shape}};
+
+    // Inflate outline.
+    if (shape.shape.is_circle()) {
+        Shape circle = shape.shape;
+        ShapeElement& element = circle.elements[0];
+        LengthDbl radius_orig = distance(element.center, element.start);
+        LengthDbl radius = radius_orig + offset;
+        element.start = {element.center.x + radius, element.center.y};
+        element.end = element.start;
+        union_input.push_back({circle});
+    } else {
+        ElementPos element_prev_pos = shape.shape.elements.size() - 1;
+        const ShapeElement& element_prev = shape.shape.elements[element_prev_pos];
+        Shape rectangle_prev = inflate_element(element_prev, offset, 0);
+        for (ElementPos element_pos = 0;
+                element_pos < (ElementPos)shape.shape.elements.size();
+                ++element_pos) {
+            const ShapeElement& element_prev = shape.shape.elements[element_prev_pos];
+            const ShapeElement& element = shape.shape.elements[element_pos];
+
+            Shape rectangle = inflate_element(element, offset, 0);
+
+            Angle angle = angle_radian(
+                    element_prev.start - element_prev.end,
+                    element.end - element.start);
+
+            if (angle >= M_PI) {
+                ShapeWithHoles sector;
+                ShapeElement element_1;
+                element_1.type = ShapeElementType::CircularArc;
+                element_1.start = rectangle_prev.elements[0].end;
+                element_1.end = rectangle.elements[0].start;
+                element_1.center = element.start;
+                element_1.orientation = ShapeElementOrientation::Anticlockwise;
+                sector.shape.elements.push_back(element_1);
+                ShapeElement element_2;
+                element_2.type = ShapeElementType::LineSegment;
+                element_2.start = rectangle.elements[0].start;
+                element_2.end = element.start;
+                sector.shape.elements.push_back(element_2);
+                ShapeElement element_3;
+                element_3.type = ShapeElementType::LineSegment;
+                element_3.start = element.start;
+                element_3.end = rectangle_prev.elements[0].end;
+                sector.shape.elements.push_back(element_3);
+                union_input.push_back(sector);
+            }
+
+            union_input.push_back({rectangle});
+
+            element_prev_pos = element_pos;
+            rectangle_prev = rectangle;
+        }
+    }
+
+    // Deflate holes.
+    for (ShapePos hole_pos = 0;
+            hole_pos < (ShapePos)shape.holes.size();
+            ++hole_pos) {
+        const Shape& hole = shape.holes[hole_pos];
+
+        if (hole.is_circle()) {
+            Shape circle = hole;
+            ShapeElement& element = circle.elements[0];
+            LengthDbl radius_orig = distance(element.center, element.start);
+            if (strictly_greater(radius_orig, offset)) {
+                LengthDbl radius = radius_orig - offset;
+                element.start = {element.center.x + radius, element.center.y};
+                element.end = element.start;
+                union_input.push_back({circle});
+            }
+        } else {
+            ElementPos element_prev_pos = hole.elements.size() - 1;
+            const ShapeElement& element_prev = hole.elements[element_prev_pos];
+            Shape rectangle_prev = inflate_element(element_prev, 0, offset);
+            for (ElementPos element_pos = 0;
+                    element_pos < (ElementPos)hole.elements.size();
+                    ++element_pos) {
+                const ShapeElement& element_prev = hole.elements[element_prev_pos];
+                const ShapeElement& element = hole.elements[element_pos];
+
+                Shape rectangle = inflate_element(element, 0, offset);
+
+                Angle angle = angle_radian(
+                        element_prev.start - element_prev.end,
+                        element.end - element.start);
+
+                if (angle <= M_PI) {
+                    ShapeWithHoles sector;
+                    ShapeElement element_1;
+                    element_1.type = ShapeElementType::CircularArc;
+                    element_1.start = rectangle.elements[2].end;
+                    element_1.end = rectangle_prev.elements[1].end;
+                    element_1.center = element.start;
+                    element_1.orientation = ShapeElementOrientation::Anticlockwise;
+                    sector.shape.elements.push_back(element_1);
+                    ShapeElement element_2;
+                    element_2.type = ShapeElementType::LineSegment;
+                    element_2.start = rectangle_prev.elements[1].end;
+                    element_2.end = element.start;
+                    sector.shape.elements.push_back(element_2);
+                    ShapeElement element_3;
+                    element_3.type = ShapeElementType::LineSegment;
+                    element_3.start = element.start;
+                    element_3.end = rectangle.elements[2].end;
+                    sector.shape.elements.push_back(element_3);
+                    union_input.push_back(sector);
+                }
+
+                union_input.push_back({rectangle});
+
+                element_prev_pos = element_pos;
+                rectangle_prev = rectangle;
+            }
+        }
+    }
+
+    //write_json(union_input, {}, "union_input.json");
+    return compute_union(union_input).front();
+}
+
+ShapeWithHoles shape::inflate(
         const Shape& shape_orig,
-        LengthDbl offset,
-        bool remove_self_intersections)
+        LengthDbl offset)
 {
     //std::cout << "inflate " << shape_orig.elements.size() << std::endl;
     //std::cout << "inflate " << shape.to_string(2) << std::endl;
@@ -75,132 +278,174 @@ ShapeWithHoles shape::inflate(
     if (offset == 0.0)
         return {shape, {}};
 
-    Shape shape_new;
-    shape_new.is_path = shape_orig.is_path;
-    shape_new.elements.push_back(inflate_element(shape.elements[0], offset));
-    for (ElementPos element_pos = 1;
-            element_pos <= (ElementPos)shape.elements.size();
+    if (shape_orig.is_circle()) {
+        ShapeWithHoles output;
+        Shape shape = shape_orig;
+        ShapeElement& element = shape.elements[0];
+        LengthDbl radius_orig = distance(element.center, element.start);
+        LengthDbl radius = radius_orig + offset;
+        element.start = {element.center.x + radius, element.center.y};
+        element.end = element.start;
+        output.shape = shape;
+        if (shape_orig.is_path && strictly_greater(radius_orig, offset)) {
+            Shape hole = shape_orig;
+            ShapeElement& element = hole.elements[0];
+            LengthDbl hole_radius = radius_orig - offset;
+            element.start = {element.center.x + hole_radius, element.center.y};
+            element.end = element.start;
+            output.holes.push_back(hole);
+        }
+        return output;
+    }
+
+    std::vector<ShapeWithHoles> union_input = {{shape}};
+
+    // Inflate outline.
+    ElementPos element_prev_pos = shape.elements.size() - 1;
+    const ShapeElement& element_prev = shape.elements[element_prev_pos];
+    Shape rectangle_prev = (!shape.is_path)?
+            inflate_element(element_prev, offset, 0):
+            inflate_element(element_prev, offset, offset);
+    for (ElementPos element_pos = 0;
+            element_pos < (ElementPos)shape.elements.size();
             ++element_pos) {
-        ElementPos pos = element_pos % shape.elements.size();
-        const ShapeElement& element_prev = shape.elements[element_pos - 1];
-        const ShapeElement& element = shape.elements[pos];
-        ShapeElement element_new_prev = shape_new.elements.back();
-        ShapeElement element_new = inflate_element(element, offset);
+        const ShapeElement& element = shape.elements[element_pos];
+        const ShapeElement& element_prev = shape.elements[element_prev_pos];
+
+        Shape rectangle = (!shape.is_path)?
+            inflate_element(element, offset, 0):
+            inflate_element(element, offset, offset);
+
+        //std::cout << "element_pos " << element_pos << std::endl;
+        //std::cout << "rectangle " << rectangle.to_string(2) << std::endl;
+        //std::cout << "rectangle_prev " << rectangle_prev.to_string(2) << std::endl;
 
         Angle angle = angle_radian(
                 element_prev.start - element_prev.end,
                 element.end - element.start);
 
-        if (angle > M_PI) {
-            // Add joining circular arc.
-            ShapeElement element_inter_new;
-            element_inter_new.type = ShapeElementType::CircularArc;
-            element_inter_new.start = element_new_prev.end;
-            element_inter_new.end = element_new.start;
-            element_inter_new.center = element.start;
-            element_inter_new.orientation = ShapeElementOrientation::Anticlockwise;
-            shape_new.elements.push_back(element_inter_new);
-
-            // Check radius.
-            LengthDbl radius = distance(element_inter_new.start, element_inter_new.center);
-            if (!equal(radius, offset)) {
-                throw std::logic_error(
-                        "shape::inflate: radius != offset; "
-                        "radius: " + std::to_string(radius) + "; "
-                        "offset: " + std::to_string(offset) + "; "
-                        "center: " + element_inter_new.center.to_string() + "; "
-                        "start: " + element_inter_new.start.to_string() + ".");
+        if (!shape.is_path) {
+            if (angle >= M_PI) {
+                ShapeWithHoles sector;
+                ShapeElement element_1;
+                element_1.type = ShapeElementType::CircularArc;
+                element_1.start = rectangle_prev.elements[0].end;
+                element_1.end = rectangle.elements[0].start;
+                element_1.center = element.start;
+                element_1.orientation = ShapeElementOrientation::Anticlockwise;
+                sector.shape.elements.push_back(element_1);
+                ShapeElement element_2;
+                element_2.type = ShapeElementType::LineSegment;
+                element_2.start = rectangle.elements[0].start;
+                element_2.end = element.start;
+                sector.shape.elements.push_back(element_2);
+                ShapeElement element_3;
+                element_3.type = ShapeElementType::LineSegment;
+                element_3.start = element.start;
+                element_3.end = rectangle_prev.elements[0].end;
+                sector.shape.elements.push_back(element_3);
+                union_input.push_back(sector);
             }
-
         } else {
-            // Add joining line segment.
-            ShapeElement element_inter_new;
-            element_inter_new.type = ShapeElementType::LineSegment;
-            element_inter_new.start = element_new_prev.end;
-            element_inter_new.end = element_new.start;
-            shape_new.elements.push_back(element_inter_new);
+            ShapeWithHoles circle;
+            ShapeElement circle_element;
+            circle_element.type = ShapeElementType::CircularArc;
+            circle_element.start = union_input.back().shape.elements[0].end;
+            circle_element.end = union_input.back().shape.elements[0].end;
+            circle_element.center = element.start;
+            circle_element.orientation = ShapeElementOrientation::Full;
+            circle.shape.elements.push_back(circle_element);
+            union_input.push_back(circle);
         }
 
-        // Add inflated element.
-        if (element_pos != (ElementPos)shape.elements.size())
-            shape_new.elements.push_back(element_new);
+        union_input.push_back({rectangle});
+
+        element_prev_pos = element_pos;
+        rectangle_prev = rectangle;
     }
 
-    shape_new = remove_redundant_vertices(shape_new).second;
-    //std::cout << "inflate end " << shape_new.elements.size() << std::endl;
-    if (!remove_self_intersections)
-        return {shape_new, {}};
-    return shape::remove_self_intersections(shape_new);
+    return compute_union(union_input).front();
 }
 
 std::vector<Shape> shape::deflate(
         const Shape& shape_orig,
-        LengthDbl offset,
-        bool extract_all_holes)
+        LengthDbl offset)
 {
     if (offset < 0.0) {
         throw std::invalid_argument(
-                "shape::inflate: offset must be >= 0.0; "
+                "shape::deflate: offset must be >= 0.0; "
                 "offset: " + std::to_string(offset) + ".");
+    }
+
+    if (shape_orig.is_path) {
+        throw std::invalid_argument(
+                "shape::deflate: input Shape must not be a path.");
+    }
+
+    if (shape_orig.is_circle()) {
+        Shape shape = shape_orig;
+        ShapeElement& element = shape.elements[0];
+        LengthDbl radius_orig = distance(element.center, element.start);
+        LengthDbl radius = radius_orig - offset;
+        element.start = {element.center.x + radius, element.center.y};
+        element.end = element.start;
+        return {shape};
     }
 
     Shape shape = remove_redundant_vertices(shape_orig).second;
 
     if (offset == 0)
-        return {shape};
+        return {{shape_orig}};
 
-    Shape shape_new;
-    shape_new.elements.push_back(inflate_element(shape.elements[0], -offset));
-    for (ElementPos element_pos = 1;
-            element_pos <= (ElementPos)shape.elements.size();
+    std::vector<ShapeWithHoles> difference_input;
+
+    // Inflate outline.
+    ElementPos element_prev_pos = shape.elements.size() - 1;
+    const ShapeElement& element_prev = shape.elements[element_prev_pos];
+    Shape rectangle_prev = inflate_element(element_prev, 0, offset);
+    for (ElementPos element_pos = 0;
+            element_pos < (ElementPos)shape.elements.size();
             ++element_pos) {
-        ElementPos pos = element_pos % shape.elements.size();
-        const ShapeElement& element_prev = shape.elements[element_pos - 1];
-        const ShapeElement& element = shape.elements[pos];
-        ShapeElement element_new_prev = shape_new.elements.back();
-        ShapeElement element_new = inflate_element(element, -offset);
+        const ShapeElement& element_prev = shape.elements[element_prev_pos];
+        const ShapeElement& element = shape.elements[element_pos];
+
+        Shape rectangle = inflate_element(element, 0, offset);
 
         Angle angle = angle_radian(
                 element_prev.start - element_prev.end,
                 element.end - element.start);
 
-        if (angle < M_PI) {
-            // Add joining circular arc.
-            ShapeElement element_inter_new;
-            element_inter_new.type = ShapeElementType::CircularArc;
-            element_inter_new.start = element_new_prev.end;
-            element_inter_new.end = element_new.start;
-            element_inter_new.center = element.start;
-            element_inter_new.orientation = ShapeElementOrientation::Clockwise;
-            shape_new.elements.push_back(element_inter_new);
-
-            // Check radius.
-            LengthDbl radius = distance(element_inter_new.start, element_inter_new.center);
-            if (!equal(radius, offset)) {
-                throw std::logic_error(
-                        "shape::inflate: radius != offset; "
-                        "radius: " + std::to_string(radius) + "; "
-                        "offset: " + std::to_string(offset) + "; "
-                        "center: " + element_inter_new.center.to_string() + "; "
-                        "start: " + element_inter_new.start.to_string() + ".");
-            }
-
-        } else {
-            // Add joining line segment.
-            ShapeElement element_inter_new;
-            element_inter_new.type = ShapeElementType::LineSegment;
-            element_inter_new.start = element_new_prev.end;
-            element_inter_new.end = element_new.start;
-            shape_new.elements.push_back(element_inter_new);
+        if (angle <= M_PI) {
+            ShapeWithHoles sector;
+            ShapeElement element_1;
+            element_1.type = ShapeElementType::CircularArc;
+            element_1.start = rectangle.elements[2].end;
+            element_1.end = rectangle_prev.elements[1].end;
+            element_1.center = element.start;
+            element_1.orientation = ShapeElementOrientation::Anticlockwise;
+            sector.shape.elements.push_back(element_1);
+            ShapeElement element_2;
+            element_2.type = ShapeElementType::LineSegment;
+            element_2.start = rectangle_prev.elements[1].start;
+            element_2.end = element.start;
+            sector.shape.elements.push_back(element_2);
+            ShapeElement element_3;
+            element_3.type = ShapeElementType::LineSegment;
+            element_3.start = element.start;
+            element_3.end = rectangle.elements[2].end;
+            sector.shape.elements.push_back(element_3);
+            difference_input.push_back(sector);
         }
 
-        // Add inflated element.
-        if (element_pos != (ElementPos)shape.elements.size())
-            shape_new.elements.push_back(element_new);
+        difference_input.push_back({rectangle});
+
+        element_prev_pos = element_pos;
+        rectangle_prev = rectangle;
     }
 
-    shape_new = remove_redundant_vertices(shape_new).second;
-    if (!extract_all_holes)
-        return {shape_new};
-    return extract_all_holes_from_self_intersecting_hole(shape_new);
+    auto difference_output = compute_difference({shape}, difference_input);
+    std::vector<Shape> output;
+    for (const ShapeWithHoles& shape: difference_output)
+        output.push_back(shape.shape);
+    return output;
 }

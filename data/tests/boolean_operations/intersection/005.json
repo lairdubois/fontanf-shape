@@ -1,0 +1,67 @@
+{
+  "shapes": [
+    {
+      "type": "rectangle",
+      "width": 200,
+      "height": 200
+    },
+    {
+      "type": "rectangle",
+      "width": 100,
+      "height": 100
+    }
+  ],
+  "expected_result": [
+    {
+      "elements": [
+        {
+          "end": {
+            "x": 100.0,
+            "y": 0.0
+          },
+          "start": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 100.0,
+            "y": 100.0
+          },
+          "start": {
+            "x": 100.0,
+            "y": 0.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 0.0,
+            "y": 100.0
+          },
+          "start": {
+            "x": 100.0,
+            "y": 100.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "start": {
+            "x": 0.0,
+            "y": 100.0
+          },
+          "type": "LineSegment"
+        }
+      ],
+      "type": "general"
+    }
+  ],
+  "write_json": false,
+  "write_svg": false
+}
