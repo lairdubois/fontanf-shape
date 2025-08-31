@@ -748,7 +748,9 @@ std::vector<ShapeElement> shape::approximate_circular_arc_by_line_segments(
         //        "number_of_line_segments: " + std::to_string(number_of_line_segments) + ".");
     }
 
-    Angle angle = (circular_arc.orientation == ShapeElementOrientation::Anticlockwise)?
+    Angle angle = (circular_arc.orientation == ShapeElementOrientation::Full)?
+        2 * M_PI:
+        (circular_arc.orientation == ShapeElementOrientation::Anticlockwise)?
         angle_radian(
             circular_arc.start - circular_arc.center,
             circular_arc.end - circular_arc.center):
@@ -786,7 +788,7 @@ std::vector<ShapeElement> shape::approximate_circular_arc_by_line_segments(
             line_segment_id < number_of_line_segments - 1;
             ++line_segment_id) {
         Angle angle_cur = (angle * (line_segment_id + 1)) / (number_of_line_segments - 1);
-        if (circular_arc.orientation != ShapeElementOrientation::Anticlockwise)
+        if (circular_arc.orientation == ShapeElementOrientation::Clockwise)
             angle_cur *= -1;
         //std::cout << "angle_cur " << angle_cur << std::endl;
         Point point_circle = circular_arc.start.rotate_radians(
@@ -794,8 +796,8 @@ std::vector<ShapeElement> shape::approximate_circular_arc_by_line_segments(
                 angle_cur);
         //std::cout << "point_circle " << point_circle.to_string() << std::endl;
         Point point_cur;
-        if ((outer && circular_arc.orientation != ShapeElementOrientation::Anticlockwise)
-                || (!outer && circular_arc.orientation == ShapeElementOrientation::Anticlockwise)) {
+        if ((outer && circular_arc.orientation == ShapeElementOrientation::Clockwise)
+                || (!outer && circular_arc.orientation != ShapeElementOrientation::Clockwise)) {
             point_cur = point_circle;
         } else {
             // https://en.wikipedia.org/wiki/Tangent_lines_to_circles#Cartesian_equation
@@ -915,6 +917,11 @@ AreaDbl Shape::compute_area() const
 {
     AreaDbl area = 0.0;
     for (const ShapeElement& element: elements) {
+        if (element.type == ShapeElementType::CircularArc
+                && element.orientation == ShapeElementOrientation::Full) {
+            LengthDbl radius = distance(element.center, element.start);
+            return radius * radius * M_PI;
+        }
         area += cross_product(element.start, element.end);
         // Handle circular arcs.
         if (element.type == ShapeElementType::CircularArc) {
@@ -1198,6 +1205,18 @@ bool Shape::check() const
         const ShapeElement& element_prev = this->elements[element_prev_pos];
         const ShapeElement& element = this->elements[element_cur_pos];
 
+        if (std::isnan(element.start.x)
+                || std::isnan(element.start.y)
+                || std::isnan(element.end.x)
+                || std::isnan(element.end.y)
+                || std::isnan(element.center.x)
+                || std::isnan(element.center.y)) {
+            std::cout << this->to_string(1) << std::endl;
+            std::cout << "element_pos       " << element_cur_pos << std::endl;
+            std::cout << "element       " << element.to_string() << std::endl;
+            return false;
+        }
+
         if (element_prev.type == ShapeElementType::LineSegment
                 && element.type == ShapeElementType::LineSegment
                 && !(element_prev.start == element_prev.end)
@@ -1427,6 +1446,7 @@ Shape shape::approximate_by_line_segments(
         LengthDbl segment_length,
         bool outer)
 {
+    //std::cout << "approximate_by_line_segments" << std::endl;
     Shape shape = remove_redundant_vertices(shape_orig).second;
 
     Shape shape_new;
@@ -1450,6 +1470,7 @@ Shape shape::approximate_by_line_segments(
     }
 
     shape_new = remove_redundant_vertices(shape_new).second;
+    //std::cout << "approximate_by_line_segments end" << std::endl;
     return shape_new;
 }
 
@@ -2049,8 +2070,12 @@ struct CleanExtremeSlopesOutput
 CleanExtremeSlopesOutput clean_extreme_slopes_outer_rec(
         const Shape& shape)
 {
-    //std::cout << "clean_extreme_slopes " << shape.to_string(2) << std::endl;
     CleanExtremeSlopesOutput output;
+
+    if (shape.elements.size() == 1) {
+        output.shape = shape;
+        return output;
+    }
 
     for (ElementPos element_pos = 0;
             element_pos < (ElementPos)shape.elements.size();
@@ -2072,7 +2097,8 @@ CleanExtremeSlopesOutput clean_extreme_slopes_outer_rec(
             / (element.end.x - element.start.x);
         //std::cout << "element " << element.to_string() << " slope " << slope << std::endl;
         //std::cout << "element_prev " << element_prev.to_string() << std::endl;
-        if (element.start.x != element.end.x && std::abs(slope) > 1e2) {
+        if (element.type != ShapeElementType::LineSegment) {
+        } else if (element.start.x != element.end.x && std::abs(slope) > 1e2) {
             if (equal(element.start.x, element.end.x)) {
                 throw std::logic_error(
                         "shape::clean_extreme_slopes_rec: x");
@@ -2142,8 +2168,12 @@ CleanExtremeSlopesOutput clean_extreme_slopes_outer_rec(
 CleanExtremeSlopesOutput clean_extreme_slopes_inner_rec(
         const Shape& shape)
 {
-    //std::cout << "clean_extreme_slopes " << shape.to_string(2) << std::endl;
     CleanExtremeSlopesOutput output;
+
+    if (shape.elements.size() == 1) {
+        output.shape = shape;
+        return output;
+    }
 
     for (ElementPos element_pos = 0;
             element_pos < (ElementPos)shape.elements.size();
@@ -2165,7 +2195,8 @@ CleanExtremeSlopesOutput clean_extreme_slopes_inner_rec(
             / (element.end.x - element.start.x);
         //std::cout << "element " << element.to_string() << " slope " << slope << std::endl;
         //std::cout << "element_prev " << element_prev.to_string() << std::endl;
-        if (element.start.x != element.end.x && std::abs(slope) > 1e2) {
+        if (element.type != ShapeElementType::LineSegment) {
+        } else if (element.start.x != element.end.x && std::abs(slope) > 1e2) {
             if (equal(element.start.x, element.end.x)) {
                 throw std::logic_error(
                         "shape::clean_extreme_slopes_rec: x");
@@ -2255,11 +2286,17 @@ std::vector<Shape> shape::clean_extreme_slopes_inner(
         for (const ShapeWithHoles& s: output.union_input)
             union_input.push_back(s);
     }
-    std::vector<ShapeWithHoles> difference_output
-        = compute_difference({equalized_shape}, union_input);
     std::vector<Shape> output;
-    for (const ShapeWithHoles& difference_output_shape: difference_output)
-        output.push_back(difference_output_shape.shape);
+    if (!intersect(shape_new)) {
+        shape_new = remove_redundant_vertices(shape_new).second;
+        shape_new = remove_aligned_vertices(shape_new).second;
+        output.push_back(shape_new);
+    } else {
+        std::vector<ShapeWithHoles> difference_output
+            = compute_difference({equalized_shape}, union_input);
+        for (const ShapeWithHoles& difference_output_shape: difference_output)
+            output.push_back(difference_output_shape.shape);
+    }
 
     //std::cout << "output" << std::endl;
     //for (const Shape& shape: output)
@@ -2289,9 +2326,16 @@ ShapeWithHoles shape::clean_extreme_slopes_outer(
         for (const ShapeWithHoles& s: output.union_input)
             union_input.push_back(s);
     }
-    std::vector<ShapeWithHoles> union_output = compute_union(union_input);
-    //std::cout << "clean_extreme_slopes_outer end" << std::endl;
-    return union_output.front();
+    if (!intersect(shape_new)) {
+        //std::cout << "clean_extreme_slopes_outer end" << std::endl;
+        shape_new = remove_redundant_vertices(shape_new).second;
+        shape_new = remove_aligned_vertices(shape_new).second;
+        return {shape_new};
+    } else {
+        std::vector<ShapeWithHoles> union_output = compute_union(union_input);
+        //std::cout << "clean_extreme_slopes_outer end" << std::endl;
+        return union_output.front();
+    }
 }
 
 bool shape::operator==(

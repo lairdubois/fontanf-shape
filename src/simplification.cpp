@@ -612,6 +612,8 @@ std::vector<ShapeWithHoles> shape::simplify(
         if (shape.outer) {
             Shape shape_tmp = approximated_shape.shape();
             if (!intersect(shape_tmp)) {
+                shape_tmp = remove_redundant_vertices(shape_tmp).second;
+                shape_tmp = remove_aligned_vertices(shape_tmp).second;
                 shape_new.shape = shape_tmp;
             } else {
                 shape_new = compute_union(approximated_shape.union_input).front();
@@ -623,6 +625,8 @@ std::vector<ShapeWithHoles> shape::simplify(
         } else {
             Shape shape_tmp = approximated_shape.shape();
             if (!intersect(shape_tmp)) {
+                shape_tmp = remove_redundant_vertices(shape_tmp).second;
+                shape_tmp = remove_aligned_vertices(shape_tmp).second;
                 shape_new.holes.push_back(shape_tmp);
             } else {
                 auto difference_output = compute_difference({shape.shape}, approximated_shape.union_input);

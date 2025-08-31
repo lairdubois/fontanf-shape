@@ -112,6 +112,8 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
 {
     //std::cout << "polygon_trapezoidation" << std::endl;
     //std::cout << shape.to_string(0) << std::endl;
+    //write_json({shape}, {}, "trapezoidation_input.json");
+
     std::vector<GeneralizedTrapezoid> trapezoids;
 
     // Sort vertices according to their y coordinate.

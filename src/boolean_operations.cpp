@@ -36,7 +36,13 @@ bool operator==(
         const SplittedElement& element_1,
         const SplittedElement& element_2)
 {
-    return element_1.element == element_2.element;
+    if (element_1.element.type == ShapeElementType::CircularArc
+            && element_1.element.orientation == ShapeElementOrientation::Full) {
+        return (element_1.element == element_2.element
+                && element_1.original_direction == element_2.original_direction);
+    } else {
+        return element_1.element == element_2.element;
+    }
 }
 
 bool operator<(
@@ -426,6 +432,7 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
     //std::cout << "compute_boolean_operation_component" << std::endl;
     //for (const SplittedElement& splitted_element: splitted_elements)
     //    std::cout << splitted_element.element.to_string() << std::endl;
+
     std::vector<ShapeWithHoles> new_shapes;
     BooleanOperationGraph graph = compute_graph(splitted_elements);
 
@@ -674,6 +681,10 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
                 ++element_pos) {
             const BooleanOperationArc& arc = graph.arcs[element_pos];
             const ShapeElement& element = splitted_elements[element_pos].element;
+            //std::cout << "element " << element_pos
+            //    << " " << element.to_string()
+            //    << " proc " << element_is_processed[element_pos]
+            //    << std::endl;
             if (!element_is_processed[element_pos]) {
                 element_start_pos = element_pos;
                 node_start_id = arc.end_node_id;
@@ -865,10 +876,10 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
             IntersectionTree::IntersectOutput intersection_output = intersection_tree.intersect(face, true);
             if (intersection_output.shape_ids.size() == 1
                     && intersection_output.shape_ids[0] == 0) {
+                //std::cout << "add face" << std::endl;
                 face = remove_redundant_vertices(face).second;
                 face = remove_aligned_vertices(face).second;
                 new_shapes.push_back({face});
-                // TODO union of results?
             }
 
             break;
@@ -897,9 +908,13 @@ std::vector<ShapeWithHoles> compute_boolean_operation(
         const std::vector<ShapeWithHoles>& shapes,
         BooleanOperation boolean_operation)
 {
-    //std::cout << "compute_boolean_operation" << std::endl;
+    //std::cout << "compute_boolean_operation " << (int)boolean_operation << " shapes.size() " << shapes.size() << std::endl;
+    //if (boolean_operation == BooleanOperation::Difference)
+    //    write_json(shapes, {}, "boolean_operation_input.json");
+    //for (const ShapeWithHoles& shape: shapes)
+    //    std::cout << shape.to_string(2) << std::endl;
+
     std::vector<ShapeWithHoles> output;
-    //write_json(shapes, {}, "boolean_operation_input.json");
 
     for (ShapePos shape_pos = 0;
             shape_pos < (ShapePos)shapes.size();
