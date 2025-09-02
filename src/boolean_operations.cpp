@@ -2,6 +2,7 @@
 
 #include "shape/equalize.hpp"
 #include "shape/intersection_tree.hpp"
+#include "shape/clean.hpp"
 
 #include "optimizationtools/containers/doubly_indexed_map.hpp"
 

@@ -9,6 +9,7 @@ target_sources(Shape_shape_test PRIVATE
     shape_test.cpp
     element_intersections_test.cpp
     convex_hull_test.cpp
+    clean_test.cpp
     extract_borders_test.cpp
     trapezoidation_test.cpp
     intersection_tree_test.cpp

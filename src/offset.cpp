@@ -1,6 +1,7 @@
 #include "shape/offset.hpp"
 
 #include "shape/boolean_operations.hpp"
+#include "shape/clean.hpp"
 
 //#include <iostream>
 //#include <fstream>

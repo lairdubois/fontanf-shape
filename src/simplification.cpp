@@ -1,5 +1,6 @@
 #include "shape/simplification.hpp"
 
+#include "shape/clean.hpp"
 #include "shape/boolean_operations.hpp"
 #include "shape/element_intersections.hpp"
 
