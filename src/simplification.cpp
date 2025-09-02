@@ -619,10 +619,13 @@ std::vector<ShapeWithHoles> shape::simplify(
             } else {
                 shape_new = compute_union(approximated_shape.union_input).front();
             }
-            if (strictly_lesser(shape_new.shape.compute_area(), shapes[shape_pos].shape.compute_area())) {
-                throw std::logic_error(
-                        "shape::simplify: inconsistent area.");
-            }
+            //if (strictly_lesser(shape_new.shape.compute_area(), shapes[shape_pos].shape.compute_area())) {
+            //    write_json({{shapes[shape_pos].shape}, {shape_new}}, {}, "inconsistent_area.json");
+            //    throw std::logic_error(
+            //            "shape::simplify: inconsistent area; "
+            //            "shape_new.shape.compute_area(): " + std::to_string(shape_new.shape.compute_area()) + "; "
+            //            "shapes[shape_pos].shape.compute_area(): " + std::to_string(shapes[shape_pos].shape.compute_area()) + ".");
+            //}
         } else {
             Shape shape_tmp = approximated_shape.shape();
             if (!intersect(shape_tmp)) {
