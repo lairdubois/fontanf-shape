@@ -117,9 +117,12 @@ Shape inflate_element(
 }
 
 ShapeWithHoles shape::inflate(
-        const ShapeWithHoles& shape,
+        const ShapeWithHoles& shape_orig,
         LengthDbl offset)
 {
+    //std::cout << std::endl;
+    //std::cout << "inflate offset " << offset << " shape " << shape_orig.to_string(0) << std::endl;
+    //write_json({shape_orig}, {}, "inflate_input.json");
     if (offset < 0.0) {
         throw std::invalid_argument(
                 "shape::inflate: offset must be >= 0.0; "
@@ -127,7 +130,11 @@ ShapeWithHoles shape::inflate(
     }
 
     if (offset == 0.0)
-        return shape;
+        return shape_orig;
+
+    ShapeWithHoles shape = remove_redundant_vertices(shape_orig).second;
+    shape = remove_aligned_vertices(shape).second;
+    //std::cout << "shape " << shape.to_string(0) << std::endl;
 
     // Write input to json for tests.
     //{
@@ -159,6 +166,8 @@ ShapeWithHoles shape::inflate(
                 ++element_pos) {
             const ShapeElement& element_prev = shape.shape.elements[element_prev_pos];
             const ShapeElement& element = shape.shape.elements[element_pos];
+            //std::cout << "element      " << element.to_string() << std::endl;
+            //std::cout << "element_prev " << element_prev.to_string() << std::endl;
 
             Shape rectangle = inflate_element(element, offset, 0);
 
@@ -185,9 +194,12 @@ ShapeWithHoles shape::inflate(
                 element_3.start = element.start;
                 element_3.end = rectangle_prev.elements[0].end;
                 sector.shape.elements.push_back(element_3);
+                //std::cout << "sector " << sector.to_string(0) << std::endl;
                 union_input.push_back(sector);
             }
 
+            //std::cout << "rectangle_prev " << rectangle_prev.to_string(0) << std::endl;
+            //std::cout << "rectangle " << rectangle.to_string(0) << std::endl;
             union_input.push_back({rectangle});
 
             element_prev_pos = element_pos;
@@ -269,6 +281,7 @@ ShapeWithHoles shape::inflate(
     //std::cout << "inflate " << shape.to_string(2) << std::endl;
 
     Shape shape = remove_redundant_vertices(shape_orig).second;
+    shape = remove_aligned_vertices(shape).second;
 
     if (offset < 0.0) {
         throw std::invalid_argument(
@@ -394,6 +407,7 @@ std::vector<Shape> shape::deflate(
     }
 
     Shape shape = remove_redundant_vertices(shape_orig).second;
+    shape = remove_aligned_vertices(shape).second;
 
     if (offset == 0)
         return {{shape_orig}};
