@@ -123,12 +123,6 @@ ComputeSplittedElementsOutput compute_splitted_elements(
         }
 
         for (const Point& point: intersection.intersections) {
-            //std::cout << "element_pos_1 " << element_pos_1
-            //    << " " << element_1.to_string()
-            //    << " element_pos_2 " << element_pos_2
-            //    << " " << element_2.to_string()
-            //    << " intersection " << point.to_string()
-            //    << std::endl;
             element_intersections[intersection.element_id_1].push_back(point);
             element_intersections[intersection.element_id_2].push_back(point);
         }
@@ -624,8 +618,32 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
             //    << " " << element_next.to_string()
             //    << " angle " << angle
             //    << std::endl;
-            if (smallest_angle_element_pos == -1
-                    || smallest_angle > angle) {
+            bool update = false;
+            if (smallest_angle_element_pos == -1) {
+                update = true;
+            } else if (strictly_greater(smallest_angle, angle)) {
+                //std::cout << "strictly_lesser" << std::endl;
+                update = true;
+            } else if (equal(smallest_angle, angle)) {
+                const SplittedElement& smallest_angle_splitted_element = splitted_elements[smallest_angle_element_pos];
+                const ShapeElement& smallest_angle_element = smallest_angle_splitted_element.element;
+                if (smallest_angle_element.type == ShapeElementType::CircularArc
+                        && smallest_angle_element.orientation == ShapeElementOrientation::Clockwise) {
+                    if (element_next.type == ShapeElementType::LineSegment) {
+                        update = true;
+                    } else if (element_next.type == ShapeElementType::CircularArc
+                            && element_next.orientation == ShapeElementOrientation::Anticlockwise) {
+                        update = true;
+                    }
+                } else if (smallest_angle_element.type == ShapeElementType::LineSegment) {
+                    if (element_next.type == ShapeElementType::CircularArc
+                            && element_next.orientation == ShapeElementOrientation::Anticlockwise) {
+                        update = true;
+                    }
+                }
+            }
+            //std::cout << "update " << update << std::endl;
+            if (update) {
                 smallest_angle_element_pos = element_pos_next;
                 smallest_angle = angle;
             }
@@ -780,8 +798,32 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
                 //    << " " << element_next.to_string()
                 //    << " angle " << angle
                 //    << std::endl;
-                if (smallest_angle_element_pos == -1
-                        || smallest_angle > angle) {
+                bool update = false;
+                if (smallest_angle_element_pos == -1) {
+                    update = true;
+                } else if (strictly_greater(smallest_angle, angle)) {
+                    //std::cout << "strictly_lesser" << std::endl;
+                    update = true;
+                } else if (equal(smallest_angle, angle)) {
+                    const SplittedElement& smallest_angle_splitted_element = splitted_elements[smallest_angle_element_pos];
+                    const ShapeElement& smallest_angle_element = smallest_angle_splitted_element.element;
+                    if (smallest_angle_element.type == ShapeElementType::CircularArc
+                            && smallest_angle_element.orientation == ShapeElementOrientation::Anticlockwise) {
+                        if (element_next.type == ShapeElementType::LineSegment) {
+                            update = true;
+                        } else if (element_next.type == ShapeElementType::CircularArc
+                                && element_next.orientation == ShapeElementOrientation::Clockwise) {
+                            update = true;
+                        }
+                    } else if (smallest_angle_element.type == ShapeElementType::LineSegment) {
+                        if (element_next.type == ShapeElementType::CircularArc
+                                && element_next.orientation == ShapeElementOrientation::Clockwise) {
+                            update = true;
+                        }
+                    }
+                }
+                //std::cout << "update " << update << std::endl;
+                if (update) {
                     smallest_angle_element_pos = element_pos_next;
                     smallest_angle = angle;
                 }
