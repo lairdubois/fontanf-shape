@@ -3,8 +3,6 @@
 #include "shape/clean.hpp"
 #include "shape/element_intersections.hpp"
 #include "shape/intersection_tree.hpp"
-#include "shape/equalize.hpp"
-#include "shape/boolean_operations.hpp"
 
 #include <cmath>
 #include <fstream>
@@ -213,7 +211,7 @@ Angle shape::angle_radian(
         const Point& vector)
 {
     Angle a = std::atan2(vector.y, vector.x);
-    if (a < 0)
+    if (strictly_lesser(a, 0))
         a += 2 * M_PI;
     return a;
 }
@@ -733,6 +731,11 @@ std::vector<ShapeElement> shape::approximate_circular_arc_by_line_segments(
 {
     LengthDbl arc_length = circular_arc.length();
     ElementPos number_of_line_segments = std::ceil(arc_length / segment_length);
+    //std::cout << "circular_arc " << circular_arc.to_string() << std::endl;
+    //std::cout << "segment_length " << segment_length
+    //    << " arc_length " << arc_length
+    //    << " number_of_line_segments " << number_of_line_segments
+    //    << std::endl;
 
     if (circular_arc.type != ShapeElementType::CircularArc) {
         throw std::runtime_error(
@@ -758,6 +761,7 @@ std::vector<ShapeElement> shape::approximate_circular_arc_by_line_segments(
         angle_radian(
             circular_arc.end - circular_arc.center,
             circular_arc.start - circular_arc.center);
+    //std::cout << "number_of_line_segments " << number_of_line_segments << std::endl;
     if ((outer && circular_arc.orientation == ShapeElementOrientation::Anticlockwise)
             || (!outer && circular_arc.orientation != ShapeElementOrientation::Anticlockwise)) {
         if (angle < M_PI && number_of_line_segments < 2) {
