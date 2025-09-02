@@ -171,13 +171,18 @@ std::vector<Point> compute_line_arc_intersections(
     if (line.start == arc.start
             || line.start == arc.end) {
         ps[0] = line.start;
-        Point d = line.end - line.start;
-        LengthDbl dd = d.x * d.x + d.y * d.y;
-        LengthDbl dc = d.x * (ps[0].x - arc.center.x) + d.y * (ps[0].y - arc.center.y);
-        LengthDbl t2 = -2 * dc / dd;
-        //std::cout << "t2 " << t2 << std::endl;
-        ps[1].x = ps[0].x + t2 * d.x;
-        ps[1].y = ps[0].y + t2 * d.y;
+        if (line.end == arc.start
+                || line.end == arc.end) {
+            ps[1] = line.end;
+        } else {
+            Point d = line.end - line.start;
+            LengthDbl dd = d.x * d.x + d.y * d.y;
+            LengthDbl dc = d.x * (ps[0].x - arc.center.x) + d.y * (ps[0].y - arc.center.y);
+            LengthDbl t2 = -2 * dc / dd;
+            //std::cout << "t2 " << t2 << std::endl;
+            ps[1].x = ps[0].x + t2 * d.x;
+            ps[1].y = ps[0].y + t2 * d.y;
+        }
     } else if (line.end == arc.start
             || line.end == arc.end) {
         ps[0] = line.end;
