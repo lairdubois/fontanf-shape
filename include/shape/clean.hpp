@@ -19,10 +19,10 @@ std::pair<bool, ShapeWithHoles> remove_aligned_vertices(
         const ShapeWithHoles& shape);
 
 
-std::vector<Shape> clean_extreme_slopes_inner(
+ShapeWithHoles clean_extreme_slopes_outer(
         const Shape& shape);
 
-ShapeWithHoles clean_extreme_slopes_outer(
+std::vector<Shape> clean_extreme_slopes_inner(
         const Shape& shape);
 
 }

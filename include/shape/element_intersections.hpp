@@ -5,6 +5,12 @@
 namespace shape
 {
 
+std::pair<bool, Point> compute_line_intersection(
+        const Point& p11,
+        const Point& p12,
+        const Point& p21,
+        const Point& p22);
+
 std::vector<Point> compute_intersections(
         const ShapeElement& element_1,
         const ShapeElement& element_2,

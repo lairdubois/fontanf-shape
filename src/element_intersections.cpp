@@ -4,6 +4,59 @@
 
 using namespace shape;
 
+std::pair<bool, Point> shape::compute_line_intersection(
+        const Point& p11,
+        const Point& p12,
+        const Point& p21,
+        const Point& p22)
+{
+    if (p11.x == p12.x) {
+        if (p21.x == p22.x)
+            return {false, {0, 0}};
+        double a = (p22.y - p21.y) / (p22.x - p21.x);
+        double b = p21.y - (p22.y - p21.y) * p21.x / (p22.x - p21.x);
+        Point p;
+        p.x = p11.x;
+        p.y = (p22.y - p21.y) * p.x / (p22.x - p21.x) + b;
+        return {true, p};
+    } else if (p11.y == p12.y) {
+        if (p21.y == p22.y)
+            return {false, {0, 0}};
+        double a = (p22.x - p21.x) / (p22.y - p21.y);
+        double b = p21.x - a * p21.y;
+        Point p;
+        p.y = p11.y;
+        p.x = a * p.y + b;
+        return {true, p};
+    } else if (p21.x == p22.x) {
+        if (p11.x == p12.x)
+            return {false, {0, 0}};
+        double a = (p12.y - p11.y) / (p12.x - p11.x);
+        double b = p11.y - a * p11.x;
+        Point p;
+        p.x = p21.x;
+        p.y = a * p.x + b;
+        return {true, p};
+    } else if (p21.y == p22.y) {
+        if (p11.y == p12.y)
+            return {false, {0, 0}};
+        double a = (p12.x - p11.x) / (p12.y - p11.y);
+        double b = p11.x - a * p11.y;
+        Point p;
+        p.y = p21.y;
+        p.x = a * p.y + b;
+        return {true, p};
+    } else {
+        LengthDbl denom = (p11.x - p12.x) * (p21.y - p22.y) - (p11.y - p12.y) * (p21.x - p22.x);
+        if (denom == 0.0)
+            return {false, {0, 0}};
+        Point p;
+        p.x = ((p11.x * p12.y - p11.y * p12.x) * (p21.x - p22.x) - (p11.x - p12.x) * (p21.x * p22.y - p21.y * p22.x)) / denom;
+        p.y = ((p11.x * p12.y - p11.y * p12.x) * (p21.y - p22.y) - (p11.y - p12.y) * (p21.x * p22.y - p21.y * p22.x)) / denom;
+        return {true, p};
+    }
+}
+
 namespace
 {
 
