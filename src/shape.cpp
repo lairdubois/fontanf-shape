@@ -1846,6 +1846,17 @@ void ShapeWithHoles::write_svg(
     file << "</svg>" << std::endl;
 }
 
+ShapeWithHoles shape::operator*(
+        LengthDbl scalar,
+        const ShapeWithHoles& shape)
+{
+    ShapeWithHoles shape_new;
+    shape_new.shape = scalar * shape.shape;
+    for (const Shape& hole: shape.holes)
+        shape_new.holes.push_back(scalar * hole);
+    return shape_new;
+}
+
 void shape::write_json(
         const std::vector<ShapeWithHoles>& shapes,
         const std::vector<ShapeElement>& elements,

@@ -459,6 +459,10 @@ void write_svg(
         const std::vector<ShapeWithHoles>& shapes,
         const std::string& file_path);
 
+ShapeWithHoles operator*(
+        LengthDbl scalar,
+        const ShapeWithHoles& shape);
+
 struct BuildShapeElement
 {
     LengthDbl x = 0;
