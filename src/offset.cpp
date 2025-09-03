@@ -213,6 +213,7 @@ ShapeWithHoles shape::inflate(
             ++hole_pos) {
         const Shape& hole = shape.holes[hole_pos];
 
+        auto wh = hole.compute_width_and_height();
         if (hole.is_circle()) {
             Shape circle = hole;
             ShapeElement& element = circle.elements[0];
@@ -223,6 +224,9 @@ ShapeWithHoles shape::inflate(
                 element.end = element.start;
                 union_input.push_back({circle});
             }
+        } else if (!strictly_greater(2 * wh.first, offset)
+                && !strictly_greater(2 * wh.second, offset)) {
+            // Hole is removed.
         } else {
             ElementPos element_prev_pos = hole.elements.size() - 1;
             const ShapeElement& element_prev = hole.elements[element_prev_pos];
@@ -404,6 +408,12 @@ std::vector<Shape> shape::deflate(
         element.start = {element.center.x + radius, element.center.y};
         element.end = element.start;
         return {shape};
+    }
+
+    auto wh = shape_orig.compute_width_and_height();
+    if (!strictly_greater(2 * wh.first, offset)
+            && !strictly_greater(2 * wh.second, offset)) {
+        return {};
     }
 
     Shape shape = remove_redundant_vertices(shape_orig).second;
