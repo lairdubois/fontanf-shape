@@ -76,7 +76,8 @@ ShapeSupports shape::compute_shape_supports(
                 break;
             } case ShapeElementType::CircularArc: {
                 // TODO
-                throw std::invalid_argument("");
+                throw std::invalid_argument(
+                        "shape::compute_shape_supports");
                 break;
             }
             }
@@ -139,7 +140,8 @@ ShapeSupports shape::compute_shape_supports(
                 break;
             } case ShapeElementType::CircularArc: {
                 // TODO
-                throw std::invalid_argument("");
+                throw std::invalid_argument(
+                        "shape::compute_shape_supports");
                 break;
             }
             }
@@ -202,7 +204,8 @@ ShapeSupports shape::compute_shape_supports(
                 break;
             } case ShapeElementType::CircularArc: {
                 // TODO
-                throw std::invalid_argument("");
+                throw std::invalid_argument(
+                        "shape::compute_shape_supports");
                 break;
             }
             }

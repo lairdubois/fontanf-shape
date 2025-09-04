@@ -632,7 +632,8 @@ Shape Shape::from_json(basic_json& json_shape)
         if (json_shape.contains("is_path"))
             shape.is_path = json_shape["is_path"];
     } else {
-        throw std::invalid_argument("");
+        throw std::invalid_argument(
+                "shape::Shape::from_json");
     }
     return shape;
 }
