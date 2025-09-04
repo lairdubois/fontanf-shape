@@ -708,7 +708,7 @@ bool shape::operator<(
         return element_1.center.y < element_2.center.y;
     if (element_1.orientation != element_2.orientation)
         return element_1.orientation < element_2.orientation;
-    return true;
+    return false;
 }
 
 ShapeElement shape::operator*(
