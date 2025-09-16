@@ -49,6 +49,7 @@ LengthDbl x(
         const Point& top,
         LengthDbl y)
 {
+    //std::cout << "x bottom " << bottom.to_string() << " top " << top.to_string() << " y " << y << std::endl;
     if (bottom.y == top.y) {
         if (bottom.x != top.x) {
             throw std::runtime_error("x");
@@ -230,6 +231,16 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
         }
     }
 
+    //for (ElementPos vertex_pos = 0;
+    //        vertex_pos < (ElementPos)sorted_vertices.size();
+    //        ++vertex_pos) {
+    //    ShapePos shape_pos = sorted_vertices[vertex_pos].first;
+    //    ElementPos element_pos = sorted_vertices[vertex_pos].second;
+    //    const Shape& current_shape = (shape_pos == (ShapePos)shape.holes.size())? shape.shape: shape.holes[shape_pos];
+    //    const Point& vertex = current_shape.elements[element_pos].start;
+    //    std::cout << vertex.to_string() << std::endl;
+    //}
+
     // Sweep.
     std::vector<OpenTrapezoid> open_trapezoids;
     for (ElementPos vertex_pos = 0;
@@ -239,18 +250,27 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
         ShapePos shape_pos = sorted_vertices[vertex_pos].first;
         ElementPos element_pos = sorted_vertices[vertex_pos].second;
 
-        ShapePos shape_pos_next = sorted_vertices[(vertex_pos + 1) % sorted_vertices.size()].first;
-        ElementPos element_pos_next = sorted_vertices[(vertex_pos + 1) % sorted_vertices.size()].second;
-
         const Shape& current_shape = (shape_pos == (ShapePos)shape.holes.size())? shape.shape: shape.holes[shape_pos];
-        const Shape& current_shape_next = (shape_pos_next == (ShapePos)shape.holes.size())? shape.shape: shape.holes[shape_pos_next];
+
+        ElementPos element_pos_next = element_pos;
+        VertexTypeFlag flag = vertices[shape_pos][element_pos].flag;
+        if (flag == VertexTypeFlag::HorizontalLocalMaximumConvex
+                || flag == VertexTypeFlag::HorizontalLocalMinimumConcave) {
+            element_pos_next = (shape_pos == (ShapePos)shape.holes.size())?
+                (current_shape.elements.size() + element_pos - 1) % current_shape.elements.size():
+                (element_pos + 1) % current_shape.elements.size();
+        } else if (flag == VertexTypeFlag::HorizontalLocalMinimumConvex
+                || flag == VertexTypeFlag::HorizontalLocalMaximumConcave) {
+            element_pos_next = (shape_pos == (ShapePos)shape.holes.size())?
+                (element_pos + 1) % current_shape.elements.size():
+                (current_shape.elements.size() + element_pos - 1) % current_shape.elements.size();
+        }
 
         const Point& vertex = current_shape.elements[element_pos].start;
-        const Point& vertex_next = current_shape_next.elements[element_pos_next].start;
+        const Point& vertex_next = current_shape.elements[element_pos_next].start;
 
         //std::cout << "vertex_pos " << vertex_pos << std::endl;
         //std::cout << "shape_pos " << shape_pos << " element_pos " << element_pos << std::endl;
-        //std::cout << "shape_pos_next " << shape_pos_next << " element_pos_next " << element_pos_next << std::endl;
         //std::cout << "vertex " << vertex.x << " " << vertex.y << std::endl;
         //std::cout << "vertex_next " << vertex_next.x << " " << vertex_next.y << std::endl;
         //std::cout << "open trapezoids:" << std::endl;
@@ -472,7 +492,7 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
 
 
         } else if (vertices[shape_pos][element_pos].flag == VertexTypeFlag::HorizontalLocalMaximumConvex
-                && vertices[shape_pos_next][element_pos_next].flag == VertexTypeFlag::HorizontalLocalMaximumConvex) {
+                && vertices[shape_pos][element_pos_next].flag == VertexTypeFlag::HorizontalLocalMaximumConvex) {
             // +1 open trapezoid.
             //std::cout << "HorizontalLocalMaximumConvex HorizontalLocalMaximumConvex" << std::endl;
 
@@ -483,16 +503,16 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
             open_trapezoid.bottom_left = (shape_pos == shape.holes.size())?
                 get_vertex(current_shape, element_pos + 1):
                 get_vertex(current_shape, element_pos - 1);
-            open_trapezoid.bottom_right = (shape_pos_next == shape.holes.size())?
-                get_vertex(current_shape_next, element_pos_next - 1):
-                get_vertex(current_shape_next, element_pos_next + 1);
+            open_trapezoid.bottom_right = (shape_pos == shape.holes.size())?
+                get_vertex(current_shape, element_pos_next - 1):
+                get_vertex(current_shape, element_pos_next + 1);
 
             open_trapezoids.push_back(open_trapezoid);
 
             vertex_pos++;
 
         } else if (vertices[shape_pos][element_pos].flag == VertexTypeFlag::HorizontalLocalMinimumConvex
-                && vertices[shape_pos_next][element_pos_next].flag == VertexTypeFlag::HorizontalLocalMinimumConvex) {
+                && vertices[shape_pos][element_pos_next].flag == VertexTypeFlag::HorizontalLocalMinimumConvex) {
             // -1 open trapezoid.
             //std::cout << "HorizontalLocalMinimumConvex HorizontalLocalMinimumConvex" << std::endl;
 
@@ -525,7 +545,7 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
             vertex_pos++;
 
         } else if (vertices[shape_pos][element_pos].flag == VertexTypeFlag::HorizontalLocalMaximumConcave
-                && vertices[shape_pos_next][element_pos_next].flag == VertexTypeFlag::HorizontalLocalMaximumConcave) {
+                && vertices[shape_pos][element_pos_next].flag == VertexTypeFlag::HorizontalLocalMaximumConcave) {
             // -1 open trapezoid.
             // +2 open trapezoids.
             //std::cout << "HorizontalLocalMaximumConcave HorizontalLocalMaximumConcave" << std::endl;
@@ -567,9 +587,9 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
             OpenTrapezoid new_open_trapezoid_2;
             new_open_trapezoid_2.top_left = vertex_next;
             new_open_trapezoid_2.top_right = {x_right, vertex.y};
-            new_open_trapezoid_2.bottom_left = (shape_pos_next == shape.holes.size())?
-                get_vertex(current_shape_next, element_pos_next + 1):
-                get_vertex(current_shape_next, element_pos_next - 1);
+            new_open_trapezoid_2.bottom_left = (shape_pos == shape.holes.size())?
+                get_vertex(current_shape, element_pos_next + 1):
+                get_vertex(current_shape, element_pos_next - 1);
             new_open_trapezoid_2.bottom_right = open_trapezoid.bottom_right;
 
             open_trapezoids.push_back(new_open_trapezoid_1);
@@ -580,7 +600,7 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
             vertex_pos++;
 
         } else if (vertices[shape_pos][element_pos].flag == VertexTypeFlag::HorizontalLocalMinimumConcave
-                && vertices[shape_pos_next][element_pos_next].flag == VertexTypeFlag::HorizontalLocalMinimumConcave) {
+                && vertices[shape_pos][element_pos_next].flag == VertexTypeFlag::HorizontalLocalMinimumConcave) {
             // -2 open trapezoid.
             // +1 open trapezoids.
             //std::cout << "HorizontalLocalMinimumConcave HorizontalLocalMinimumConcave" << std::endl;
@@ -646,12 +666,13 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
             vertex_pos++;
 
         } else if (vertices[shape_pos][element_pos].flag == VertexTypeFlag::HorizontalLocalMaximumConvex
-                && vertices[shape_pos_next][element_pos_next].flag == VertexTypeFlag::HorizontalLocalMinimumConcave) {
+                && vertices[shape_pos][element_pos_next].flag == VertexTypeFlag::HorizontalLocalMinimumConcave) {
             // -1 open trapezoid.
             // +1 open trapezoids.
             //std::cout << "HorizontalLocalMaximumConvex HorizontalLocalMinimumConcave" << std::endl;
 
             ElementPos open_trapezoid_pos = find_trapezoid_containing_vertex(open_trapezoids, vertex_next).first;
+            //std::cout << "open_trapezoid_pos " << open_trapezoid_pos << std::endl;
             if (open_trapezoid_pos == -1) {
                 throw std::runtime_error(
                         "shape::polygon_trapezoidation: "
@@ -691,7 +712,7 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
             vertex_pos++;
 
         } else if (vertices[shape_pos][element_pos].flag == VertexTypeFlag::HorizontalLocalMinimumConvex
-                && vertices[shape_pos_next][element_pos_next].flag == VertexTypeFlag::HorizontalLocalMaximumConcave) {
+                && vertices[shape_pos][element_pos_next].flag == VertexTypeFlag::HorizontalLocalMaximumConcave) {
             // -1 open trapezoid.
             // +1 open trapezoids.
             //std::cout << "HorizontalLocalMinimumConvex HorizontalLocalMaximumConcave" << std::endl;
@@ -735,7 +756,7 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
             vertex_pos++;
 
         } else if (vertices[shape_pos][element_pos].flag == VertexTypeFlag::HorizontalLocalMaximumConcave
-                && vertices[shape_pos_next][element_pos_next].flag == VertexTypeFlag::HorizontalLocalMinimumConvex) {
+                && vertices[shape_pos][element_pos_next].flag == VertexTypeFlag::HorizontalLocalMinimumConvex) {
             // -1 open trapezoid.
             // +1 open trapezoids.
             //std::cout << "HorizontalLocalMaximumConcave HorizontalLocalMinimumConvex" << std::endl;
@@ -782,7 +803,7 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
             vertex_pos++;
 
         } else if (vertices[shape_pos][element_pos].flag == VertexTypeFlag::HorizontalLocalMinimumConcave
-                && vertices[shape_pos_next][element_pos_next].flag == VertexTypeFlag::HorizontalLocalMaximumConvex) {
+                && vertices[shape_pos][element_pos_next].flag == VertexTypeFlag::HorizontalLocalMaximumConvex) {
             // -1 open trapezoid.
             // +1 open trapezoids.
             //std::cout << "HorizontalLocalMinimumConcave HorizontalLocalMaximumConvex" << std::endl;
@@ -831,7 +852,7 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
             throw std::runtime_error(
                     "shape::polygon_trapezoidation; "
                     "flag: " + std::to_string((int)vertices[shape_pos][element_pos].flag) + "; "
-                    "flag_next: " + std::to_string((int)vertices[shape_pos_next][element_pos_next].flag) + ".");
+                    "flag_next: " + std::to_string((int)vertices[shape_pos][element_pos_next].flag) + ".");
 
         }
         //std::cout << std::endl;
