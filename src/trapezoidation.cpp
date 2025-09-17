@@ -117,46 +117,6 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
 
     std::vector<GeneralizedTrapezoid> trapezoids;
 
-    // Sort vertices according to their y coordinate.
-    std::vector<std::pair<ShapePos, ElementPos>> sorted_vertices;
-    // Add holes.
-    for (ShapePos hole_pos = 0;
-            hole_pos < (ShapePos)shape.holes.size();
-            ++hole_pos) {
-        const Shape& hole = shape.holes[hole_pos];
-        for (ElementPos element_pos = 0;
-                element_pos < (ElementPos)hole.elements.size();
-                ++element_pos) {
-            sorted_vertices.push_back({hole_pos, element_pos});
-        }
-    }
-    // Add shape.
-    for (ElementPos element_pos = 0;
-            element_pos < (ElementPos)shape.shape.elements.size();
-            ++element_pos) {
-        sorted_vertices.push_back({shape.holes.size(), element_pos});
-    }
-    // Sort.
-    std::sort(
-            sorted_vertices.begin(),
-            sorted_vertices.end(),
-            [&shape](
-                const std::pair<ShapePos, ElementPos>& p1,
-                const std::pair<ShapePos, ElementPos>& p2)
-            {
-                const Shape& shape_1 = (p1.first == shape.holes.size())? shape.shape: shape.holes[p1.first];
-                const Shape& shape_2 = (p2.first == shape.holes.size())? shape.shape: shape.holes[p2.first];
-                ElementPos element_pos_1 = p1.second;
-                ElementPos element_pos_2 = p2.second;
-                if (shape_1.elements[element_pos_1].start.y
-                        != shape_2.elements[element_pos_2].start.y) {
-                    return shape_1.elements[element_pos_1].start.y
-                        > shape_2.elements[element_pos_2].start.y;
-                }
-                return shape_1.elements[element_pos_1].start.x
-                    < shape_2.elements[element_pos_2].start.x;
-            });
-
     // Classify the vertices.
     std::vector<std::vector<Vertex>> vertices;
     for (ShapePos shape_pos = 0;
@@ -230,6 +190,66 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
             element_pos_cur = element_pos_next;
         }
     }
+
+    // Sort vertices according to their y coordinate.
+    std::vector<std::pair<ShapePos, ElementPos>> sorted_vertices;
+    // Add holes.
+    for (ShapePos hole_pos = 0;
+            hole_pos < (ShapePos)shape.holes.size();
+            ++hole_pos) {
+        const Shape& hole = shape.holes[hole_pos];
+        ElementPos element_prev_pos = hole.elements.size() - 1;
+        for (ElementPos element_pos = 0;
+                element_pos < (ElementPos)hole.elements.size();
+                ++element_pos) {
+            const ShapeElement& element = hole.elements[element_pos];
+            const ShapeElement& element_prev = hole.elements[element_prev_pos];
+            if (!(element.start.x > element.end.x
+                        && element.start.y == element.end.y)
+                    && !(element.start.x > element_prev.start.x
+                        && element.start.y == element_prev.start.y)) {
+                sorted_vertices.push_back({hole_pos, element_pos});
+            }
+            element_prev_pos = element_pos;
+        }
+    }
+    // Add shape.
+    {
+        ElementPos element_prev_pos = shape.shape.elements.size() - 1;
+        for (ElementPos element_pos = 0;
+                element_pos < (ElementPos)shape.shape.elements.size();
+                ++element_pos) {
+            const ShapeElement& element = shape.shape.elements[element_pos];
+            const ShapeElement& element_prev = shape.shape.elements[element_prev_pos];
+            if (!(element.start.x > element.end.x
+                        && element.start.y == element.end.y)
+                    && !(element.start.x > element_prev.start.x
+                        && element.start.y == element_prev.start.y)) {
+                sorted_vertices.push_back({shape.holes.size(), element_pos});
+            }
+            element_prev_pos = element_pos;
+        }
+    }
+    // Sort.
+    std::sort(
+            sorted_vertices.begin(),
+            sorted_vertices.end(),
+            [&shape](
+                const std::pair<ShapePos, ElementPos>& p1,
+                const std::pair<ShapePos, ElementPos>& p2)
+            {
+                const Shape& shape_1 = (p1.first == shape.holes.size())? shape.shape: shape.holes[p1.first];
+                const Shape& shape_2 = (p2.first == shape.holes.size())? shape.shape: shape.holes[p2.first];
+                ElementPos element_pos_1 = p1.second;
+                ElementPos element_pos_2 = p2.second;
+                if (shape_1.elements[element_pos_1].start.y
+                        != shape_2.elements[element_pos_2].start.y) {
+                    return shape_1.elements[element_pos_1].start.y
+                        > shape_2.elements[element_pos_2].start.y;
+                }
+                return shape_1.elements[element_pos_1].start.x
+                    < shape_2.elements[element_pos_2].start.x;
+            });
 
     //for (ElementPos vertex_pos = 0;
     //        vertex_pos < (ElementPos)sorted_vertices.size();
@@ -509,8 +529,6 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
 
             open_trapezoids.push_back(open_trapezoid);
 
-            vertex_pos++;
-
         } else if (vertices[shape_pos][element_pos].flag == VertexTypeFlag::HorizontalLocalMinimumConvex
                 && vertices[shape_pos][element_pos_next].flag == VertexTypeFlag::HorizontalLocalMinimumConvex) {
             // -1 open trapezoid.
@@ -541,8 +559,6 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
             // Update open_trapezoids.
             open_trapezoids[open_trapezoid_pos] = open_trapezoids.back();
             open_trapezoids.pop_back();
-
-            vertex_pos++;
 
         } else if (vertices[shape_pos][element_pos].flag == VertexTypeFlag::HorizontalLocalMaximumConcave
                 && vertices[shape_pos][element_pos_next].flag == VertexTypeFlag::HorizontalLocalMaximumConcave) {
@@ -596,8 +612,6 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
             open_trapezoids.push_back(new_open_trapezoid_2);
             open_trapezoids[open_trapezoid_pos] = open_trapezoids.back();
             open_trapezoids.pop_back();
-
-            vertex_pos++;
 
         } else if (vertices[shape_pos][element_pos].flag == VertexTypeFlag::HorizontalLocalMinimumConcave
                 && vertices[shape_pos][element_pos_next].flag == VertexTypeFlag::HorizontalLocalMinimumConcave) {
@@ -663,8 +677,6 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
             open_trapezoids[open_trapezoid_2_pos] = open_trapezoids.back();
             open_trapezoids.pop_back();
 
-            vertex_pos++;
-
         } else if (vertices[shape_pos][element_pos].flag == VertexTypeFlag::HorizontalLocalMaximumConvex
                 && vertices[shape_pos][element_pos_next].flag == VertexTypeFlag::HorizontalLocalMinimumConcave) {
             // -1 open trapezoid.
@@ -709,8 +721,6 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
             open_trapezoids[open_trapezoid_pos] = open_trapezoids.back();
             open_trapezoids.pop_back();
 
-            vertex_pos++;
-
         } else if (vertices[shape_pos][element_pos].flag == VertexTypeFlag::HorizontalLocalMinimumConvex
                 && vertices[shape_pos][element_pos_next].flag == VertexTypeFlag::HorizontalLocalMaximumConcave) {
             // -1 open trapezoid.
@@ -752,8 +762,6 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
             open_trapezoids.push_back(new_open_trapezoid);
             open_trapezoids[open_trapezoid_pos] = open_trapezoids.back();
             open_trapezoids.pop_back();
-
-            vertex_pos++;
 
         } else if (vertices[shape_pos][element_pos].flag == VertexTypeFlag::HorizontalLocalMaximumConcave
                 && vertices[shape_pos][element_pos_next].flag == VertexTypeFlag::HorizontalLocalMinimumConvex) {
@@ -800,8 +808,6 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
             open_trapezoids[open_trapezoid_pos] = open_trapezoids.back();
             open_trapezoids.pop_back();
 
-            vertex_pos++;
-
         } else if (vertices[shape_pos][element_pos].flag == VertexTypeFlag::HorizontalLocalMinimumConcave
                 && vertices[shape_pos][element_pos_next].flag == VertexTypeFlag::HorizontalLocalMaximumConvex) {
             // -1 open trapezoid.
@@ -845,8 +851,6 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
             open_trapezoids.push_back(new_open_trapezoid);
             open_trapezoids[open_trapezoid_pos] = open_trapezoids.back();
             open_trapezoids.pop_back();
-
-            vertex_pos++;
 
         } else {
             throw std::runtime_error(
