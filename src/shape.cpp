@@ -1435,6 +1435,46 @@ Shape shape::build_triangle(
     return shape;
 }
 
+Shape shape::build_rectangle(
+        const Point& p1,
+        const Point& p2)
+{
+    Shape shape;
+    {
+        ShapeElement element;
+        element.type = ShapeElementType::LineSegment;
+        element.start = p1;
+        element.end.x = p2.x;
+        element.end.y = p1.y;
+        shape.elements.push_back(element);
+    }
+    {
+        ShapeElement element;
+        element.type = ShapeElementType::LineSegment;
+        element.start.x = p2.x;
+        element.start.y = p1.y;
+        element.end = p2;
+        shape.elements.push_back(element);
+    }
+    {
+        ShapeElement element;
+        element.type = ShapeElementType::LineSegment;
+        element.start = p2;
+        element.end.x = p1.x;
+        element.end.y = p2.y;
+        shape.elements.push_back(element);
+    }
+    {
+        ShapeElement element;
+        element.type = ShapeElementType::LineSegment;
+        element.start.x = p1.x;
+        element.start.y = p2.y;
+        element.end = p1;
+        shape.elements.push_back(element);
+    }
+    return shape;
+}
+
 Shape shape::operator*(
         LengthDbl scalar,
         const Shape& shape)

@@ -388,6 +388,14 @@ Shape build_triangle(
         const Point& p2,
         const Point& p3);
 
+Shape build_rectangle(
+        const Point& p1,
+        const Point& p2);
+
+inline Shape build_rectangle(const Point& p) { return build_rectangle({0, 0}, p); }
+
+inline Shape build_rectangle(LengthDbl x, LengthDbl y) { return build_rectangle({0, 0}, {x, y}); }
+
 Shape operator*(
         LengthDbl scalar,
         const Shape& shape);
