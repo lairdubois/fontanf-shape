@@ -358,6 +358,12 @@ ShapeWithHoles shape::clean_extreme_slopes_outer(
 
         element_next_pos = element_cur_pos;
     }
+    if (!shape.check()) {
+        throw std::invalid_argument(
+                "shape::clean_extreme_slopes_outer: "
+                "invalid shape after extreme slopes cleaning.");
+    }
+
     shape = equalize_shape(shape);
     shape = remove_redundant_vertices(shape).second;
     shape = remove_aligned_vertices(shape).second;
@@ -527,6 +533,12 @@ std::vector<Shape> shape::clean_extreme_slopes_inner(
 
         element_next_pos = element_cur_pos;
     }
+    if (!shape.check()) {
+        throw std::invalid_argument(
+                "shape::clean_extreme_slopes_inner: "
+                "invalid shape after extreme slopes cleaning.");
+    }
+
     shape = equalize_shape(shape);
     shape = remove_redundant_vertices(shape).second;
     shape = remove_aligned_vertices(shape).second;

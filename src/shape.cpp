@@ -1258,7 +1258,12 @@ bool Shape::check() const
 
         element_prev_pos = element_cur_pos;
     }
-    // TODO
+
+    if (intersect(*this)) {
+        std::cout << this->to_string(1) << std::endl;
+        std::cout << "shape self intersect." << std::endl;
+        return false;
+    }
     return true;
 }
 
