@@ -531,7 +531,7 @@ bool shape::intersect(
             auto intersections = compute_intersections(
                     element_1,
                     element_2,
-                    false);
+                    true);
             if (!intersections.empty()) {
                 //write_json({{shape}}, {}, "intersect.json");
                 //std::cout << "shape " << shape.to_string(2) << std::endl;
