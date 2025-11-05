@@ -1264,6 +1264,14 @@ bool Shape::check() const
         std::cout << "shape self intersect." << std::endl;
         return false;
     }
+
+    AreaDbl area = this->compute_area();
+    if (strictly_lesser(area, 0)) {
+        std::cout << this->to_string(1) << std::endl;
+        std::cout << "negative area: " << area << "." << std::endl;
+        return false;
+    }
+
     return true;
 }
 

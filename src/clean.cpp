@@ -168,13 +168,305 @@ std::pair<bool, ShapeWithHoles> shape::remove_aligned_vertices(
     return {b, res};
 }
 
-ShapeWithHoles shape::clean_extreme_slopes_outer(
+namespace
+{
+
+Shape clean_extreme_slopes_outer_1(
+        Shape shape_orig)
+{
+    Shape shape = shape_orig;
+
+    {
+        Shape shape_new;
+        shape_new.is_path = shape.is_path;
+        Point start = shape.elements.front().start;
+        for (ElementPos element_cur_pos = 0;
+                element_cur_pos < (ElementPos)shape.elements.size();
+                ++element_cur_pos) {
+            ShapeElement element_cur = shape.elements[element_cur_pos];
+            element_cur.start = start;
+            const ShapeElement& element_next = (element_cur_pos + 1 < shape.elements.size())?
+                shape.elements[element_cur_pos + 1]:
+                shape.elements[0];
+
+            // Check if current element must be removed.
+            bool remove = false;
+            if (element_cur.type == ShapeElementType::LineSegment
+                    && element_next.type == ShapeElementType::LineSegment) {
+                // The angle with the next element is between pi/2 and pi
+                Angle angle = angle_radian(
+                        element_cur.start - element_cur.end,
+                        element_next.end - element_next.start);
+                if (angle >= M_PI / 2 && angle <= M_PI) {
+                    // Next element has extreme slope.
+                    double slope
+                        = (element_next.end.y - element_next.start.y)
+                        / (element_next.end.x - element_next.start.x);
+                    if (element_next.start.x != element_next.end.x && std::abs(slope) > 1e2) {
+                        // The intersection point doesn't belong to the current element.
+                        if ((element_next.start.x < element_next.end.x  // >
+                                    && element_next.start.y < element_next.end.y)  // ^
+                                || (element_next.start.x > element_next.end.x  // <
+                                    && element_next.start.y > element_next.end.y)) {  // v
+                            auto p = compute_line_intersection(
+                                    element_cur.start, element_cur.end,
+                                    {element_next.end.x, element_next.start.y}, element_next.end);
+                            if (p.first && !element_cur.contains(p.second))
+                                remove = true;
+                        }
+                    } else if (element_next.start.y != element_next.end.y && std::abs(slope) < 1e-2) {
+                        // The intersection point doesn't belong to the current element.
+                        if ((element_next.start.x < element_next.end.x  // >
+                                    && element_next.start.y > element_next.end.y)  // v
+                                || (element_next.start.x > element_next.end.x  // <
+                                    && element_next.start.y < element_next.end.y)) {  // ^
+                            auto p = compute_line_intersection(
+                                    element_cur.start, element_cur.end,
+                                    {element_next.start.x, element_next.end.y}, element_next.end);
+                            if (p.first && !element_cur.contains(p.second))
+                                remove = true;
+                        }
+                    }
+                }
+            }
+
+            if (!remove) {
+                shape_new.elements.push_back(element_cur);
+                start = element_cur.end;
+            } else {
+                //std::cout << "remove" << std::endl;
+                //std::cout << "element_cur:  " << element_cur.to_string() << std::endl;
+                //std::cout << "element_next: " << element_next.to_string() << std::endl;
+            }
+        }
+        shape_new.elements[0].start = start;
+        shape = shape_new;
+    }
+
+    {
+        Shape shape_new;
+        shape_new.is_path = shape.is_path;
+        Point end = shape.elements.back().end;
+        for (ElementPos element_cur_pos = shape.elements.size() - 1;
+                element_cur_pos >= 0;
+                --element_cur_pos) {
+            ShapeElement element_cur = shape.elements[element_cur_pos];
+            element_cur.end = end;
+            const ShapeElement& element_prev = (element_cur_pos - 1 >= 0)?
+                shape.elements[element_cur_pos - 1]:
+                shape.elements.back();
+
+            // Check if current element must be removed.
+            bool remove = false;
+            if (element_cur.type == ShapeElementType::LineSegment
+                    && element_prev.type == ShapeElementType::LineSegment) {
+                // The angle with the prev element is between pi/2 and pi
+                Angle angle = angle_radian(
+                        element_prev.start - element_prev.end,
+                        element_cur.end - element_cur.start);
+                //std::cout << "angle " << angle << std::endl;
+                if (angle >= M_PI / 2 && angle <= M_PI) {
+                    // Next element has extreme slope.
+                    double slope
+                        = (element_prev.end.y - element_prev.start.y)
+                        / (element_prev.end.x - element_prev.start.x);
+                    if (element_prev.start.x != element_prev.end.x && std::abs(slope) > 1e2) {
+                        // The intersection point doesn't belong to the current element.
+                        if ((element_prev.start.x < element_prev.end.x  // >
+                                    && element_prev.start.y > element_prev.end.y)  // v
+                                || (element_prev.start.x > element_prev.end.x  // <
+                                    && element_prev.start.y < element_prev.end.y)) {  // ^
+                            auto p = compute_line_intersection(
+                                    element_prev.start, {element_prev.start.x, element_prev.end.y},
+                                    element_cur.start, element_cur.end);
+                            //std::cout << p.first << " " << p.second.to_string() << std::endl;
+                            if (p.first && !element_cur.contains(p.second))
+                                remove = true;
+                        }
+                    } else if (element_prev.start.y != element_prev.end.y && std::abs(slope) < 1e-2) {
+                        // The intersection point doesn't belong to the current element.
+                        if ((element_prev.start.x < element_prev.end.x  // >
+                                    && element_prev.start.y < element_prev.end.y)  // ^
+                                || (element_prev.start.x > element_prev.end.x  // <
+                                    && element_prev.start.y > element_prev.end.y)) {  // v
+                            auto p = compute_line_intersection(
+                                    element_prev.start, {element_prev.end.x, element_prev.start.y},
+                                    element_cur.start, element_cur.end);
+                            //std::cout << p.first << " " << p.second.to_string() << std::endl;
+                            if (p.first && !element_cur.contains(p.second))
+                                remove = true;
+                        }
+                    }
+                }
+            }
+
+            if (!remove) {
+                shape_new.elements.push_back(element_cur);
+                end = element_cur.start;
+            } else {
+                //std::cout << "remove" << std::endl;
+                //std::cout << "element_cur:  " << element_cur.to_string() << std::endl;
+                //std::cout << "element_prev: " << element_prev.to_string() << std::endl;
+            }
+        }
+        shape_new.elements[0].end = end;
+        std::reverse(shape_new.elements.begin(), shape_new.elements.end());
+        shape = shape_new;
+    }
+
+    if (!shape.check()) {
+        std::cout << shape_orig.to_string(0) << std::endl;
+        //write_json({{shape_orig}, {shape}}, {}, "clean_extreme_slopes_outer_1_output.json");
+        throw std::invalid_argument(
+                "shape::clean_extreme_slopes_outer_1: invalid output shape.");
+    }
+    return shape;
+}
+
+Shape clean_extreme_slopes_inner_1(
         const Shape& shape_orig)
 {
     Shape shape = shape_orig;
-    shape = equalize_shape(shape);
-    shape = remove_redundant_vertices(shape).second;
-    shape = remove_aligned_vertices(shape).second;
+
+    {
+        Shape shape_new;
+        shape_new.is_path = shape.is_path;
+        Point start = shape.elements.front().start;
+        for (ElementPos element_cur_pos = 0;
+                element_cur_pos < (ElementPos)shape.elements.size();
+                ++element_cur_pos) {
+            ShapeElement element_cur = shape.elements[element_cur_pos];
+            element_cur.start = start;
+            const ShapeElement& element_next = (element_cur_pos + 1 < shape.elements.size())?
+                shape.elements[element_cur_pos + 1]:
+                shape.elements[0];
+
+            // Check if current element must be removed.
+            bool remove = false;
+            if (element_cur.type == ShapeElementType::LineSegment
+                    && element_next.type == ShapeElementType::LineSegment) {
+                // The angle with the next element is between pi/2 and pi
+                Angle angle = angle_radian(
+                        element_cur.start - element_cur.end,
+                        element_next.end - element_next.start);
+                if (angle >= M_PI / 2 && angle <= M_PI) {
+                    // Next element has extreme slope.
+                    double slope
+                        = (element_next.end.y - element_next.start.y)
+                        / (element_next.end.x - element_next.start.x);
+                    if (element_next.start.x != element_next.end.x && std::abs(slope) > 1e2) {
+                        // The intersection point doesn't belong to the current element.
+                        if ((element_next.start.x > element_next.end.x  // <
+                                    && element_next.start.y < element_next.end.y)  // ^
+                                || (element_next.start.x < element_next.end.x  // >
+                                    && element_next.start.y > element_next.end.y)) {  // v
+                            auto p = compute_line_intersection(
+                                    element_cur.start, element_cur.end,
+                                    {element_next.end.x, element_next.start.y}, element_next.end);
+                            if (p.first && !element_cur.contains(p.second))
+                                remove = true;
+                        }
+                    } else if (element_next.start.y != element_next.end.y && std::abs(slope) < 1e-2) {
+                        // The intersection point doesn't belong to the current element.
+                        if ((element_next.start.x > element_next.end.x  // <
+                                    && element_next.start.y > element_next.end.y)  // v
+                                || (element_next.start.x < element_next.end.x  // >
+                                    && element_next.start.y < element_next.end.y)) {  // ^
+                            auto p = compute_line_intersection(
+                                    element_cur.start, element_cur.end,
+                                    {element_next.start.x, element_next.end.y}, element_next.end);
+                            if (p.first && !element_cur.contains(p.second))
+                                remove = true;
+                        }
+                    }
+                }
+            }
+
+            if (!remove) {
+                shape_new.elements.push_back(element_cur);
+                start = element_cur.end;
+            }
+        }
+        shape_new.elements[0].start = start;
+        shape = shape_new;
+    }
+
+    {
+        Shape shape_new;
+        shape_new.is_path = shape.is_path;
+        Point end = shape.elements.back().end;
+        for (ElementPos element_cur_pos = shape.elements.size() - 1;
+                element_cur_pos >= 0;
+                --element_cur_pos) {
+            ShapeElement element_cur = shape.elements[element_cur_pos];
+            element_cur.end = end;
+            const ShapeElement& element_prev = (element_cur_pos - 1 >= 0)?
+                shape.elements[element_cur_pos - 1]:
+                shape.elements.back();
+
+            // Check if current element must be removed.
+            bool remove = false;
+            if (element_cur.type == ShapeElementType::LineSegment
+                    && element_prev.type == ShapeElementType::LineSegment) {
+                // The angle with the prev element is between pi/2 and pi
+                Angle angle = angle_radian(
+                        element_prev.start - element_prev.end,
+                        element_cur.end - element_cur.start);
+                if (angle >= M_PI / 2 && angle <= M_PI) {
+                    // Next element has extreme slope.
+                    double slope
+                        = (element_prev.end.y - element_prev.start.y)
+                        / (element_prev.end.x - element_prev.start.x);
+                    if (element_prev.start.x != element_prev.end.x && std::abs(slope) > 1e2) {
+                        // The intersection point doesn't belong to the current element.
+                        if ((element_prev.start.x > element_prev.end.x  // <
+                                    && element_prev.start.y > element_prev.end.y)  // v
+                                || (element_prev.start.x < element_prev.end.x  // >
+                                    && element_prev.start.y < element_prev.end.y)) {  // ^
+                            auto p = compute_line_intersection(
+                                    element_prev.start, {element_prev.start.x, element_prev.end.y},
+                                    element_cur.start, element_cur.end);
+                            if (p.first && !element_cur.contains(p.second))
+                                remove = true;
+                        }
+                    } else if (element_prev.start.y != element_prev.end.y && std::abs(slope) < 1e-2) {
+                        // The intersection point doesn't belong to the current element.
+                        if ((element_prev.start.x > element_prev.end.x  // <
+                                    && element_prev.start.y < element_prev.end.y)  // ^
+                                || (element_prev.start.x < element_prev.end.x  // >
+                                    && element_prev.start.y > element_prev.end.y)) {  // v
+                            auto p = compute_line_intersection(
+                                    element_prev.start, {element_prev.end.x, element_prev.start.y},
+                                    element_cur.start, element_cur.end);
+                            if (p.first && !element_cur.contains(p.second))
+                                remove = true;
+                        }
+                    }
+                }
+            }
+
+            if (!remove) {
+                shape_new.elements.push_back(element_cur);
+                end = element_cur.start;
+            }
+        }
+        shape_new.elements[0].end = end;
+        std::reverse(shape_new.elements.begin(), shape_new.elements.end());
+        shape = shape_new;
+    }
+
+    if (!shape.check()) {
+        //write_json({{shape_orig}, {shape}}, {}, "clean_extreme_slopes_outer_2_output.json");
+        throw std::invalid_argument(
+                "shape::clean_extreme_slopes_outer_1: invalid output shape.");
+    }
+    return shape;
+}
+
+Shape clean_extreme_slopes_outer_2(
+        const Shape& shape_orig)
+{
+    Shape shape = shape_orig;
     ElementPos element_prev_pos = shape.elements.size() - 1;
     for (ElementPos element_cur_pos = 0;
             element_cur_pos < (ElementPos)shape.elements.size();
@@ -186,20 +478,19 @@ ShapeWithHoles shape::clean_extreme_slopes_outer(
             = (element_cur.end.y - element_cur.start.y)
             / (element_cur.end.x - element_cur.start.x);
         if (element_cur.type != ShapeElementType::LineSegment) {
+        } else if (element_prev.type != ShapeElementType::LineSegment) {
         } else if (element_cur.start.x != element_cur.end.x && std::abs(slope) > 1e2) {
             if ((element_cur.start.x < element_cur.end.x  // >
                         && element_cur.start.y < element_cur.end.y)  // ^
                     || (element_cur.start.x > element_cur.end.x  // <
                         && element_cur.start.y > element_cur.end.y)) {  // v
                 // Update element_prev.
-                if (element_prev.type == ShapeElementType::LineSegment) {
-                    auto p = compute_line_intersection(
-                            element_prev.start, element_prev.end,
-                            {element_cur.end.x, element_cur.start.y}, element_cur.end);
-                    if (p.first) {
-                        element_prev.end = p.second;
-                        element_cur.start = p.second;
-                    }
+                auto p = compute_line_intersection(
+                        element_prev.start, element_prev.end,
+                        {element_cur.end.x, element_cur.start.y}, element_cur.end);
+                if (p.first) {
+                    element_prev.end = p.second;
+                    element_cur.start = p.second;
                 }
             }
         } else if (element_cur.start.y != element_cur.end.y && std::abs(slope) < 1e-2) {
@@ -208,14 +499,12 @@ ShapeWithHoles shape::clean_extreme_slopes_outer(
                     || (element_cur.start.x > element_cur.end.x  // <
                         && element_cur.start.y < element_cur.end.y)) {  // ^
                 // Update element_prev.
-                if (element_prev.type == ShapeElementType::LineSegment) {
-                    auto p = compute_line_intersection(
-                            element_prev.start, element_prev.end,
-                            {element_cur.start.x, element_cur.end.y}, element_cur.end);
-                    if (p.first) {
-                        element_prev.end = p.second;
-                        element_cur.start = p.second;
-                    }
+                auto p = compute_line_intersection(
+                        element_prev.start, element_prev.end,
+                        {element_cur.start.x, element_cur.end.y}, element_cur.end);
+                if (p.first) {
+                    element_prev.end = p.second;
+                    element_cur.start = p.second;
                 }
             }
         }
@@ -232,20 +521,19 @@ ShapeWithHoles shape::clean_extreme_slopes_outer(
             = (element_cur.end.y - element_cur.start.y)
             / (element_cur.end.x - element_cur.start.x);
         if (element_cur.type != ShapeElementType::LineSegment) {
+        } else if (element_next.type != ShapeElementType::LineSegment) {
         } else if (element_cur.start.x != element_cur.end.x && std::abs(slope) > 1e2) {
             if ((element_cur.start.x < element_cur.end.x  // >
                         && element_cur.start.y > element_cur.end.y)  // v
                     || (element_cur.start.x > element_cur.end.x  // <
                         && element_cur.start.y < element_cur.end.y)) {  // ^
                 // Update element_next.
-                if (element_next.type == ShapeElementType::LineSegment) {
-                    auto p = compute_line_intersection(
-                            element_cur.start, {element_cur.start.x, element_cur.end.y},
-                            element_next.start, element_next.end);
-                    if (p.first) {
-                        element_cur.end = p.second;
-                        element_next.start = p.second;
-                    }
+                auto p = compute_line_intersection(
+                        element_cur.start, {element_cur.start.x, element_cur.end.y},
+                        element_next.start, element_next.end);
+                if (p.first) {
+                    element_cur.end = p.second;
+                    element_next.start = p.second;
                 }
             }
         } else if (element_cur.start.y != element_cur.end.y && std::abs(slope) < 1e-2) {
@@ -254,14 +542,117 @@ ShapeWithHoles shape::clean_extreme_slopes_outer(
                     || (element_cur.start.x > element_cur.end.x  // <
                         && element_cur.start.y > element_cur.end.y)) {  // v
                 // Update element_next.
-                if (element_next.type == ShapeElementType::LineSegment) {
-                    auto p = compute_line_intersection(
-                            element_cur.start, {element_cur.end.x, element_cur.start.y},
-                            element_next.start, element_next.end);
-                    if (p.first) {
-                        element_cur.end = p.second;
-                        element_next.start = p.second;
-                    }
+                auto p = compute_line_intersection(
+                        element_cur.start, {element_cur.end.x, element_cur.start.y},
+                        element_next.start, element_next.end);
+                if (p.first) {
+                    element_cur.end = p.second;
+                    element_next.start = p.second;
+                }
+            }
+        }
+
+        element_next_pos = element_cur_pos;
+    }
+    if (!shape.check()) {
+        //write_json({{shape_orig}, {shape}}, {}, "clean_extreme_slopes_outer_2_output.json");
+        throw std::invalid_argument(
+                "shape::clean_extreme_slopes_outer_2: "
+                "invalid shape after extreme slopes cleaning.");
+    }
+    return shape;
+}
+
+Shape clean_extreme_slopes_inner_2(
+        const Shape& shape_orig)
+{
+    Shape shape = shape_orig;
+    ElementPos element_prev_pos = shape.elements.size() - 1;
+    for (ElementPos element_cur_pos = 0;
+            element_cur_pos < (ElementPos)shape.elements.size();
+            ++element_cur_pos) {
+        ShapeElement& element_prev = shape.elements[element_prev_pos];
+        ShapeElement& element_cur = shape.elements[element_cur_pos];
+
+        double slope
+            = (element_cur.end.y - element_cur.start.y)
+            / (element_cur.end.x - element_cur.start.x);
+        //std::cout << "element " << element.to_string() << " slope " << slope << std::endl;
+        //std::cout << "element_prev " << element_prev.to_string() << std::endl;
+        if (element_cur.type != ShapeElementType::LineSegment) {
+        } else if (element_prev.type != ShapeElementType::LineSegment) {
+        } else if (element_cur.start.x != element_cur.end.x && std::abs(slope) > 1e2) {
+            if ((element_cur.start.x > element_cur.end.x  // <
+                        && element_cur.start.y < element_cur.end.y)  // ^
+                    || (element_cur.start.x < element_cur.end.x  // >
+                        && element_cur.start.y > element_cur.end.y)) {  // v
+                // Update element_prev.
+                auto p = compute_line_intersection(
+                        element_prev.start, element_prev.end,
+                        {element_cur.end.x, element_cur.start.y}, element_cur.end);
+                if (p.first) {
+                    element_prev.end = p.second;
+                    element_cur.start = p.second;
+                }
+            }
+        } else if (element_cur.start.y != element_cur.end.y && std::abs(slope) < 1e-2) {
+            if ((element_cur.start.x > element_cur.end.x  // <
+                        && element_cur.start.y > element_cur.end.y)  // v
+                    || (element_cur.start.x < element_cur.end.x  // >
+                        && element_cur.start.y < element_cur.end.y)) {  // ^
+                // Update element_prev.
+                auto p = compute_line_intersection(
+                        element_prev.start, element_prev.end,
+                        {element_cur.start.x, element_cur.end.y}, element_cur.end);
+                if (p.first) {
+                    element_prev.end = p.second;
+                    element_cur.start = p.second;
+                }
+            }
+        }
+
+        element_prev_pos = element_cur_pos;
+    }
+    ElementPos element_next_pos = 0;
+    for (ElementPos element_cur_pos = shape.elements.size() - 1;
+            element_cur_pos >= 0;
+            --element_cur_pos) {
+        ShapeElement& element_cur = shape.elements[element_cur_pos];
+        ShapeElement& element_next = shape.elements[element_next_pos];
+
+        double slope
+            = (element_cur.end.y - element_cur.start.y)
+            / (element_cur.end.x - element_cur.start.x);
+        //std::cout << "element " << element.to_string() << " slope " << slope << std::endl;
+        //std::cout << "element_prev " << element_prev.to_string() << std::endl;
+        if (element_cur.type != ShapeElementType::LineSegment) {
+        } else if (element_next.type != ShapeElementType::LineSegment) {
+        } else if (element_cur.start.x != element_cur.end.x && std::abs(slope) > 1e2) {
+            if ((element_cur.start.x > element_cur.end.x  // <
+                        && element_cur.start.y > element_cur.end.y)  // v
+                    || (element_cur.start.x < element_cur.end.x  // >
+                        && element_cur.start.y < element_cur.end.y)) {  // ^
+                // Update element_next.
+                auto p = compute_line_intersection(
+                        element_cur.start, {element_cur.start.x, element_cur.end.y},
+                        element_next.start, element_next.end);
+                if (p.first) {
+                    element_cur.end = p.second;
+                    element_next.start = p.second;
+                }
+            }
+        } else if (element_cur.start.y != element_cur.end.y && std::abs(slope) < 1e-2) {
+            if ((element_cur.start.x > element_cur.end.x  // <
+                        && element_cur.start.y < element_cur.end.y)  // ^
+                    || (element_cur.start.x < element_cur.end.x  // >
+                        && element_cur.start.y > element_cur.end.y)) {  // v
+                // Update element_next.
+                auto p = compute_line_intersection(
+                        element_cur.start, {element_cur.end.x, element_cur.start.y},
+                        element_next.start, element_next.end);
+                if (p.first) {
+                    element_cur.end = p.second;
+                    element_next.start = p.second;
                 }
             }
         }
@@ -270,9 +661,24 @@ ShapeWithHoles shape::clean_extreme_slopes_outer(
     }
     if (!shape.check()) {
         throw std::invalid_argument(
-                "shape::clean_extreme_slopes_outer: "
+                "shape::clean_extreme_slopes_inner_2: "
                 "invalid shape after extreme slopes cleaning.");
     }
+    return shape;
+}
+
+}
+
+ShapeWithHoles shape::clean_extreme_slopes_outer(
+        const Shape& shape_orig)
+{
+    Shape shape = shape_orig;
+    shape = equalize_shape(shape);
+    shape = remove_redundant_vertices(shape).second;
+    shape = remove_aligned_vertices(shape).second;
+
+    shape = clean_extreme_slopes_outer_1(shape);
+    shape = clean_extreme_slopes_outer_2(shape);
 
     shape = equalize_shape(shape);
     shape = remove_redundant_vertices(shape).second;
@@ -288,109 +694,9 @@ std::vector<Shape> shape::clean_extreme_slopes_inner(
     shape = equalize_shape(shape);
     shape = remove_redundant_vertices(shape).second;
     shape = remove_aligned_vertices(shape).second;
-    ElementPos element_prev_pos = shape.elements.size() - 1;
-    for (ElementPos element_cur_pos = 0;
-            element_cur_pos < (ElementPos)shape.elements.size();
-            ++element_cur_pos) {
-        ShapeElement& element_prev = shape.elements[element_prev_pos];
-        ShapeElement& element_cur = shape.elements[element_cur_pos];
 
-        double slope
-            = (element_cur.end.y - element_cur.start.y)
-            / (element_cur.end.x - element_cur.start.x);
-        //std::cout << "element " << element.to_string() << " slope " << slope << std::endl;
-        //std::cout << "element_prev " << element_prev.to_string() << std::endl;
-        if (element_cur.type != ShapeElementType::LineSegment) {
-        } else if (element_cur.start.x != element_cur.end.x && std::abs(slope) > 1e2) {
-            if ((element_cur.start.x > element_cur.end.x  // <
-                        && element_cur.start.y < element_cur.end.y)  // ^
-                    || (element_cur.start.x < element_cur.end.x  // >
-                        && element_cur.start.y > element_cur.end.y)) {  // v
-                // Update element_prev.
-                if (element_prev.type == ShapeElementType::LineSegment) {
-                    auto p = compute_line_intersection(
-                            element_prev.start, element_prev.end,
-                            {element_cur.end.x, element_cur.start.y}, element_cur.end);
-                    if (p.first) {
-                        element_prev.end = p.second;
-                        element_cur.start = p.second;
-                    }
-                }
-            }
-        } else if (element_cur.start.y != element_cur.end.y && std::abs(slope) < 1e-2) {
-            if ((element_cur.start.x > element_cur.end.x  // <
-                        && element_cur.start.y > element_cur.end.y)  // v
-                    || (element_cur.start.x < element_cur.end.x  // >
-                        && element_cur.start.y < element_cur.end.y)) {  // ^
-                // Update element_prev.
-                if (element_prev.type == ShapeElementType::LineSegment) {
-                    auto p = compute_line_intersection(
-                            element_prev.start, element_prev.end,
-                            {element_cur.start.x, element_cur.end.y}, element_cur.end);
-                    if (p.first) {
-                        element_prev.end = p.second;
-                        element_cur.start = p.second;
-                    }
-                }
-            }
-        }
-
-        element_prev_pos = element_cur_pos;
-    }
-    ElementPos element_next_pos = 0;
-    for (ElementPos element_cur_pos = shape.elements.size() - 1;
-            element_cur_pos >= 0;
-            --element_cur_pos) {
-        ShapeElement& element_cur = shape.elements[element_cur_pos];
-        ShapeElement& element_next = shape.elements[element_next_pos];
-
-        double slope
-            = (element_cur.end.y - element_cur.start.y)
-            / (element_cur.end.x - element_cur.start.x);
-        //std::cout << "element " << element.to_string() << " slope " << slope << std::endl;
-        //std::cout << "element_prev " << element_prev.to_string() << std::endl;
-        if (element_cur.type != ShapeElementType::LineSegment) {
-        } else if (element_cur.start.x != element_cur.end.x && std::abs(slope) > 1e2) {
-            if ((element_cur.start.x > element_cur.end.x  // <
-                        && element_cur.start.y > element_cur.end.y)  // v
-                    || (element_cur.start.x < element_cur.end.x  // >
-                        && element_cur.start.y < element_cur.end.y)) {  // ^
-                // Update element_next.
-                if (element_next.type == ShapeElementType::LineSegment) {
-                    auto p = compute_line_intersection(
-                            element_cur.start, {element_cur.start.x, element_cur.end.y},
-                            element_next.start, element_next.end);
-                    if (p.first) {
-                        element_cur.end = p.second;
-                        element_next.start = p.second;
-                    }
-                }
-            }
-        } else if (element_cur.start.y != element_cur.end.y && std::abs(slope) < 1e-2) {
-            if ((element_cur.start.x > element_cur.end.x  // <
-                        && element_cur.start.y < element_cur.end.y)  // ^
-                    || (element_cur.start.x < element_cur.end.x  // >
-                        && element_cur.start.y > element_cur.end.y)) {  // v
-                // Update element_next.
-                if (element_next.type == ShapeElementType::LineSegment) {
-                    auto p = compute_line_intersection(
-                            element_cur.start, {element_cur.end.x, element_cur.start.y},
-                            element_next.start, element_next.end);
-                    if (p.first) {
-                        element_cur.end = p.second;
-                        element_next.start = p.second;
-                    }
-                }
-            }
-        }
-
-        element_next_pos = element_cur_pos;
-    }
-    if (!shape.check()) {
-        throw std::invalid_argument(
-                "shape::clean_extreme_slopes_inner: "
-                "invalid shape after extreme slopes cleaning.");
-    }
+    shape = clean_extreme_slopes_inner_1(shape);
+    shape = clean_extreme_slopes_inner_2(shape);
 
     shape = equalize_shape(shape);
     shape = remove_redundant_vertices(shape).second;
