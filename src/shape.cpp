@@ -890,7 +890,7 @@ bool Shape::is_square() const
             return false;
         // Check angle.
         Angle theta = angle_radian(it_prev->start - it_prev->end, it->end - it->start);
-        if (!equal(theta, M_PI / 2))
+        if (!equal(theta, 3 * M_PI / 2))
             return false;
         // Check length.
         if (!equal(it->length(), elements[0].length()))
@@ -910,7 +910,7 @@ bool Shape::is_rectangle() const
             return false;
         // Check angle.
         Angle theta = angle_radian(it_prev->start - it_prev->end, it->end - it->start);
-        if (!equal(theta, M_PI / 2))
+        if (!equal(theta, 3 * M_PI / 2))
             return false;
         it_prev = it;
     }
