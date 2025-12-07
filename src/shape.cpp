@@ -589,6 +589,32 @@ ShapeElement ShapeElement::reverse() const
     return element_out;
 }
 
+ShapeElement shape::build_line_segment(
+        const Point& start,
+        const Point& end)
+{
+    ShapeElement element;
+    element.type = ShapeElementType::LineSegment;
+    element.start = start;
+    element.end = end;
+    return element;
+}
+
+ShapeElement shape::build_circular_arc(
+        const Point& start,
+        const Point& end,
+        const Point& center,
+        const ShapeElementOrientation& orientation)
+{
+    ShapeElement element;
+    element.type = ShapeElementType::CircularArc;
+    element.start = start;
+    element.end = end;
+    element.center = center;
+    element.orientation = orientation;
+    return element;
+}
+
 ShapeElementType shape::str2element(const std::string& str)
 {
     if (str == "LineSegment"
@@ -934,18 +960,21 @@ AreaDbl Shape::compute_area() const
             LengthDbl radius = distance(element.center, element.start);
             return radius * radius * M_PI;
         }
+
         area += cross_product(element.start, element.end);
         // Handle circular arcs.
         if (element.type == ShapeElementType::CircularArc) {
             LengthDbl radius = distance(element.center, element.start);
-            Angle theta = angle_radian(element.center - element.start, element.center - element.end);
             if (element.orientation == ShapeElementOrientation::Anticlockwise) {
-                area += radius * radius * ((!(element.start == element.end))? theta: 2.0 * M_PI);
+                Angle theta = angle_radian(element.center - element.start, element.center - element.end);
+                area += radius * radius * (theta - std::sin(theta));
             } else {
-                area -= radius * radius * ((!(element.start == element.end))? 2.0 * M_PI - theta: 2.0 * M_PI);
+                Angle theta = angle_radian(element.center - element.end, element.center - element.start);
+                area -= radius * radius * (theta - std::sin(theta));
             }
         }
     }
+
     return area / 2;
 }
 
@@ -1431,27 +1460,10 @@ Shape shape::build_triangle(
         const Point& p3)
 {
     Shape shape;
-    {
-        ShapeElement element;
-        element.type = ShapeElementType::LineSegment;
-        element.start = p1;
-        element.end = p2;
-        shape.elements.push_back(element);
-    }
-    {
-        ShapeElement element;
-        element.type = ShapeElementType::LineSegment;
-        element.start = p2;
-        element.end = p3;
-        shape.elements.push_back(element);
-    }
-    {
-        ShapeElement element;
-        element.type = ShapeElementType::LineSegment;
-        element.start = p3;
-        element.end = p1;
-        shape.elements.push_back(element);
-    }
+    shape.elements = std::vector<ShapeElement>(3);
+    shape.elements[0] = build_line_segment(p1, p2);
+    shape.elements[1] = build_line_segment(p2, p3);
+    shape.elements[2] = build_line_segment(p3, p1);
     return shape;
 }
 
@@ -1460,38 +1472,27 @@ Shape shape::build_rectangle(
         const Point& p2)
 {
     Shape shape;
-    {
-        ShapeElement element;
-        element.type = ShapeElementType::LineSegment;
-        element.start = p1;
-        element.end.x = p2.x;
-        element.end.y = p1.y;
-        shape.elements.push_back(element);
-    }
-    {
-        ShapeElement element;
-        element.type = ShapeElementType::LineSegment;
-        element.start.x = p2.x;
-        element.start.y = p1.y;
-        element.end = p2;
-        shape.elements.push_back(element);
-    }
-    {
-        ShapeElement element;
-        element.type = ShapeElementType::LineSegment;
-        element.start = p2;
-        element.end.x = p1.x;
-        element.end.y = p2.y;
-        shape.elements.push_back(element);
-    }
-    {
-        ShapeElement element;
-        element.type = ShapeElementType::LineSegment;
-        element.start.x = p1.x;
-        element.start.y = p2.y;
-        element.end = p1;
-        shape.elements.push_back(element);
-    }
+    shape.elements = std::vector<ShapeElement>(4);
+    shape.elements[0] = build_line_segment(p1, {p2.x, p1.y});
+    shape.elements[1] = build_line_segment({p2.x, p1.y}, p2);
+    shape.elements[2] = build_line_segment(p2, {p1.x, p2.y});
+    shape.elements[3] = build_line_segment({p1.x, p2.y}, p1);
+    return shape;
+}
+
+Shape shape::build_circle(LengthDbl radius)
+{
+    Shape shape;
+    ShapeElement element;
+    element.type = ShapeElementType::CircularArc;
+    element.start.x = radius;
+    element.start.y = 0;
+    element.end.x = radius;
+    element.end.y = 0;
+    element.center.x = 0;
+    element.center.y = 0;
+    element.orientation = ShapeElementOrientation::Full;
+    shape.elements.push_back(element);
     return shape;
 }
 
@@ -1577,25 +1578,18 @@ Shape shape::build_shape(
     return shape;
 }
 
+Shape shape::build_shape(
+        const std::vector<ShapeElement>& elements)
+{
+    Shape shape;
+    shape.elements = elements;
+    return shape;
+}
+
 Shape shape::build_path(
         const std::vector<BuildShapeElement>& points)
 {
     return build_shape(points, true);
-}
-
-ShapeElement shape::build_line_segment(
-        const BuildShapeElement& start,
-        const BuildShapeElement& end)
-{
-    return build_shape({start, end}, true).elements.front();
-}
-
-ShapeElement shape::build_circular_arc(
-        const BuildShapeElement& start,
-        const BuildShapeElement& center,
-        const BuildShapeElement& end)
-{
-    return build_shape({start, center, end}, true).elements.front();
 }
 
 bool ShapeWithHoles::contains(

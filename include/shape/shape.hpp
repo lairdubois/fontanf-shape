@@ -253,6 +253,16 @@ struct ShapeElement
     nlohmann::json to_json() const;
 };
 
+ShapeElement build_line_segment(
+        const Point& start,
+        const Point& end);
+
+ShapeElement build_circular_arc(
+        const Point& start,
+        const Point& end,
+        const Point& center,
+        const ShapeElementOrientation& orientation);
+
 bool operator<(
         const ShapeElement& element_1,
         const ShapeElement& element_2);
@@ -400,6 +410,8 @@ inline Shape build_rectangle(const Point& p) { return build_rectangle({0, 0}, p)
 
 inline Shape build_rectangle(LengthDbl x, LengthDbl y) { return build_rectangle({0, 0}, {x, y}); }
 
+Shape build_circle(LengthDbl radius);
+
 Shape operator*(
         LengthDbl scalar,
         const Shape& shape);
@@ -513,17 +525,11 @@ Shape build_shape(
         const std::vector<BuildShapeElement>& points,
         bool is_path = false);
 
+Shape build_shape(
+        const std::vector<ShapeElement>& elements);
+
 Shape build_path(
         const std::vector<BuildShapeElement>& points);
-
-ShapeElement build_line_segment(
-        const BuildShapeElement& start,
-        const BuildShapeElement& end);
-
-ShapeElement build_circular_arc(
-        const BuildShapeElement& start,
-        const BuildShapeElement& center,
-        const BuildShapeElement& end);
 
 inline bool operator==(
         const Point& point_1,

@@ -122,6 +122,51 @@ INSTANTIATE_TEST_SUITE_P(
             }));
 
 
+struct ShapeComputeAreaTestParams
+{
+    Shape shape;
+    AreaDbl expected_area;
+};
+
+class ShapeComputeAreaTest: public testing::TestWithParam<ShapeComputeAreaTestParams> { };
+
+TEST_P(ShapeComputeAreaTest, ShapeComputeArea)
+{
+    ShapeComputeAreaTestParams test_params = GetParam();
+    std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
+    std::cout << "expected area " << to_string(test_params.expected_area) << std::endl;
+    AreaDbl area = test_params.shape.compute_area();
+    std::cout << "area " << to_string(area) << std::endl;
+    EXPECT_TRUE(equal(area, test_params.expected_area));
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Shape,
+        ShapeComputeAreaTest,
+        testing::ValuesIn(std::vector<ShapeComputeAreaTestParams>{
+            {
+                build_rectangle(1, 1),
+                1,
+            }, {
+                build_rectangle(2, 3),
+                6,
+            }, {
+                build_circle(1),
+                M_PI,
+            }, {
+                build_circle(4),
+                M_PI * 16,
+            }, {
+                build_shape({
+                    build_line_segment({41.39894441055727, 194.5414289923167}, {46.75574653250537, 184.749743605213}),
+                    build_circular_arc({46.75574653250537, 184.749743605213}, {47.33576625598295, 188.9848689097349}, {65.64848776416608, 184.3195773641661}, ShapeElementOrientation::Clockwise),
+                    build_line_segment({47.33576625598295, 188.9848689097349}, {43.62858633055728, 195.7612139523166}),
+                    build_line_segment({43.62858633055728, 195.7612139523166}, {41.39894441055727, 194.5414289923167}),
+                }),
+                23.6526695078428,
+            }}));
+
+
 struct ShapeComputeFurthestPointsTestParams
 {
     Shape shape;
