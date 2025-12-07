@@ -115,6 +115,19 @@ LengthDbl shape::squared_distance(
     return squared_norm(point_2 - point_1);
 }
 
+LengthDbl shape::distance_point_to_line(
+        const Point& point,
+        const Point& line_point_1,
+        const Point& line_point_2)
+{
+    return std::abs(
+            (line_point_2.y - line_point_1.y) * point.x
+            - (line_point_2.x - line_point_1.x) * point.y
+            + line_point_2.x * line_point_1.y
+            - line_point_2.y * line_point_1.x)
+        / distance(line_point_1, line_point_2);
+}
+
 LengthDbl shape::dot_product(
         const Point& vector_1,
         const Point& vector_2)

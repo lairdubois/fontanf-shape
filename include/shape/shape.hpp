@@ -122,6 +122,11 @@ LengthDbl squared_distance(
         const Point& point_1,
         const Point& point_2);
 
+LengthDbl distance_point_to_line(
+        const Point& point,
+        const Point& line_point_1,
+        const Point& line_point_2);
+
 LengthDbl dot_product(
         const Point& vector_1,
         const Point& vector_2);

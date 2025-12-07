@@ -104,6 +104,12 @@ std::pair<bool, Point> shape::compute_line_intersection(
         }
 
         return {true, p};
+    } else if (equal(distance_point_to_line(p11, p21, p22), 0.0)) {
+        if (equal(distance_point_to_line(p12, p21, p22), 0.0)) {
+            return {false, {0, 0}};
+        } else {
+            return {true, p11};
+        }
     } else {
         LengthDbl denom = (p11.x - p12.x) * (p21.y - p22.y) - (p11.y - p12.y) * (p21.x - p22.x);
         if (equal(denom, 0.0))
