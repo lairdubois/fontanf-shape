@@ -445,7 +445,7 @@ int shape::counter_clockwise(
 
 LengthDbl ShapeElement::length() const
 {
-    switch (type) {
+    switch (this->type) {
     case ShapeElementType::LineSegment:
         return distance(this->start, this->end);
     case ShapeElementType::CircularArc:
@@ -456,6 +456,25 @@ LengthDbl ShapeElement::length() const
             return angle_radian(this->start - this->center, this->end - this->center) * r;
         } else {
             return angle_radian(this->end - this->center, this->start - this->center) * r;
+        }
+    }
+    return -1;
+}
+
+LengthDbl ShapeElement::length(const Point& point) const
+{
+    switch (this->type) {
+    case ShapeElementType::LineSegment:
+        return distance(this->start, point);
+    case ShapeElementType::CircularArc:
+        LengthDbl r = distance(this->center, this->start);
+        if (this->orientation == ShapeElementOrientation::Full) {
+            throw std::invalid_argument("shape::ShapeElement::length");
+            return 2 * M_PI * r;
+        } if (this->orientation == ShapeElementOrientation::Anticlockwise) {
+            return angle_radian(this->start - this->center, point - this->center) * r;
+        } else {
+            return angle_radian(point - this->center, this->start - this->center) * r;
         }
     }
     return -1;
@@ -1164,6 +1183,16 @@ bool Shape::contains(
     return (intersection_count % 2 == 1);
 }
 
+bool Shape::is_strictly_closer_to_path_start(
+        const ShapePoint& point_1,
+        const ShapePoint& point_2) const
+{
+    if (point_1.element_pos != point_2.element_pos)
+        return point_1.element_pos < point_2.element_pos;
+    const ShapeElement& element = this->elements[point_1.element_pos];
+    return strictly_lesser(element.length(point_1.point), element.length(point_2.point));
+}
+
 Shape& Shape::shift(
         LengthDbl x,
         LengthDbl y)
@@ -1224,6 +1253,96 @@ Shape Shape::reverse() const
     for (auto it = elements.rbegin(); it != elements.rend(); ++it)
         shape.elements.push_back(it->reverse());
     return shape;
+}
+
+std::vector<Shape> Shape::split(const std::vector<ShapePoint>& points) const
+{
+    std::vector<Shape> output;
+
+    std::vector<ShapePoint> sorted_points = points;
+    std::sort(
+            sorted_points.begin(),
+            sorted_points.end(),
+            [this](
+                const ShapePoint& point_1,
+                const ShapePoint& point_2)
+            {
+                return is_strictly_closer_to_path_start(point_1, point_2);
+            });
+
+    const ShapePoint& point_first = sorted_points.front();
+    const ShapePoint& point_last = sorted_points.back();
+    if (this->is_path) {
+        // For a path, create two paths from start to first point and from last
+        // point to end.
+        {
+            Shape path_1;
+            path_1.is_path = true;
+            for (ElementPos element_pos = 0;
+                    element_pos < point_first.element_pos;
+                    ++element_pos) {
+                const ShapeElement& element = this->elements[element_pos];
+                path_1.elements.push_back(element);
+            }
+            path_1.elements.push_back(this->elements[point_first.element_pos].split(point_first.point).first);
+            output.push_back(path_1);
+        }
+
+        {
+            Shape path_2;
+            path_2.is_path = true;
+            path_2.elements.push_back(this->elements[point_last.element_pos].split(point_last.point).second);
+            for (ElementPos element_pos = point_last.element_pos + 1;
+                    element_pos < (ElementPos)this->elements.size();
+                    ++element_pos) {
+                const ShapeElement& element = this->elements[element_pos];
+                path_2.elements.push_back(element);
+            }
+            output.push_back(path_2);
+        }
+
+    } else {
+        // For a shape, create a path from last point to first point.
+        Shape path;
+        path.is_path = true;
+        path.elements.push_back(this->elements[point_last.element_pos].split(point_last.point).second);
+        for (ElementPos element_pos = point_last.element_pos + 1;
+                element_pos < (ElementPos)this->elements.size();
+                ++element_pos) {
+            const ShapeElement& element = this->elements[element_pos];
+            path.elements.push_back(element);
+        }
+        for (ElementPos element_pos = 0;
+                element_pos < point_first.element_pos;
+                ++element_pos) {
+            const ShapeElement& element = this->elements[element_pos];
+            path.elements.push_back(element);
+        }
+        path.elements.push_back(this->elements[point_first.element_pos].split(point_first.point).first);
+        output.push_back(path);
+    }
+
+    // Create intermediate paths.
+    for (ElementPos point_pos = 0;
+            point_pos < (ElementPos)sorted_points.size() - 1;
+            ++point_pos) {
+        const ShapePoint& point_start = sorted_points[point_pos];
+        const ShapePoint& point_end = sorted_points[point_pos + 1];
+
+        Shape path;
+        path.is_path = true;
+        path.elements.push_back(this->elements[point_start.element_pos].split(point_start.point).second);
+        for (ElementPos element_pos = point_start.element_pos + 1;
+                element_pos < point_end.element_pos;
+                ++element_pos) {
+            const ShapeElement& element = this->elements[element_pos];
+            path.elements.push_back(element);
+        }
+        path.elements.push_back(this->elements[point_end.element_pos].split(point_end.point).first);
+        output.push_back(path);
+    }
+
+    return output;
 }
 
 std::pair<LengthDbl, LengthDbl> Shape::compute_width_and_height(

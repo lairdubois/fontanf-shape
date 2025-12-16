@@ -222,6 +222,79 @@ INSTANTIATE_TEST_SUITE_P(
             }));
 
 
+struct ShapeSplitTestParams
+{
+    Shape shape;
+    std::vector<ShapePoint> points;
+    std::vector<Shape> expected_paths;
+};
+
+class ShapeSplitTest: public testing::TestWithParam<ShapeSplitTestParams> { };
+
+TEST_P(ShapeSplitTest, ShapeSplit)
+{
+    ShapeSplitTestParams test_params = GetParam();
+    std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
+    std::cout << "points" << std::endl;
+    for (ElementPos point_pos = 0;
+            point_pos < (ElementPos)test_params.points.size();
+            ++point_pos) {
+        const ShapePoint& point = test_params.points[point_pos];
+        std::cout << "- " << point_pos << " element_pos " << point.element_pos << " point " << point.point.to_string() << std::endl;
+    }
+    std::cout << "expceted paths" << std::endl;
+    for (ShapePos path_pos = 0;
+            path_pos < (ShapePos)test_params.expected_paths.size();
+            ++path_pos) {
+        const Shape& path = test_params.expected_paths[path_pos];
+        std::cout << "- " << path_pos << " path " << path.to_string(1) << std::endl;
+    }
+    auto paths = test_params.shape.split(test_params.points);
+    std::cout << "paths" << std::endl;
+    for (ShapePos path_pos = 0;
+            path_pos < (ShapePos)paths.size();
+            ++path_pos) {
+        const Shape& path = paths[path_pos];
+        std::cout << "- " << path_pos << " path " << path.to_string(1) << std::endl;
+    }
+    ASSERT_EQ(paths.size(), test_params.expected_paths.size());
+    for (ShapePos path_pos = 0;
+            path_pos < (ShapePos)paths.size();
+            ++path_pos) {
+        const Shape& path = paths[path_pos];
+        const Shape& expected_path = test_params.expected_paths[path_pos];
+        EXPECT_TRUE(equal(path, expected_path));
+    }
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Shape,
+        ShapeSplitTest,
+        testing::ValuesIn(std::vector<ShapeSplitTestParams>{
+            {
+                build_path({{0, 0}, {0, 2}}),
+                {{0, {0, 1}}},
+                {
+                    build_path({{0, 0}, {0, 1}}),
+                    build_path({{0, 1}, {0, 2}}),
+                },
+            }, {
+                build_shape({{0, 0}, {0, 4}, {2, 4}, {2, 0}}),
+                {{0, {0, 1}}},
+                {
+                    build_path({{0, 1}, {0, 4}, {2, 4}, {2, 0}, {0, 0}, {0, 1}}),
+                },
+            }, {
+                build_shape({{0, 0}, {0, 4}, {2, 4}, {2, 0}}),
+                {{0, {0, 1}}, {2, {2, 3}}},
+                {
+                    build_path({{2, 3}, {2, 0}, {0, 0}, {0, 1}}),
+                    build_path({{0, 1}, {0, 4}, {2, 4}, {2, 3}}),
+                },
+            },
+            }));
+
+
 struct ApproximateCircularArcByLineSegmentsTestParams
 {
     ShapeElement circular_arc;

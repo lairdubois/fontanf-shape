@@ -218,6 +218,13 @@ struct ShapeElement
     /** Check if a point is on the element. */
     bool contains(const Point& point) const;
 
+    /**
+     * Compute the length between the start of the element and a given point.
+     *
+     * The element must contain the given point.
+     */
+    LengthDbl length(const Point& point) const;
+
     ShapeElement& shift(
             LengthDbl x,
             LengthDbl y);
@@ -303,6 +310,13 @@ enum class ShapeType
 
 std::string shape2str(ShapeType type);
 
+struct ShapePoint
+{
+    ElementPos element_pos = -1;
+
+    Point point = {0, 0};
+};
+
 /**
  * Structure for a shape.
  *
@@ -362,6 +376,11 @@ struct Shape
             const Point& point,
             bool strict = false) const;
 
+    /** Determine which point is closer from the start of the path. */
+    bool is_strictly_closer_to_path_start(
+            const ShapePoint& point_1,
+            const ShapePoint& point_2) const;
+
     /* Check if the shape is connected and in anticlockwise direction. */
     bool check() const;
 
@@ -378,6 +397,9 @@ struct Shape
     Shape axial_symmetry_x_axis() const;
 
     Shape reverse() const;
+
+    /** Split a shape/path at given points. */
+    std::vector<Shape> split(const std::vector<ShapePoint>& points) const;
 
     /*
      * Export
