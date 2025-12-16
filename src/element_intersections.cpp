@@ -590,6 +590,77 @@ bool shape::intersect(
     return false;
 }
 
+std::vector<ShapeShapeElementIntersection> shape::compute_intersections(
+        const Shape& shape,
+        const ShapeElement& element,
+        bool strict)
+{
+    std::vector<ShapeShapeElementIntersection> intersections;
+    for (ElementPos shape_element_pos = 0;
+            shape_element_pos < (ElementPos)shape.elements.size();
+            ++shape_element_pos) {
+        const ShapeElement& shape_element = shape.elements[shape_element_pos];
+        std::vector<Point> intersections_cur = compute_intersections(
+                element,
+                shape_element,
+                strict);
+        for (Point point: intersections_cur) {
+            ShapeShapeElementIntersection intersection;
+            intersection.element_pos = shape_element_pos;
+            intersection.point = point;
+            intersections.push_back(intersection);
+        }
+    }
+    return intersections;
+}
+
+ComputeClosestToShapeElementStartIntersectionOutput shape::compute_closest_to_start_intersection(
+        const ShapeElement& element,
+        const Shape& shape,
+        bool strict)
+{
+    std::vector<ShapeShapeElementIntersection> intersections = compute_intersections(shape, element, strict);
+    ComputeClosestToShapeElementStartIntersectionOutput output;
+    if (intersections.empty()) {
+        output.intersect = false;
+        return output;
+    }
+    output.intersect = true;
+    for (const ShapeShapeElementIntersection& intersection: intersections) {
+        LengthDbl distance = shape::distance(intersection.point, element.start);
+        if (output.distance > distance) {
+            output.intersection = intersection.point;
+            output.element_pos = intersection.element_pos;
+            output.distance = distance;
+        }
+    }
+    return output;
+}
+
+ComputeClosestToPathStartIntersectionOutput shape::compute_closest_to_start_intersection(
+        const Shape& path,
+        const Shape& shape,
+        bool strict)
+{
+    for (ElementPos element_1_pos = 0;
+            element_1_pos < (ElementPos)path.elements.size();
+            ++element_1_pos) {
+        const ShapeElement& element_1 = path.elements[element_1_pos];
+        ComputeClosestToShapeElementStartIntersectionOutput output_cur
+            = compute_closest_to_start_intersection(element_1, shape, strict);
+        if (output_cur.intersect) {
+            ComputeClosestToPathStartIntersectionOutput output;
+            output.element_1_pos = element_1_pos;
+            output.element_2_pos = output_cur.element_pos;
+            output.intersection = output_cur.intersection;
+            return output;
+        }
+    }
+    ComputeClosestToPathStartIntersectionOutput output;
+    output.intersect = false;
+    return output;
+}
+
 bool shape::intersect(
         const Shape& shape,
         const ShapeElement& element,
