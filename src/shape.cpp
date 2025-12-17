@@ -469,7 +469,7 @@ LengthDbl ShapeElement::length(const Point& point) const
     case ShapeElementType::CircularArc:
         LengthDbl r = distance(this->center, this->start);
         if (this->orientation == ShapeElementOrientation::Full) {
-            throw std::invalid_argument("shape::ShapeElement::length");
+            throw std::invalid_argument(FUNC_SIGNATURE);
             return 2 * M_PI * r;
         } if (this->orientation == ShapeElementOrientation::Anticlockwise) {
             return angle_radian(this->start - this->center, point - this->center) * r;
@@ -660,7 +660,7 @@ ShapeElementType shape::str2element(const std::string& str)
             || str == "c") {
         return ShapeElementType::CircularArc;
     } else {
-        throw std::invalid_argument("");
+        throw std::invalid_argument(FUNC_SIGNATURE);
         return ShapeElementType::LineSegment;
     }
 }
@@ -707,7 +707,7 @@ ShapeElementOrientation shape::str2orientation(const std::string& str)
             || str == "f") {
         return ShapeElementOrientation::Full;
     } else {
-        throw std::invalid_argument("");
+        throw std::invalid_argument(FUNC_SIGNATURE);
         return ShapeElementOrientation::Full;
     }
 }
@@ -804,17 +804,12 @@ std::vector<ShapeElement> shape::approximate_circular_arc_by_line_segments(
 
     if (circular_arc.type != ShapeElementType::CircularArc) {
         throw std::runtime_error(
-                "shape::circular_arc_to_line_segments: "
+                FUNC_SIGNATURE + ": "
                 "input element must be of type CircularArc; "
                 "circular_arc.type: " + element2str(circular_arc.type) + ".");
     }
     if (!outer && number_of_line_segments < 1) {
         number_of_line_segments = 1;
-        //throw std::runtime_error(
-        //        "shape::circular_arc_to_line_segments: "
-        //        "at least 1 line segment is needed to inner approximate a circular arc; "
-        //        "outer: " + std::to_string(outer) + "; "
-        //        "number_of_line_segments: " + std::to_string(number_of_line_segments) + ".");
     }
 
     Angle angle = (circular_arc.orientation == ShapeElementOrientation::Full)?
@@ -831,22 +826,8 @@ std::vector<ShapeElement> shape::approximate_circular_arc_by_line_segments(
             || (!outer && circular_arc.orientation != ShapeElementOrientation::Anticlockwise)) {
         if (angle < M_PI && number_of_line_segments < 2) {
             number_of_line_segments = 2;
-            //throw std::runtime_error(
-            //        "shape::circular_arc_to_line_segments: "
-            //        "at least 2 line segments are needed to approximate the circular arc; "
-            //        "circular_arc: " + circular_arc.to_string() + "; "
-            //        "outer: " + std::to_string(outer) + "; "
-            //        "angle: " + std::to_string(angle) + "; "
-            //        "number_of_line_segments: " + std::to_string(number_of_line_segments) + ".");
         } else if (angle >= M_PI && number_of_line_segments < 3) {
             number_of_line_segments = 3;
-            //throw std::runtime_error(
-            //        "shape::circular_arc_to_line_segments: "
-            //        "at least 3 line segments are needed to approximate the circular arc; "
-            //        "circular_arc: " + circular_arc.to_string() + "; "
-            //        "outer: " + std::to_string(outer) + "; "
-            //        "angle: " + std::to_string(angle) + "; "
-            //        "number_of_line_segments: " + std::to_string(number_of_line_segments) + ".");
         }
     }
 
@@ -1486,7 +1467,7 @@ Shape Shape::read_json(
     std::ifstream file(file_path);
     if (!file.good()) {
         throw std::runtime_error(
-                "shape::Shape::read_json: "
+                FUNC_SIGNATURE + ": "
                 "unable to open file \"" + file_path + "\".");
     }
 
@@ -1503,7 +1484,8 @@ void Shape::write_json(
     std::ofstream file{file_path};
     if (!file.good()) {
         throw std::runtime_error(
-                "Unable to open file \"" + file_path + "\".");
+                FUNC_SIGNATURE + ": "
+                "unable to open file \"" + file_path + "\".");
     }
 
     nlohmann::json json = this->to_json();
@@ -1561,7 +1543,8 @@ void Shape::write_svg(
     std::ofstream file{file_path};
     if (!file.good()) {
         throw std::runtime_error(
-                "Unable to open file \"" + file_path + "\".");
+                FUNC_SIGNATURE + ": "
+                "unable to open file \"" + file_path + "\".");
     }
     auto mm = compute_min_max(0.0);
 
@@ -2086,7 +2069,7 @@ ShapeWithHoles ShapeWithHoles::read_json(
     std::ifstream file(file_path);
     if (!file.good()) {
         throw std::runtime_error(
-                "shape::ShapeWithHoles::read_json: "
+                FUNC_SIGNATURE + ": "
                 "unable to open file \"" + file_path + "\".");
     }
 
@@ -2103,7 +2086,8 @@ void ShapeWithHoles::write_json(
     std::ofstream file{file_path};
     if (!file.good()) {
         throw std::runtime_error(
-                "Unable to open file \"" + file_path + "\".");
+                FUNC_SIGNATURE + ": "
+                "unable to open file \"" + file_path + "\".");
     }
 
     nlohmann::json json = this->to_json();
@@ -2136,7 +2120,8 @@ void ShapeWithHoles::write_svg(
     std::ofstream file{file_path};
     if (!file.good()) {
         throw std::runtime_error(
-                "Unable to open file \"" + file_path + "\".");
+                FUNC_SIGNATURE + ": "
+                "unable to open file \"" + file_path + "\".");
     }
 
     auto mm = shape.compute_min_max(0.0);
@@ -2184,7 +2169,8 @@ void shape::write_json(
     std::ofstream file{file_path};
     if (!file.good()) {
         throw std::runtime_error(
-                "Unable to open file \"" + file_path + "\".");
+                FUNC_SIGNATURE + ": "
+                "unable to open file \"" + file_path + "\".");
     }
 
     nlohmann::json json;
@@ -2228,7 +2214,8 @@ void shape::write_svg(
     std::ofstream file{file_path};
     if (!file.good()) {
         throw std::runtime_error(
-                "Unable to open file \"" + file_path + "\".");
+                FUNC_SIGNATURE + ": "
+                "unable to open file \"" + file_path + "\".");
     }
 
     auto mm = compute_min_max(shapes);

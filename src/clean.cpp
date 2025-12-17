@@ -13,7 +13,7 @@ std::pair<bool, Shape> shape::remove_redundant_vertices(
     //std::cout << "remove_redundant_vertices " << shape.to_string(2) << std::endl;
     if (!shape.check()) {
         throw std::invalid_argument(
-                "shape::remove_redundant_vertices: invalid input shape.");
+                FUNC_SIGNATURE + ": invalid input shape.");
     }
 
     if (shape.elements.size() <= 3)
@@ -53,7 +53,7 @@ std::pair<bool, Shape> shape::remove_redundant_vertices(
 
     if (!shape_new.check()) {
         throw std::invalid_argument(
-                "shape::remove_redundant_vertices: invalid output shape.");
+                FUNC_SIGNATURE + ": invalid output shape.");
     }
     return {(number_of_elements_removed > 0), shape_new};
 }
@@ -318,7 +318,7 @@ Shape clean_extreme_slopes_outer_1(
         std::cout << shape_orig.to_string(0) << std::endl;
         //write_json({{shape_orig}, {shape}}, {}, "clean_extreme_slopes_outer_1_output.json");
         throw std::invalid_argument(
-                "shape::clean_extreme_slopes_outer_1: invalid output shape.");
+                FUNC_SIGNATURE + ": invalid output shape.");
     }
     return shape;
 }
@@ -458,7 +458,7 @@ Shape clean_extreme_slopes_inner_1(
     if (!shape.check()) {
         //write_json({{shape_orig}, {shape}}, {}, "clean_extreme_slopes_outer_2_output.json");
         throw std::invalid_argument(
-                "shape::clean_extreme_slopes_outer_1: invalid output shape.");
+                FUNC_SIGNATURE + ": invalid output shape.");
     }
     return shape;
 }
@@ -557,7 +557,7 @@ Shape clean_extreme_slopes_outer_2(
     if (!shape.check()) {
         //write_json({{shape_orig}, {shape}}, {}, "clean_extreme_slopes_outer_2_output.json");
         throw std::invalid_argument(
-                "shape::clean_extreme_slopes_outer_2: "
+                FUNC_SIGNATURE + ": "
                 "invalid shape after extreme slopes cleaning.");
     }
     return shape;
@@ -661,7 +661,7 @@ Shape clean_extreme_slopes_inner_2(
     }
     if (!shape.check()) {
         throw std::invalid_argument(
-                "shape::clean_extreme_slopes_inner_2: "
+                FUNC_SIGNATURE + ": "
                 "invalid shape after extreme slopes cleaning.");
     }
     return shape;

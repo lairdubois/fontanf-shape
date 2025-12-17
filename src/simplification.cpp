@@ -94,7 +94,7 @@ AreaDbl compute_approximation_cost(
     ApproximatedShape& shape = approximated_shapes[element_key.shape_pos];
     if (element_key.element_pos >= (ElementPos)shape.elements.size()) {
         throw std::runtime_error(
-                "irregular::compute_approximation_cost; "
+                FUNC_SIGNATURE + "; "
                 "element_pos: " + std::to_string(element_key.element_pos) + "; "
                 "shape.elements.size(): " + std::to_string(shape.elements.size()) + ".\n");
     }
@@ -120,14 +120,14 @@ AreaDbl compute_approximation_cost(
 
     if (angle_prev == 0) {
         throw std::logic_error(
-                "shape::simplify: angle_prev == 0.0; "
+                FUNC_SIGNATURE + ": angle_prev == 0.0; "
                 "element: " + element.element.to_string() + "; "
                 "element_nex: " + element_next.element.to_string() + ".");
     }
     if (angle_next == 0) {
         //shape.shape().write_svg("shape.svg");
         throw std::logic_error(
-                "shape::simplify: angle_next == 0.0; "
+                FUNC_SIGNATURE + ": angle_next == 0.0; "
                 "element: " + element.element.to_string() + "; "
                 "element_nex: " + element_next.element.to_string() + ".");
     }
@@ -278,7 +278,7 @@ void apply_approximation(
                 LengthDbl denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
                 if (denom == 0.0) {
                     throw std::runtime_error(
-                            "irregular::apply_approximation: outer; "
+                            FUNC_SIGNATURE + "; "
                             "shape_pos: " + std::to_string(element_key.shape_pos) + "; "
                             "element_pos: " + std::to_string(element_key.element_pos) + "; "
                             "element_prev.element: " + element_prev.element.to_string() + "; "
@@ -300,7 +300,7 @@ void apply_approximation(
             } else {
                 // No approximation possible.
                 throw std::runtime_error(
-                        "irregular::apply_approximation: outer; "
+                        FUNC_SIGNATURE + "; "
                         "element_prev.element: " + element_prev.element.to_string() + "; "
                         "element.element: " + element.element.to_string() + "; "
                         "element_next.element: " + element_next.element.to_string() + "; "
@@ -335,7 +335,7 @@ void apply_approximation(
                 LengthDbl denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
                 if (denom == 0.0) {
                     throw std::runtime_error(
-                            "irregular::apply_approximation: inner; "
+                            FUNC_SIGNATURE + "; "
                             "denom: " + std::to_string(denom) + ".");
                 }
                 LengthDbl xp = ((x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4)) / denom;
@@ -353,7 +353,7 @@ void apply_approximation(
             } else {
                 // No approximation possible.
                 throw std::runtime_error(
-                        "irregular::apply_approximation: inner; "
+                        FUNC_SIGNATURE + "; "
                         "angle_prev: " + std::to_string(angle_prev) + "; "
                         "angle_next: " + std::to_string(angle_next) + ".");
             }
@@ -411,7 +411,7 @@ std::vector<ShapeWithHoles> shape::simplify(
             const ShapeElement& element = shape.shape.elements[element_pos];
             if (element.type == ShapeElementType::CircularArc) {
                 throw std::invalid_argument(
-                        "shape::simplify: "
+                        FUNC_SIGNATURE + ": "
                         "all shape elements must be line segments; "
                         "shape_pos: " + std::to_string(shape_pos) + "; "
                         "element_pos: " + std::to_string(element_pos) + "; "
@@ -622,7 +622,7 @@ std::vector<ShapeWithHoles> shape::simplify(
             //if (strictly_lesser(shape_new.shape.compute_area(), shapes[shape_pos].shape.compute_area())) {
             //    write_json({{shapes[shape_pos].shape}, {shape_new}}, {}, "inconsistent_area.json");
             //    throw std::logic_error(
-            //            "shape::simplify: inconsistent area; "
+            //            FUNC_SIGNATURE + ": inconsistent area; "
             //            "shape_new.shape.compute_area(): " + std::to_string(shape_new.shape.compute_area()) + "; "
             //            "shapes[shape_pos].shape.compute_area(): " + std::to_string(shapes[shape_pos].shape.compute_area()) + ".");
             //}

@@ -125,7 +125,7 @@ ShapeWithHoles shape::inflate(
     //write_json({shape_orig}, {}, "inflate_input.json");
     if (offset < 0.0) {
         throw std::invalid_argument(
-                "shape::inflate: offset must be >= 0.0; "
+                FUNC_SIGNATURE + ": offset must be >= 0.0; "
                 "offset: " + std::to_string(offset) + ".");
     }
 
@@ -289,7 +289,7 @@ ShapeWithHoles shape::inflate(
 
     if (offset < 0.0) {
         throw std::invalid_argument(
-                "shape::inflate: offset must be >= 0.0; "
+                FUNC_SIGNATURE + ": offset must be >= 0.0; "
                 "offset: " + std::to_string(offset) + ".");
     }
 
@@ -391,13 +391,13 @@ std::vector<Shape> shape::deflate(
 {
     if (offset < 0.0) {
         throw std::invalid_argument(
-                "shape::deflate: offset must be >= 0.0; "
+                FUNC_SIGNATURE + ": offset must be >= 0.0; "
                 "offset: " + std::to_string(offset) + ".");
     }
 
     if (shape_orig.is_path) {
         throw std::invalid_argument(
-                "shape::deflate: input Shape must not be a path.");
+                FUNC_SIGNATURE + ": input Shape must not be a path.");
     }
 
     if (shape_orig.is_circle()) {

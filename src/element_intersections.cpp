@@ -515,7 +515,8 @@ std::vector<Point> shape::compute_intersections(
         return compute_arc_arc_intersections(element_1, element_2, strict);
     }
 
-    throw std::invalid_argument("shape::compute_intersections: Invalid element types");
+    throw std::invalid_argument(
+            FUNC_SIGNATURE + ": unsupported element types.");
     return {};
 }
 

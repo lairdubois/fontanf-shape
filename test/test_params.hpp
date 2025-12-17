@@ -1,5 +1,7 @@
 #pragma once
 
+#include "shape/shape.hpp"
+
 #include <boost/filesystem.hpp>
 
 #include <fstream>
@@ -34,7 +36,7 @@ struct TestParams
         std::ifstream file(file_path);
         if (!file.good()) {
             throw std::runtime_error(
-                    "shape::TestParams::read_json: "
+                    FUNC_SIGNATURE + ": "
                     "unable to open file \"" + file_path + "\".");
         }
 

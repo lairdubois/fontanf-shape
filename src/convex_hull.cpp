@@ -84,7 +84,7 @@ Shape shape::convex_hull(
 
     if (strictly_lesser(convex_hull_shape.compute_area(), shape.compute_area())) {
         throw std::runtime_error(
-                "shape::polygon_convex_hull; "
+                FUNC_SIGNATURE + "; "
                 "shape.compute_area(): " + std::to_string(shape.compute_area()) + "; "
                 "convex_hull_shape.compute_area(): " + std::to_string(convex_hull_shape.compute_area()) + ".");
 

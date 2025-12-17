@@ -36,21 +36,21 @@ public:
         // Checks.
         if (yb_ >= yt_) {
             throw std::logic_error(
-                    "GeneralizedTrapezoid::GeneralizedTrapezoid."
-                    "yb: " + std::to_string(yb)
-                    + "; yt: " + std::to_string(yt) + ".");
+                    FUNC_SIGNATURE + "; "
+                    "yb: " + std::to_string(yb) + "; "
+                    "yt: " + std::to_string(yt) + ".");
         }
         if (strictly_greater(xbl_, xbr_)) {
             throw std::logic_error(
-                    "GeneralizedTrapezoid::GeneralizedTrapezoid."
-                    "xbl: " + std::to_string(xbl)
-                    + "; xbr: " + std::to_string(xbr) + ".");
+                    FUNC_SIGNATURE + "; "
+                    "xbl: " + std::to_string(xbl) + "; "
+                    "xbr: " + std::to_string(xbr) + ".");
         }
         if (strictly_greater(xtl_, xtr_)) {
             throw std::logic_error(
-                    "GeneralizedTrapezoid::GeneralizedTrapezoid."
-                    "xtl: " + std::to_string(xtl)
-                    + "; xtr: " + std::to_string(xtr) + ".");
+                    FUNC_SIGNATURE + "; "
+                    "xtl: " + std::to_string(xtl) + "; "
+                    "xtr: " + std::to_string(xtr) + ".");
         }
 
         width_top_ = x_top_right() - x_top_left();
@@ -196,11 +196,10 @@ public:
         if (strictly_greater(x_left, x_bottom_right())) {
             if (strictly_greater(x_left, x_top_right())) {
                 throw std::invalid_argument(
-                        "GeneralizedTrapezoid::area(LengthDbl)."
-                        " x_left: " + std::to_string(x_left)
-                        + "; x_top_right: " + std::to_string(x_top_right())
-                        + "; x_bottom_right: " + std::to_string(x_bottom_right())
-                        + ".");
+                        FUNC_SIGNATURE + "; "
+                        "x_left: " + std::to_string(x_left) + "; "
+                        "x_top_right: " + std::to_string(x_top_right()) + "; "
+                        "x_bottom_right: " + std::to_string(x_bottom_right()) + ".");
             }
             double k = (x_top_right() - x_bottom_right()) / (x_top_right() - x_left);
             return (x_top_right() - x_bottom_right()) * height() / 2.0 / k / k;

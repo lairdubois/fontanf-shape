@@ -38,7 +38,7 @@ struct ComputeIntersectionsTestParams
         std::ifstream file(file_path);
         if (!file.good()) {
             throw std::runtime_error(
-                    "shape::ComputeIntersectionsTestParams::read_json: "
+                    FUNC_SIGNATURE + ": "
                     "unable to open file \"" + file_path + "\".");
         }
 
@@ -332,7 +332,7 @@ struct IntersectShapeShapeElementTestParams
         std::ifstream file(file_path);
         if (!file.good()) {
             throw std::runtime_error(
-                    "shape::IntersectShapeShapeElementTestParams::read_json: "
+                    FUNC_SIGNATURE + ": "
                     "unable to open file \"" + file_path + "\".");
         }
 
@@ -413,7 +413,7 @@ struct IntersectShapeShapeTestParams
         std::ifstream file(file_path);
         if (!file.good()) {
             throw std::runtime_error(
-                    "shape::IntersectShapeShapeTestParams::read_json: "
+                    FUNC_SIGNATURE + ": "
                     "unable to open file \"" + file_path + "\".");
         }
 

@@ -250,7 +250,7 @@ ComputeSplittedElementsOutput compute_splitted_elements(
             }
             if (equal(point_cur, element.start)
                     || equal(point_cur, element.end)) {
-                throw std::logic_error("");
+                throw std::logic_error(FUNC_SIGNATURE);
             }
 
             if (first
@@ -541,7 +541,7 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
     //std::cout << "element_start_pos " << element_start_pos << std::endl;
     if (element_start_pos == -1) {
         throw std::logic_error(
-                "shape::compute_boolean_operation_component: element_start_pos is '-1'.");
+                FUNC_SIGNATURE + ": element_start_pos is '-1'.");
     }
 
     std::vector<uint8_t> element_is_processed(splitted_elements.size(), 0);
@@ -554,7 +554,7 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
         // Check infinite loop.
         if (i >= 2 * splitted_elements.size()) {
             throw std::runtime_error(
-                    "shape::compute_boolean_operation_component: infinite loop in outline.");
+                    FUNC_SIGNATURE + ": infinite loop in outline.");
         }
 
         const ShapeElement& element_cur = splitted_elements[element_cur_pos].element;
@@ -672,7 +672,7 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
             //}
             //file << std::setw(4) << json << std::endl;
             throw std::logic_error(
-                    "compute_boolean_operation_component: "
+                    FUNC_SIGNATURE + ": "
                     "smallest_angle_element_pos is '-1' in outline.");
         }
 
@@ -731,7 +731,7 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
             // Check infinite loop.
             if (i >= 2 * splitted_elements.size()) {
                 throw std::runtime_error(
-                        "shape::compute_boolean_operation_component: infinite loop in faces.");
+                        FUNC_SIGNATURE + ": infinite loop in faces.");
             }
 
             const SplittedElement& splitted_element_cur = splitted_elements[element_cur_pos];
@@ -841,7 +841,7 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
             //std::cout << "smallest_angle_element_pos " << smallest_angle_element_pos << std::endl;
             if (smallest_angle_element_pos == -1) {
                 throw std::logic_error(
-                        "compute_boolean_operation_component: "
+                        FUNC_SIGNATURE + ": "
                         "smallest_angle_element_pos is '-1'");
             }
 
@@ -975,10 +975,10 @@ std::vector<ShapeWithHoles> compute_boolean_operation(
             ++shape_pos) {
         const ShapeWithHoles& shape = shapes[shape_pos];
         if (shape.shape.elements.empty())
-            throw std::invalid_argument("shape::compute_boolean_operation");
+            throw std::invalid_argument(FUNC_SIGNATURE);
         for (const Shape& hole: shape.holes)
             if (hole.elements.empty())
-                throw std::invalid_argument("shape::compute_boolean_operation");
+                throw std::invalid_argument(FUNC_SIGNATURE);
     }
 
     // Union

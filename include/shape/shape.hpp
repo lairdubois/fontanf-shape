@@ -13,6 +13,14 @@
 #define M_PI 3.14159265358979323846
 #endif
 
+#if defined(__GNUC__) || defined(__clang__)
+#  define FUNC_SIGNATURE std::string(__PRETTY_FUNCTION__)
+#elif defined(_MSC_VER)
+#  define FUNC_SIGNATURE std::string(__FUNCSIG__)
+#else
+#  define FUNC_SIGNATURE std::string(__func__)
+#endif
+
 namespace shape
 {
 
@@ -682,8 +690,7 @@ Shape Shape::from_json(basic_json& json_shape)
         if (json_shape.contains("is_path"))
             shape.is_path = json_shape["is_path"];
     } else {
-        throw std::invalid_argument(
-                "shape::Shape::from_json");
+        throw std::invalid_argument(FUNC_SIGNATURE);
     }
     return shape;
 }
