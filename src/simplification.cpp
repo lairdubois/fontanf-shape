@@ -7,7 +7,7 @@
 #include "optimizationtools/containers/indexed_binary_heap.hpp"
 
 //#include <iostream>
-//#include <fstream>
+#include <fstream>
 
 using namespace shape;
 
@@ -384,22 +384,6 @@ std::vector<ShapeWithHoles> shape::simplify(
     //for (const SimplifyInputShape& shape: shapes)
     //    std::cout << shape.shape.to_string(2) << std::endl;
 
-    // Write input to json for tests.
-    //{
-    //    std::string file_path = "simplify_input.json";
-    //    std::ofstream file{file_path};
-    //    nlohmann::json json;
-    //    for (ShapePos shape_pos = 0;
-    //            shape_pos < (ShapePos)shapes.size();
-    //            ++shape_pos) {
-    //        json["shapes"][shape_pos]["shape"] = shapes[shape_pos].shape.to_json();
-    //        json["shapes"][shape_pos]["copies"] = shapes[shape_pos].copies;
-    //        json["shapes"][shape_pos]["outer"] = shapes[shape_pos].outer;
-    //    }
-    //    json["maximum_approximation_area"] = maximum_approximation_area;
-    //    file << std::setw(4) << json << std::endl;
-    //}
-
     // Check that the input doesn't contain any circular arc.
     for (ShapePos shape_pos = 0;
             shape_pos < (ShapePos)shapes.size();
@@ -417,6 +401,12 @@ std::vector<ShapeWithHoles> shape::simplify(
                         "element_pos: " + std::to_string(element_pos) + "; "
                         "element: " + element.to_string() + ".");
             }
+        }
+        if (!shape.shape.check()) {
+            throw std::invalid_argument(
+                    FUNC_SIGNATURE + ": "
+                    "invalid input shape; "
+                    "shape_pos: " + std::to_string(shape_pos) + ".");
         }
     }
 
@@ -643,4 +633,22 @@ std::vector<ShapeWithHoles> shape::simplify(
 
     //std::cout << "shape_simplification end" << std::endl;
     return shapes_new;
+}
+
+void shape::simplify_export_inputs(
+        const std::vector<SimplifyInputShape>& shapes,
+        AreaDbl maximum_approximation_area,
+        const std::string& file_path)
+{
+    std::ofstream file{file_path};
+    nlohmann::json json;
+    for (ShapePos shape_pos = 0;
+            shape_pos < (ShapePos)shapes.size();
+            ++shape_pos) {
+        json["shapes"][shape_pos]["shape"] = shapes[shape_pos].shape.to_json();
+        json["shapes"][shape_pos]["copies"] = shapes[shape_pos].copies;
+        json["shapes"][shape_pos]["outer"] = shapes[shape_pos].outer;
+    }
+    json["maximum_approximation_area"] = maximum_approximation_area;
+    file << std::setw(4) << json << std::endl;
 }
