@@ -2368,6 +2368,15 @@ bool shape::strictly_greater(
     return strictly_greater(jet_1.curvature, jet_2.curvature);
 }
 
+bool shape::strictly_lesser(
+        const Jet& jet_1,
+        const Jet& jet_2)
+{
+    if (!equal(jet_1.tangent_angle, jet_2.tangent_angle))
+        return strictly_lesser(jet_1.tangent_angle, jet_2.tangent_angle);
+    return strictly_lesser(jet_1.curvature, jet_2.curvature);
+}
+
 bool shape::operator==(
         const ShapeElement& element_1,
         const ShapeElement& element_2)

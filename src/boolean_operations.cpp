@@ -567,7 +567,6 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
         }
 
         const ShapeElement& element_cur = splitted_elements[element_cur_pos].element;
-        ShapeElement element_cur_rev = element_cur.reverse();
         const BooleanOperationArc& arc = graph.arcs[element_cur_pos];
         const BooleanOperationNode& node = graph.nodes[arc.end_node_id];
         element_is_processed[element_cur_pos] = 1;
@@ -582,91 +581,19 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
         //    << " " << element_cur.to_string()
         //    << " node_id " << arc.end_node_id << " / " << graph.nodes.size()
         //    << std::endl;
-        ElementPos smallest_angle_element_pos = -1;
-        Angle smallest_angle = 0.0;
-
-        Point direction_cur = {0, 0};
-        switch (element_cur.type) {
-        case ShapeElementType::LineSegment: {
-            direction_cur = element_cur.end - element_cur.start;
-            break;
-        } case ShapeElementType::CircularArc: {
-            if (element_cur.orientation == ShapeElementOrientation::Anticlockwise) {
-                direction_cur = {
-                    element_cur.center.y - element_cur.end.y,
-                    element_cur.end.x - element_cur.center.x};
-            } else {
-                direction_cur = {
-                    element_cur.end.y - element_cur.center.y,
-                    element_cur.center.x - element_cur.end.x};
-            }
-            break;
-        }
-        }
-        direction_cur = {-direction_cur.x, -direction_cur.y};
-
+        ElementPos largest_jet_element_pos = -1;
+        Jet largest_jet;
+        Jet current_jet = element_cur.jet(element_cur.end, true);
         for (ElementPos element_pos_next: node.successors) {
             const ShapeElement& element_next = splitted_elements[element_pos_next].element;
-            if (element_next == element_cur_rev)
-                continue;
-
-            Point direction_next = {0, 0};
-            switch (element_next.type) {
-            case ShapeElementType::LineSegment: {
-                direction_next = element_next.end - element_next.start;
-                break;
-            } case ShapeElementType::CircularArc: {
-                if (element_next.orientation == ShapeElementOrientation::Anticlockwise) {
-                    direction_next = {
-                        element_next.center.y - element_next.start.y,
-                        element_next.start.x - element_next.center.x};
-                } else {
-                    direction_next = {
-                        element_next.start.y - element_next.center.y,
-                        element_next.center.x - element_next.start.x};
-                }
-                break;
-            }
-            }
-
-            Angle angle = angle_radian(
-                    direction_next,
-                    direction_cur);
-            //std::cout << "- element_pos_next " << element_pos_next
-            //    << " " << element_next.to_string()
-            //    << " angle " << angle
-            //    << std::endl;
-            bool update = false;
-            if (smallest_angle_element_pos == -1) {
-                update = true;
-            } else if (strictly_greater(smallest_angle, angle)) {
-                //std::cout << "strictly_lesser" << std::endl;
-                update = true;
-            } else if (equal(smallest_angle, angle)) {
-                const SplittedElement& smallest_angle_splitted_element = splitted_elements[smallest_angle_element_pos];
-                const ShapeElement& smallest_angle_element = smallest_angle_splitted_element.element;
-                if (smallest_angle_element.type == ShapeElementType::CircularArc
-                        && smallest_angle_element.orientation == ShapeElementOrientation::Clockwise) {
-                    if (element_next.type == ShapeElementType::LineSegment) {
-                        update = true;
-                    } else if (element_next.type == ShapeElementType::CircularArc
-                            && element_next.orientation == ShapeElementOrientation::Anticlockwise) {
-                        update = true;
-                    }
-                } else if (smallest_angle_element.type == ShapeElementType::LineSegment) {
-                    if (element_next.type == ShapeElementType::CircularArc
-                            && element_next.orientation == ShapeElementOrientation::Anticlockwise) {
-                        update = true;
-                    }
-                }
-            }
-            //std::cout << "update " << update << std::endl;
-            if (update) {
-                smallest_angle_element_pos = element_pos_next;
-                smallest_angle = angle;
+            Jet jet = element_next.jet(element_next.start, false) - current_jet;
+            if (largest_jet_element_pos == -1
+                    || strictly_lesser(largest_jet, jet)) {
+                largest_jet_element_pos = element_pos_next;
+                largest_jet = jet;
             }
         }
-        if (smallest_angle_element_pos == -1) {
+        if (largest_jet_element_pos == -1) {
             //nlohmann::json json;
             //for (ElementPos pos = 0;
             //        pos < (ElementPos)splitted_elements.size();
@@ -682,11 +609,11 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
             //file << std::setw(4) << json << std::endl;
             throw std::logic_error(
                     FUNC_SIGNATURE + ": "
-                    "smallest_angle_element_pos is '-1' in outline.");
+                    "largest_jet_element_pos is '-1' in outline.");
         }
 
         // Update current element.
-        element_cur_pos = smallest_angle_element_pos;
+        element_cur_pos = largest_jet_element_pos;
         if (element_cur_pos == element_start_pos)
             break;
     }
@@ -745,7 +672,6 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
 
             const SplittedElement& splitted_element_cur = splitted_elements[element_cur_pos];
             const ShapeElement& element_cur = splitted_element_cur.element;
-            ShapeElement element_cur_rev = element_cur.reverse();
             const BooleanOperationArc& arc = graph.arcs[element_cur_pos];
             const BooleanOperationNode& node = graph.nodes[arc.end_node_id];
             face.elements.push_back(element_cur);
@@ -762,100 +688,30 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
             //    << " node_id " << arc.end_node_id << " / " << graph.nodes.size()
             //    << " original_direction " << splitted_element_cur.original_direction
             //    << std::endl;
-            ElementPos smallest_angle_element_pos = -1;
-            Angle smallest_angle = 0.0;
-
-            Point direction_cur = {0, 0};
-            switch (element_cur.type) {
-            case ShapeElementType::LineSegment: {
-                direction_cur = element_cur.end - element_cur.start;
-                break;
-            } case ShapeElementType::CircularArc: {
-                if (element_cur.orientation == ShapeElementOrientation::Anticlockwise) {
-                    direction_cur = {
-                        element_cur.center.y - element_cur.end.y,
-                        element_cur.end.x - element_cur.center.x};
-                } else {
-                    direction_cur = {
-                        element_cur.end.y - element_cur.center.y,
-                        element_cur.center.x - element_cur.end.x};
-                }
-                break;
-            }
-            }
-            direction_cur = {-direction_cur.x, -direction_cur.y};
-
+            ElementPos largest_jet_element_pos = -1;
+            Jet largest_jet;
+            Jet current_jet = element_cur.jet(element_cur.end, true);
             for (ElementPos element_pos_next: node.successors) {
                 const SplittedElement& splitted_element_next = splitted_elements[element_pos_next];
                 const ShapeElement& element_next = splitted_element_next.element;
-                if (element_next == element_cur_rev)
+                Jet jet = element_next.jet(element_next.start, false) - current_jet;
+                if (equal(jet, {0, 0}))
                     continue;
-
-                Point direction_next = {0, 0};
-                switch (element_next.type) {
-                case ShapeElementType::LineSegment: {
-                    direction_next = element_next.end - element_next.start;
-                    break;
-                } case ShapeElementType::CircularArc: {
-                    if (element_next.orientation == ShapeElementOrientation::Anticlockwise) {
-                        direction_next = {
-                            element_next.center.y - element_next.start.y,
-                            element_next.start.x - element_next.center.x};
-                    } else {
-                        direction_next = {
-                            element_next.start.y - element_next.center.y,
-                            element_next.center.x - element_next.start.x};
-                    }
-                    break;
-                }
-                }
-
-                Angle angle = angle_radian(
-                        direction_next,
-                        direction_cur);
-                //std::cout << "* element_pos_next " << element_pos_next
-                //    << " " << element_next.to_string()
-                //    << " angle " << angle
-                //    << std::endl;
-                bool update = false;
-                if (smallest_angle_element_pos == -1) {
-                    update = true;
-                } else if (strictly_greater(smallest_angle, angle)) {
-                    //std::cout << "strictly_lesser" << std::endl;
-                    update = true;
-                } else if (equal(smallest_angle, angle)) {
-                    const SplittedElement& smallest_angle_splitted_element = splitted_elements[smallest_angle_element_pos];
-                    const ShapeElement& smallest_angle_element = smallest_angle_splitted_element.element;
-                    if (smallest_angle_element.type == ShapeElementType::CircularArc
-                            && smallest_angle_element.orientation == ShapeElementOrientation::Anticlockwise) {
-                        if (element_next.type == ShapeElementType::LineSegment) {
-                            update = true;
-                        } else if (element_next.type == ShapeElementType::CircularArc
-                                && element_next.orientation == ShapeElementOrientation::Clockwise) {
-                            update = true;
-                        }
-                    } else if (smallest_angle_element.type == ShapeElementType::LineSegment) {
-                        if (element_next.type == ShapeElementType::CircularArc
-                                && element_next.orientation == ShapeElementOrientation::Clockwise) {
-                            update = true;
-                        }
-                    }
-                }
-                //std::cout << "update " << update << std::endl;
-                if (update) {
-                    smallest_angle_element_pos = element_pos_next;
-                    smallest_angle = angle;
+                if (largest_jet_element_pos == -1
+                        || strictly_lesser(largest_jet, jet)) {
+                    largest_jet_element_pos = element_pos_next;
+                    largest_jet = jet;
                 }
             }
-            //std::cout << "smallest_angle_element_pos " << smallest_angle_element_pos << std::endl;
-            if (smallest_angle_element_pos == -1) {
+            //std::cout << "largest_angle_element_pos " << largest_angle_element_pos << std::endl;
+            if (largest_jet_element_pos == -1) {
                 throw std::logic_error(
                         FUNC_SIGNATURE + ": "
-                        "smallest_angle_element_pos is '-1'");
+                        "largest_jet_element_pos is '-1'");
             }
 
             // Update current element.
-            element_cur_pos = smallest_angle_element_pos;
+            element_cur_pos = largest_jet_element_pos;
 
             // Check if hole is finished.
             if (element_is_processed[element_cur_pos])

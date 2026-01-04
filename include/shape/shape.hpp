@@ -641,6 +641,10 @@ bool strictly_greater(
         const Jet& jet_1,
         const Jet& jet_2);
 
+bool strictly_lesser(
+        const Jet& jet_1,
+        const Jet& jet_2);
+
 bool operator==(
         const ShapeElement& element_1,
         const ShapeElement& element_2);
