@@ -1,6 +1,6 @@
 #include "shape/element_intersections.hpp"
 
-#include <iostream>
+//#include <iostream>
 
 using namespace shape;
 
@@ -377,26 +377,23 @@ ShapeElementIntersectionsOutput compute_arc_arc_intersections(
 
             Point arc1s = (arc.orientation == ShapeElementOrientation::Anticlockwise)? arc.start: arc.end;
             Point arc1e = (arc.orientation == ShapeElementOrientation::Anticlockwise)? arc.end: arc.start;
-            Point arc2s = (arc.orientation == ShapeElementOrientation::Anticlockwise)? arc_2.start: arc_2.end;
-            Point arc2e = (arc.orientation == ShapeElementOrientation::Anticlockwise)? arc_2.end: arc_2.start;
+            Point arc2s = (arc_2.orientation == ShapeElementOrientation::Anticlockwise)? arc_2.start: arc_2.end;
+            Point arc2e = (arc_2.orientation == ShapeElementOrientation::Anticlockwise)? arc_2.end: arc_2.start;
             Point ref = arc1s - arc.center;
-            Angle angle_1e = angle_radian(arc1e - arc.center, ref);
-            Angle angle_2s = angle_radian(arc2s - arc.center, ref);
-            Angle angle_2e = angle_radian(arc2e - arc.center, ref);
-            if (strictly_greater(angle_2s, angle_1e)) {
-                if (strictly_greater(angle_2e, angle_2s)) {
+            //std::cout << "arc1s " << arc1s.to_string() << std::endl;
+            //std::cout << "arc1e " << arc1e.to_string() << std::endl;
+            //std::cout << "arc2s " << arc2s.to_string() << std::endl;
+            //std::cout << "arc2e " << arc2e.to_string() << std::endl;
+            Angle angle_1e = angle_radian(ref, arc1e - arc.center);
+            Angle angle_2s = angle_radian(ref, arc2s - arc.center);
+            Angle angle_2e = angle_radian(ref, arc2e - arc.center);
+            //std::cout << "angle_1e " << angle_1e << std::endl;
+            //std::cout << "angle_2s " << angle_2s << std::endl;
+            //std::cout << "angle_2e " << angle_2e << std::endl;
+            if (strictly_greater(angle_2e, angle_2s)) {
+                if (strictly_greater(angle_2s, angle_1e)) {
                     return {};
                 } else if (strictly_greater(angle_2e, angle_1e)) {
-                    return {{build_circular_arc(arc1s, arc1e, arc.center, ShapeElementOrientation::Anticlockwise)}, {}, {}};
-                } else {
-                    if (equal(arc1s, arc2e)) {
-                        return {{}, {arc1s}, {}};
-                    } else {
-                        return {{build_circular_arc(arc1s, arc2e, arc.center, ShapeElementOrientation::Anticlockwise)}, {}, {}};
-                    }
-                }
-            } else {
-                if (strictly_greater(angle_2e, angle_1e)) {
                     if (equal(arc2s, arc1e)) {
                         return {{}, {arc2s}, {}};
                     } else {
@@ -404,6 +401,29 @@ ShapeElementIntersectionsOutput compute_arc_arc_intersections(
                     }
                 } else {
                     return {{build_circular_arc(arc2s, arc2e, arc.center, ShapeElementOrientation::Anticlockwise)}, {}, {}};
+                }
+            } else {
+                if (strictly_greater(angle_2e, angle_1e)) {
+                    return {{build_circular_arc(arc1s, arc1e, arc.center, ShapeElementOrientation::Anticlockwise)}, {}, {}};
+                } else if (strictly_greater(angle_2s, angle_1e)) {
+                    if (equal(arc1s, arc2e)) {
+                        return {{}, {arc1s}, {}};
+                    } else {
+                        return {{build_circular_arc(arc1s, arc2e, arc.center, ShapeElementOrientation::Anticlockwise)}, {}, {}};
+                    }
+                } else {
+                    ShapeElementIntersectionsOutput output;
+                    if (equal(arc2s, arc1e)) {
+                        output.improper_intersections.push_back(arc2s);
+                    } else {
+                        output.overlapping_parts.push_back(build_circular_arc(arc2s, arc1e, arc.center, ShapeElementOrientation::Anticlockwise));
+                    }
+                    if (equal(arc1s, arc2e)) {
+                        output.improper_intersections.push_back(arc1s);
+                    } else {
+                        output.overlapping_parts.push_back(build_circular_arc(arc1s, arc2e, arc.center, ShapeElementOrientation::Anticlockwise));
+                    }
+                    return output;
                 }
             }
         } else {

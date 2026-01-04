@@ -234,7 +234,16 @@ INSTANTIATE_TEST_SUITE_P(
             }, {  // Overlapping circular arcs.
                 build_circular_arc({1, 0}, {-1, 0}, {0, 0}, ShapeElementOrientation::Anticlockwise),
                 build_circular_arc({0, 1}, {0, -1}, {0, 0}, ShapeElementOrientation::Anticlockwise),
-                {{build_circular_arc({1, 0}, {0, -1}, {0, 0}, ShapeElementOrientation::Anticlockwise)}, {}, {}},
+                {{build_circular_arc({0, 1}, {-1, 0}, {0, 0}, ShapeElementOrientation::Anticlockwise)}, {}, {}},
+            }, {  // Overlapping circular arcs with two overlapping parts.
+                build_circular_arc({0, 1}, {1, 0}, {0, 0}, ShapeElementOrientation::Anticlockwise),
+                build_circular_arc({0, -1}, {-1, 0}, {0, 0}, ShapeElementOrientation::Anticlockwise),
+                {
+                    {
+                        build_circular_arc({0, 1}, {-1, 0}, {0, 0}, ShapeElementOrientation::Anticlockwise),
+                        build_circular_arc({0, -1}, {1, 0}, {0, 0}, ShapeElementOrientation::Anticlockwise),
+                    }, {}, {}
+                },
             }, {
                 build_line_segment({1.96721311, -0.78740157}, {60.98360656, -0.78740157}),
                 build_circular_arc({1.941450017182601, -0.7869799841717368}, {1.96721311, -0.78740157}, {1.96721311, 0}, ShapeElementOrientation::Anticlockwise),
