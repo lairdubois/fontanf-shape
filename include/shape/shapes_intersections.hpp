@@ -38,6 +38,11 @@ struct PathShapeIntersectionPoint
     Point point;
 };
 
+bool intersect(
+        const Shape& shape_1,
+        const Shape& shape_2,
+        bool strict = false);
+
 std::vector<PathShapeIntersectionPoint> compute_intersections(
         const Shape& path,
         const Shape& shape,
@@ -50,11 +55,6 @@ void compute_intersections_export_inputs(
         const Shape& shape,
         bool strict = false,
         bool only_first = false);
-
-bool intersect(
-        const Shape& shape_1,
-        const Shape& shape_2,
-        bool strict = false);
 
 bool intersect(
         const ShapeWithHoles& shape,
