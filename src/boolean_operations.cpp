@@ -3,11 +3,11 @@
 #include "shape/equalize.hpp"
 #include "shape/intersection_tree.hpp"
 #include "shape/clean.hpp"
-#include "shape/writer.hpp"
+//#include "shape/writer.hpp"
 
 #include "optimizationtools/containers/doubly_indexed_map.hpp"
 
-#include <iostream>
+//#include <iostream>
 //#include <fstream>
 
 using namespace shape;
@@ -212,11 +212,12 @@ ComputeSplittedElementsOutput compute_splitted_elements(
         //std::cout << output.shape_component_ids.number_of_elements(component_id) << std::endl;
         //std::cout << *output.shape_component_ids.begin(component_id) << " / " << shapes.size() << std::endl;
         //std::cout << shapes[*(output.shape_component_ids.begin(component_id))].to_string(0) << std::endl;
-        Point point = shapes[*(output.shape_component_ids.begin(component_id))].shape.elements.front().start;
         //std::cout << "point from component " << component_id << ": " << point.to_string() << std::endl;
 
         // Check if it is inside another component.
-        IntersectionTree::IntersectOutput it_output = intersection_tree_2.intersect(point, true);
+        IntersectionTree::IntersectOutput it_output = intersection_tree_2.intersect(
+                shapes[*(output.shape_component_ids.begin(component_id))].find_point_strictly_inside(),
+                false);
         if (it_output.shape_ids.empty())
             continue;
         ComponentId component_id_2 = -1;
@@ -653,6 +654,10 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
     } case BooleanOperation::SymmetricDifference: {
         break;
     } case BooleanOperation::FaceExtraction: {
+        outline = remove_redundant_vertices(outline).second;
+        outline = remove_aligned_vertices(outline).second;
+        if (outline.compute_area() > 0)
+            new_shapes.push_back({outline});
         break;
     }
     }
@@ -761,7 +766,7 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
             // Real check.
             IntersectionTree::IntersectOutput intersection_output = intersection_tree.intersect(
                     face.find_point_strictly_inside(),
-                    true);
+                    false);
             //std::cout << "intersection_output.shape_ids.size() " << intersection_output.shape_ids.size() << std::endl;
             if (intersection_output.shape_ids.empty()) {
                 //std::cout << "add hole" << std::endl;
@@ -793,7 +798,7 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
             // Real check.
             IntersectionTree::IntersectOutput intersection_output = intersection_tree.intersect(
                     face.find_point_strictly_inside(),
-                    true);
+                    false);
             if (intersection_output.shape_ids.size() == shapes.size()) {
                 //std::cout << "add face" << std::endl;
                 face = remove_redundant_vertices(face).second;
@@ -822,7 +827,7 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
             // Real check.
             IntersectionTree::IntersectOutput intersection_output = intersection_tree.intersect(
                     face.find_point_strictly_inside(),
-                    true);
+                    false);
             //std::cout << "intersection_output.shape_ids.size() " << intersection_output.shape_ids.size() << std::endl;
             if (intersection_output.shape_ids.size() == 1
                     && intersection_output.shape_ids[0] == 0) {
@@ -841,7 +846,7 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
             // Real check.
             IntersectionTree::IntersectOutput intersection_output = intersection_tree.intersect(
                     face.find_point_strictly_inside(),
-                    true);
+                    false);
             if (intersection_output.shape_ids.size() == 1) {
                 face = remove_redundant_vertices(face).second;
                 face = remove_aligned_vertices(face).second;
@@ -852,7 +857,8 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
         } case BooleanOperation::FaceExtraction: {
             face = remove_redundant_vertices(face).second;
             face = remove_aligned_vertices(face).second;
-            new_shapes.push_back({face});
+            if (face.compute_area() > 0)
+                new_shapes.push_back({face});
             break;
         }
         }

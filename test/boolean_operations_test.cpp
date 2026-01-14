@@ -410,6 +410,87 @@ INSTANTIATE_TEST_SUITE_P(
         testing::ValuesIn(ComputeBooleanSymmetricDifferenceTestParams::read_dir((fs::path("data") / "tests" / "boolean_operations" / "symmetric_difference").string())));
 
 
+struct ExtractFacesTestParams
+{
+    Shape shape;
+    std::vector<Shape> expected_output;
+
+
+    static ExtractFacesTestParams from_json(
+            nlohmann::basic_json<>& json_item)
+    {
+        ExtractFacesTestParams test_params;
+        test_params.shape = Shape::from_json(json_item["shape"]);
+        for (auto& json_shape: json_item["expected_output"].items())
+            test_params.expected_output.emplace_back(Shape::from_json(json_shape.value()));
+        return test_params;
+    }
+
+    static ExtractFacesTestParams read_json(
+            const std::string& file_path)
+    {
+        std::ifstream file(file_path);
+        if (!file.good()) {
+            throw std::runtime_error(
+                    FUNC_SIGNATURE + ": "
+                    "unable to open file \"" + file_path + "\".");
+        }
+
+        nlohmann::json json;
+        file >> json;
+        return from_json(json);
+    }
+};
+
+class ExtractFacesTest: public testing::TestWithParam<ExtractFacesTestParams> { };
+
+TEST_P(ExtractFacesTest, ExtractFaces)
+{
+    ExtractFacesTestParams test_params = GetParam();
+    std::cout << "shape " << test_params.shape.to_string(2) << std::endl;
+    std::cout << "expected_output" << std::endl;
+    for (const Shape& shape: test_params.expected_output)
+        std::cout << shape.to_string(2) << std::endl;
+
+    std::vector<Shape> output = extract_faces(test_params.shape);
+    std::cout << "output" << std::endl;
+    for (const Shape& shape: output)
+        std::cout << shape.to_string(2) << std::endl;
+    //Writer()
+    //    .add_shape(test_params.shape)
+    //    .add_shapes(test_params.expected_output)
+    //    .add_shapes(output)
+    //    .write_json("bridge_touching_holes.json");
+
+    ASSERT_EQ(output.size(), test_params.expected_output.size());
+    for (const Shape& expected_shape: test_params.expected_output) {
+        EXPECT_NE(std::find_if(
+                      output.begin(),
+                      output.end(),
+                      [&expected_shape](const Shape& shape) { return equal(shape, expected_shape); }),
+                  output.end());
+    }
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Shape,
+        ExtractFacesTest,
+        testing::ValuesIn(std::vector<ExtractFacesTestParams>{
+            {
+                build_shape({{0, 10}, {10, 0}, {20, 10}, {10, 20}}),
+                {build_shape({{0, 10}, {10, 0}, {20, 10}, {10, 20}})},
+            }, {
+                build_shape({{0, 10}, {10, 0}, {20, 10}, {10, 20}}).reverse(),
+                {build_shape({{0, 10}, {10, 0}, {20, 10}, {10, 20}})},
+            }, {
+                build_shape({{0, 0}, {20, 20}, {20, 0}, {0, 20}}),
+                {
+                    build_shape({{0, 0}, {10, 10}, {0, 20}}),
+                    build_shape({{20, 0}, {20, 20}, {10, 10}}),
+                },
+            }}));
+
+
 struct BridgeTouchingHolesTestParams
 {
     ShapeWithHoles shape;

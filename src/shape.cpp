@@ -1,8 +1,8 @@
 #include "shape/shape.hpp"
 
 #include "shape/clean.hpp"
+#include "shape/elements_intersections.hpp"
 #include "shape/shapes_intersections.hpp"
-#include "shape/intersection_tree.hpp"
 
 #include <cmath>
 #include <fstream>
@@ -108,6 +108,12 @@ LengthDbl shape::norm(
         const Point& vector)
 {
     return std::sqrt(vector.x * vector.x + vector.y * vector.y);
+}
+
+Point shape::normalize(
+        const Point& vector)
+{
+    return vector / norm(vector);
 }
 
 LengthDbl shape::squared_norm(
@@ -575,6 +581,33 @@ LengthDbl ShapeElement::length(const Point& point) const
         }
     }
     return -1;
+}
+
+Point ShapeElement::point(LengthDbl length) const
+{
+    switch (this->type) {
+    case ShapeElementType::LineSegment: {
+        return this->start + length / this->length() * (this->end - this->start);
+    } case ShapeElementType::CircularArc: {
+        Angle theta = angle_radian(this->start - this->center, this->end - this->center);
+        return this->start.rotate_radians(
+                this->center,
+                length / this->length() * theta);
+    } default: {
+        throw std::invalid_argument(FUNC_SIGNATURE);
+        return {0, 0};
+    }
+    }
+    return {0, 0};
+}
+
+Point ShapeElement::find_point_between(
+        const Point& point_1,
+        const Point& point_2) const
+{
+    LengthDbl l1 = this->length(point_1);
+    LengthDbl l2 = this->length(point_2);
+    return this->point((l1 + l2) / 2);
 }
 
 Jet ShapeElement::jet(
@@ -1418,6 +1451,24 @@ bool Shape::is_strictly_closer_to_path_start(
     return strictly_lesser(element.length(point_1.point), element.length(point_2.point));
 }
 
+ShapePoint Shape::find_point_between(
+        const ShapePoint& point_1,
+        const ShapePoint& point_2) const
+{
+    const ShapeElement& element_1 = this->elements[point_1.element_pos];
+    if (point_1.element_pos == point_2.element_pos) {
+        return {point_1.element_pos, element_1.find_point_between(point_1.point, point_2.point)};
+    } else if (!equal(point_1.point, element_1.end)) {
+        return {point_1.element_pos, element_1.end};
+    } else {
+        const ShapeElement& element_next = this->elements[point_1.element_pos + 1];
+        LengthDbl l_next = (point_2.element_pos == point_1.element_pos + 1)?
+            element_next.length(point_2.point):
+            element_next.length();
+        return {point_1.element_pos + 1, element_next.point(l_next / 2)};
+    }
+}
+
 Shape& Shape::shift(
         LengthDbl x,
         LengthDbl y)
@@ -1929,6 +1980,15 @@ Shape shape::build_path(
     return build_shape(points, true);
 }
 
+Shape shape::build_path(
+        const std::vector<ShapeElement>& elements)
+{
+    Shape shape;
+    shape.elements = elements;
+    shape.is_path = true;
+    return shape;
+}
+
 bool ShapeWithHoles::contains(
         const Point& point,
         bool strict) const
@@ -1946,7 +2006,7 @@ Point ShapeWithHoles::find_point_strictly_inside() const
     auto mm = this->compute_min_max();
     for (Counter k = 2;; ++k) {
         for (Counter k2 = 1; k2 < k; ++k2) {
-            LengthDbl y = (mm.first.y + mm.second.y) * k2 / k;
+            LengthDbl y = mm.first.y + (mm.second.y - mm.first.y) * k2 / k;
             Point point_min_1 = {
                 std::numeric_limits<LengthDbl>::infinity(),
                 std::numeric_limits<LengthDbl>::infinity()};

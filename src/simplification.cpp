@@ -637,9 +637,9 @@ std::vector<ShapeWithHoles> shape::simplify(
 }
 
 void shape::simplify_export_inputs(
+        const std::string& file_path,
         const std::vector<SimplifyInputShape>& shapes,
-        AreaDbl maximum_approximation_area,
-        const std::string& file_path)
+        AreaDbl maximum_approximation_area)
 {
     std::ofstream file{file_path};
     nlohmann::json json;

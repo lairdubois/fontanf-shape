@@ -1,14 +1,13 @@
 #pragma once
 
-#include "shape/elements_intersections.hpp"
+#include "shape/shape.hpp"
 
 namespace shape
 {
 
 bool intersect(
         const ShapeElement& element_1,
-        const ShapeElement& element_2,
-        bool strict = false);
+        const ShapeElement& element_2);
 
 bool intersect(
         const Shape& shape);
@@ -26,63 +25,35 @@ inline bool intersect(
     return intersect(shape, element, strict);
 }
 
-struct ShapeShapeElementIntersection
-{
-    ElementPos element_pos = -1;
-
-    ShapeElementIntersectionsOutput intersections;
-};
-
-/**
- * Compute the intersection ponits between an element and the elements of a
- * shape.
- *
- * Note that the element and the shape might intersect but have no intersection
- * points. This happens if the element is contained inside the shape.
- */
-std::vector<ShapeShapeElementIntersection> compute_intersections(
-        const Shape& shape,
-        const ShapeElement& element);
-
-struct ComputeClosestToShapeElementStartIntersectionOutput
-{
-    bool intersect;
-
-    ElementPos element_pos = -1;
-
-    Point intersection = {0, 0};
-
-    LengthDbl distance = std::numeric_limits<LengthDbl>::infinity();
-};
-
-/**
- * Compute the intersection points between an element and the elements of a
- * shape which are the closest from the element's start.
- */
-ComputeClosestToShapeElementStartIntersectionOutput compute_closest_to_start_intersection(
+std::vector<ShapePoint> compute_intersections(
         const ShapeElement& element,
         const Shape& shape,
-        bool proper = false);
+        bool strict = false,
+        bool only_first = false);
+
+struct PathShapeIntersectionPoint
+{
+    ElementPos path_element_pos;
+    ElementPos shape_element_pos;
+    Point point;
+};
+
+std::vector<PathShapeIntersectionPoint> compute_intersections(
+        const Shape& path,
+        const Shape& shape,
+        bool strict = false,
+        bool only_first = false);
+
+void compute_intersections_export_inputs(
+        const std::string& file_path,
+        const Shape& path,
+        const Shape& shape,
+        bool strict = false,
+        bool only_first = false);
 
 bool intersect(
         const Shape& shape_1,
         const Shape& shape_2,
-        bool strict = false);
-
-struct ComputeClosestToPathStartIntersectionOutput
-{
-    bool intersect;
-
-    ElementPos element_1_pos = -1;
-
-    ElementPos element_2_pos = -1;
-
-    Point intersection = {0, 0};
-};
-
-ComputeClosestToPathStartIntersectionOutput compute_closest_to_start_intersection(
-        const Shape& path,
-        const Shape& shape,
         bool strict = false);
 
 bool intersect(

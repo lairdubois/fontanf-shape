@@ -19,8 +19,8 @@ std::vector<ShapeWithHoles> simplify(
         AreaDbl maximum_approximation_area);
 
 void simplify_export_inputs(
+        const std::string& file_path,
         const std::vector<SimplifyInputShape>& shapes,
-        AreaDbl maximum_approximation_area,
-        const std::string& file_path);
+        AreaDbl maximum_approximation_area);
 
 }

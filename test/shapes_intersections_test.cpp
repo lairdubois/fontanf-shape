@@ -1,5 +1,7 @@
 #include "shape/shapes_intersections.hpp"
 
+//#include "shape/writer.hpp"
+
 #include <gtest/gtest.h>
 
 #include <boost/filesystem.hpp>
@@ -155,7 +157,7 @@ TEST_P(IntersectShapeShapeElementTest, IntersectShapeShapeElement)
     std::cout << "element " << test_params.element.to_string() << std::endl;
     std::cout << "strict " << test_params.strict << std::endl;
     std::cout << "expected_result " << test_params.expected_result << std::endl;
-    //write_json({{test_params.shape}}, {test_params.element}, "intersect_input.json");
+    //Writer().add_shape(test_params.shape).add_element(test_params.element).write_json("intersect_input.json");
 
     bool result = intersect(
             test_params.shape,
@@ -188,6 +190,107 @@ INSTANTIATE_TEST_SUITE_P(
                 false,
                 false,
             },
+            }));
+
+
+struct ComputeIntersectionsPathShapeTestParams
+{
+    Shape path;
+    Shape shape;
+    bool strict;
+    bool only_first;
+    std::vector<PathShapeIntersectionPoint> expected_output;
+
+
+    template <class basic_json>
+    static ComputeIntersectionsPathShapeTestParams from_json(
+            basic_json& json_item)
+    {
+        ComputeIntersectionsPathShapeTestParams test_params;
+        test_params.path = Shape::from_json(json_item["path"]);
+        test_params.shape = Shape::from_json(json_item["shape"]);
+        test_params.strict = json_item["strict"];
+        test_params.only_first = json_item["only_first"];
+        for (auto& json_intersection: json_item["expected_output"]) {
+            PathShapeIntersectionPoint intersection;
+            intersection.path_element_pos = json_intersection["path_element_pos"];
+            intersection.shape_element_pos = json_intersection["shape_element_pos"];
+            intersection.point = Point::from_json(json_intersection["point"]);
+            test_params.expected_output.emplace_back(intersection);
+        }
+        return test_params;
+    }
+
+    static ComputeIntersectionsPathShapeTestParams read_json(
+            const std::string& file_path)
+    {
+        std::ifstream file(file_path);
+        if (!file.good()) {
+            throw std::runtime_error(
+                    FUNC_SIGNATURE + ": "
+                    "unable to open file \"" + file_path + "\".");
+        }
+
+        nlohmann::json json;
+        file >> json;
+        return from_json(json);
+    }
+};
+
+class ComputeIntersectionsPathShapeTest: public testing::TestWithParam<ComputeIntersectionsPathShapeTestParams> { };
+
+TEST_P(ComputeIntersectionsPathShapeTest, ComputeIntersectionsPathShape)
+{
+    ComputeIntersectionsPathShapeTestParams test_params = GetParam();
+    std::cout << "path " << test_params.path.to_string(0) << std::endl;
+    std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
+    std::cout << "strict " << test_params.strict << std::endl;
+    std::cout << "only_first " << test_params.only_first << std::endl;
+    std::cout << "expected_output" << std::endl;
+    for (const PathShapeIntersectionPoint& intersection: test_params.expected_output) {
+        std::cout << "path_element_pos " << intersection.path_element_pos
+            << " shape_element_pos " << intersection.shape_element_pos
+            << " point " << intersection.point.to_string() << std::endl;
+    }
+
+    std::vector<PathShapeIntersectionPoint> output = compute_intersections(
+            test_params.path,
+            test_params.shape,
+            test_params.strict,
+            test_params.only_first);
+    std::cout << "output" << std::endl;
+    for (const PathShapeIntersectionPoint& intersection: output) {
+        std::cout << "path_element_pos " << intersection.path_element_pos
+            << " shape_element_pos " << intersection.shape_element_pos
+            << " point " << intersection.point.to_string() << std::endl;
+    }
+
+    //Writer().add_shape(test_params.path).add_shape(test_params.shape).write_json("compute_intersections_path_shape.json");
+
+    ASSERT_EQ(output.size(), test_params.expected_output.size());
+    for (ElementPos pos = 0; pos < (ElementPos)output.size(); ++pos) {
+        EXPECT_EQ(output[pos].path_element_pos, test_params.expected_output[pos].path_element_pos);
+        EXPECT_EQ(output[pos].shape_element_pos, test_params.expected_output[pos].shape_element_pos);
+        EXPECT_TRUE(equal(output[pos].point, test_params.expected_output[pos].point));
+    }
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Shape,
+        ComputeIntersectionsPathShapeTest,
+        testing::ValuesIn(std::vector<ComputeIntersectionsPathShapeTestParams>{
+            {
+                build_path({
+                        build_circular_arc({64, 0}, {192, 128}, {192, 0}, ShapeElementOrientation::Clockwise),
+                        build_line_segment({192, 128}, {704, 128}),
+                        build_circular_arc({704, 128}, {832, 2.842170943040401e-14}, {704, 2.842170943040401e-14}, ShapeElementOrientation::Clockwise)}),
+                build_shape({{384, 320}, {448, -192}, {448, 832}}),
+                true,
+                true,
+                {{1, 0, {408, 128}}},
+            },
+            //ComputeIntersectionsPathShapeTestParams::read_json(
+            //        (fs::path("data") / "tests" / "shapes_intersections" / "compute_intersections_path_shape" / "0.json").string()),
             }));
 
 

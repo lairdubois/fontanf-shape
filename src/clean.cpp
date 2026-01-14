@@ -1,6 +1,6 @@
 #include "shape/clean.hpp"
 
-#include "shape/shapes_intersections.hpp"
+#include "shape/elements_intersections.hpp"
 #include "shape/equalize.hpp"
 #include "shape/boolean_operations.hpp"
 

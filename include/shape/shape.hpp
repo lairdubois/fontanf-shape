@@ -123,6 +123,9 @@ Point operator/(
 LengthDbl norm(
         const Point& vector);
 
+Point normalize(
+        const Point& vector);
+
 LengthDbl squared_norm(
         const Point& vector);
 
@@ -261,6 +264,12 @@ struct ShapeElement
      * The element must contain the given point.
      */
     LengthDbl length(const Point& point) const;
+
+    Point point(LengthDbl length) const;
+
+    Point find_point_between(
+            const Point& point_1,
+            const Point& point_2) const;
 
     /** Jet of the element. */
     Jet jet(
@@ -448,6 +457,10 @@ struct Shape
             const ShapePoint& point_1,
             const ShapePoint& point_2) const;
 
+    ShapePoint find_point_between(
+            const ShapePoint& point_1,
+            const ShapePoint& point_2) const;
+
     /* Check if the shape is connected and in anticlockwise direction. */
     bool check() const;
 
@@ -610,6 +623,9 @@ Shape build_shape(
 
 Shape build_path(
         const std::vector<BuildShapeElement>& points);
+
+Shape build_path(
+        const std::vector<ShapeElement>& elements);
 
 inline bool operator==(
         const Point& point_1,

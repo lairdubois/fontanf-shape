@@ -39,6 +39,54 @@ INSTANTIATE_TEST_SUITE_P(
             }));
 
 
+struct ShapeElementFindPointBetweenTestParams
+{
+    ShapeElement element;
+    Point point_1;
+    Point point_2;
+    Point expected_output;
+};
+
+class ShapeElementFindPointBetweenTest: public testing::TestWithParam<ShapeElementFindPointBetweenTestParams> { };
+
+TEST_P(ShapeElementFindPointBetweenTest, ShapeElementFindPointBetween)
+{
+    ShapeElementFindPointBetweenTestParams test_params = GetParam();
+    std::cout << "element " << test_params.element.to_string() << std::endl;
+    std::cout << "point_1 " << test_params.point_1.to_string() << std::endl;
+    std::cout << "point_2 " << test_params.point_2.to_string() << std::endl;
+    std::cout << "expected_output " << test_params.expected_output.to_string() << std::endl;
+
+    Point output = test_params.element.find_point_between(
+            test_params.point_1,
+            test_params.point_2);
+    std::cout << "output " << output.to_string() << std::endl;
+
+    EXPECT_TRUE(equal(output, test_params.expected_output));
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Shape,
+        ShapeElementFindPointBetweenTest,
+        testing::ValuesIn(std::vector<ShapeElementFindPointBetweenTestParams>{
+            {
+                build_line_segment({0, 0}, {0, 2}),
+                {0, 0},
+                {0, 2},
+                {0, 1},
+            }, {
+                build_circular_arc({1, 0}, {-1, 0}, {0, 0}, {ShapeElementOrientation::Anticlockwise}),
+                {1, 0},
+                {-1, 0},
+                {0, 1},
+            }, {
+                build_circular_arc({25.09217340838399, 562.1293338082015}, {25.12432681320623, 562.1171997938548}, {25.14000053474341, 562.2074008893288}, {ShapeElementOrientation::Anticlockwise}),
+                {25.12314661878088, 562.1174128418544},
+                {25.12432681320623, 562.1171997938548},
+                {25.12373636714434, 562.1173043853798},
+            }}));
+
+
 struct ShapeElementJetTestParams
 {
     ShapeElement element;
