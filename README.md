@@ -56,8 +56,8 @@ std::system(std::string("convert \"tmp.svg\" \"tmp.png\"").c_str()); im::image i
 
     overlapping parts:
     - LineSegment start (50, 75) end (33.33333333333334, 50)
-    impropoer intersections:
-    propoer intersections:
+    improper intersections:
+    proper intersections:
 
 
 
@@ -86,8 +86,8 @@ std::system(std::string("convert \"tmp.svg\" \"tmp.png\"").c_str()); im::image i
     overlapping parts:
     - CircularArc start (-100, 0) end (0, -100) center (0, 0) orientation Anticlockwise
     - CircularArc start (100, 0) end (0, 100) center (0, 0) orientation Anticlockwise
-    impropoer intersections:
-    propoer intersections:
+    improper intersections:
+    proper intersections:
 
 
 
@@ -114,9 +114,9 @@ std::system(std::string("convert \"tmp.svg\" \"tmp.png\"").c_str()); im::image i
 ```
 
     overlapping parts:
-    impropoer intersections:
+    improper intersections:
     - (-100, 0)
-    propoer intersections:
+    proper intersections:
     - (60, 80)
 
 

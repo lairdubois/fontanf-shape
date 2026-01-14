@@ -549,10 +549,10 @@ std::string ShapeElementIntersectionsOutput::to_string(Counter indentation) cons
     output += "overlapping parts:";
     for (const ShapeElement& overlapping_part: this->overlapping_parts)
         output += "\n" + indent + "- " + overlapping_part.to_string();
-    output += "\n" + indent + "impropoer intersections:";
+    output += "\n" + indent + "improper intersections:";
     for (const Point& point: this->improper_intersections)
         output += "\n" + indent + "- " + point.to_string();
-    output += "\n" + indent + "propoer intersections:";
+    output += "\n" + indent + "proper intersections:";
     for (const Point& point: this->proper_intersections)
         output += "\n" + indent + "- " + point.to_string();
     return output;
