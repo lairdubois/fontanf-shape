@@ -6,7 +6,7 @@
     "height": 1
   },
   "offset": 1.0,
-  "expected_result": {
+  "expected_output": {
     "type": "general",
     "elements": [
       {

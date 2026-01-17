@@ -17,7 +17,7 @@ namespace fs = boost::filesystem;
 struct IntersectShapeTestParams
 {
     Shape shape;
-    bool expected_result;
+    bool expected_output;
 
 
     template <class basic_json>
@@ -25,7 +25,7 @@ struct IntersectShapeTestParams
     {
         IntersectShapeTestParams test_params;
         test_params.shape = Shape::from_json(json_item["shape"]);
-        test_params.expected_result = json_item["expected_result"];
+        test_params.expected_output = json_item["expected_output"];
         return test_params;
     }
 
@@ -51,13 +51,13 @@ TEST_P(IntersectShapeTest, IntersectShape)
 {
     IntersectShapeTestParams test_params = GetParam();
     std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
-    std::cout << "expected_result " << test_params.expected_result << std::endl;
+    std::cout << "expected_output " << test_params.expected_output << std::endl;
     //write_json({{test_params.shape}}, {}, "intersect_input.json");
 
-    bool result = intersect(test_params.shape);
-    std::cout << "result " << result << std::endl;
+    bool output = intersect(test_params.shape);
+    std::cout << "output " << output << std::endl;
 
-    EXPECT_EQ(result, test_params.expected_result);
+    EXPECT_EQ(output, test_params.expected_output);
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -118,7 +118,7 @@ struct IntersectShapeShapeElementTestParams
     Shape shape;
     ShapeElement element;
     bool strict = false;
-    bool expected_result;
+    bool expected_output;
 
 
     template <class basic_json>
@@ -128,7 +128,7 @@ struct IntersectShapeShapeElementTestParams
         test_params.shape = Shape::from_json(json_item["shape"]);
         test_params.element = ShapeElement::from_json(json_item["element"]);
         test_params.strict = json_item["strict"];
-        test_params.expected_result = json_item["expected_result"];
+        test_params.expected_output = json_item["expected_output"];
         return test_params;
     }
 
@@ -156,16 +156,16 @@ TEST_P(IntersectShapeShapeElementTest, IntersectShapeShapeElement)
     std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
     std::cout << "element " << test_params.element.to_string() << std::endl;
     std::cout << "strict " << test_params.strict << std::endl;
-    std::cout << "expected_result " << test_params.expected_result << std::endl;
+    std::cout << "expected_output " << test_params.expected_output << std::endl;
     //Writer().add_shape(test_params.shape).add_element(test_params.element).write_json("intersect_input.json");
 
-    bool result = intersect(
+    bool output = intersect(
             test_params.shape,
             test_params.element,
             test_params.strict);
-    std::cout << "result " << result << std::endl;
+    std::cout << "output " << output << std::endl;
 
-    EXPECT_EQ(result, test_params.expected_result);
+    EXPECT_EQ(output, test_params.expected_output);
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -299,7 +299,7 @@ struct IntersectShapeShapeTestParams
     Shape shape_1;
     Shape shape_2;
     bool strict = false;
-    bool expected_result;
+    bool expected_output;
 
 
     template <class basic_json>
@@ -310,7 +310,7 @@ struct IntersectShapeShapeTestParams
         test_params.shape_1 = Shape::from_json(json_item["shape_1"]);
         test_params.shape_2 = Shape::from_json(json_item["shape_2"]);
         test_params.strict = json_item["strict"];
-        test_params.expected_result = json_item["expected_result"];
+        test_params.expected_output = json_item["expected_output"];
         return test_params;
     }
 
@@ -338,16 +338,16 @@ TEST_P(IntersectShapeShapeTest, IntersectShapeShape)
     std::cout << "shape_1 " << test_params.shape_1.to_string(0) << std::endl;
     std::cout << "shape_2 " << test_params.shape_2.to_string(0) << std::endl;
     std::cout << "strict " << test_params.strict << std::endl;
-    std::cout << "expected_result " << test_params.expected_result << std::endl;
+    std::cout << "expected_output " << test_params.expected_output << std::endl;
     //write_json({{test_params.shape_1}, {test_params.shape_2}}, {}, "intersect_input.json");
 
-    bool result = intersect(
+    bool output = intersect(
             test_params.shape_1,
             test_params.shape_2,
             test_params.strict);
-    std::cout << "result " << result << std::endl;
+    std::cout << "output " << output << std::endl;
 
-    EXPECT_EQ(result, test_params.expected_result);
+    EXPECT_EQ(output, test_params.expected_output);
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -411,7 +411,7 @@ struct IntersectShapeWithHolesShapeTestParams
     ShapeWithHoles shape_with_holes;
     Shape shape;
     bool strict = false;
-    bool expected_result;
+    bool expected_output;
 
 
     template <class basic_json>
@@ -422,7 +422,7 @@ struct IntersectShapeWithHolesShapeTestParams
         test_params.shape_with_holes = ShapeWithHoles::from_json(json_item["shape_with_holes"]);
         test_params.shape = Shape::from_json(json_item["shape"]);
         test_params.strict = json_item["strict"];
-        test_params.expected_result = json_item["expected_result"];
+        test_params.expected_output = json_item["expected_output"];
         return test_params;
     }
 
@@ -450,16 +450,16 @@ TEST_P(IntersectShapeWithHolesShapeTest, IntersectShapeWithHolesShape)
     std::cout << "shape_with_holes " << test_params.shape_with_holes.to_string(0) << std::endl;
     std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
     std::cout << "strict " << test_params.strict << std::endl;
-    std::cout << "expected_result " << test_params.expected_result << std::endl;
+    std::cout << "expected_output " << test_params.expected_output << std::endl;
     //write_json({test_params.shape_1, {test_params.shape_2}}, {}, "intersect_input.json");
 
-    bool result = intersect(
+    bool output = intersect(
             test_params.shape_with_holes,
             test_params.shape,
             test_params.strict);
-    std::cout << "result " << result << std::endl;
+    std::cout << "output " << output << std::endl;
 
-    EXPECT_EQ(result, test_params.expected_result);
+    EXPECT_EQ(output, test_params.expected_output);
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -534,7 +534,7 @@ struct IntersectShapeWithHolesShapeWithHolesTestParams
     ShapeWithHoles shape_1;
     ShapeWithHoles shape_2;
     bool strict = false;
-    bool expected_result;
+    bool expected_output;
 
 
     template <class basic_json>
@@ -545,7 +545,7 @@ struct IntersectShapeWithHolesShapeWithHolesTestParams
         test_params.shape_1 = ShapeWithHoles::from_json(json_item["shape_1"]);
         test_params.shape_2 = ShapeWithHoles::from_json(json_item["shape_2"]);
         test_params.strict = json_item["strict"];
-        test_params.expected_result = json_item["expected_result"];
+        test_params.expected_output = json_item["expected_output"];
         return test_params;
     }
 
@@ -573,15 +573,15 @@ TEST_P(IntersectShapeWithHolesShapeWithHolesTest, IntersectShapeWithHolesShapeWi
     std::cout << "shape_1 " << test_params.shape_1.to_string(0) << std::endl;
     std::cout << "shape_2 " << test_params.shape_2.to_string(0) << std::endl;
     std::cout << "strict " << test_params.strict << std::endl;
-    std::cout << "expected_result " << test_params.expected_result << std::endl;
+    std::cout << "expected_output " << test_params.expected_output << std::endl;
 
-    bool result = intersect(
+    bool output = intersect(
             test_params.shape_1,
             test_params.shape_2,
             test_params.strict);
-    std::cout << "result " << result << std::endl;
+    std::cout << "output " << output << std::endl;
 
-    EXPECT_EQ(result, test_params.expected_result);
+    EXPECT_EQ(output, test_params.expected_output);
 }
 
 INSTANTIATE_TEST_SUITE_P(

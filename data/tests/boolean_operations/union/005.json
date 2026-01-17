@@ -11,7 +11,7 @@
       "height": 100
     }
   ],
-  "expected_result": [
+  "expected_output": [
     {
       "type": "rectangle",
       "width": 200,

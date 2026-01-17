@@ -109,7 +109,7 @@
         "type": "general"
     },
     "strict": true,
-    "expected_result": false,
+    "expected_output": false,
     "write_json": false,
     "write_svg": false
 }

@@ -125,7 +125,7 @@
       ]
     }
   ],
-  "expected_result": [
+  "expected_output": [
     {
       "elements": [
         {

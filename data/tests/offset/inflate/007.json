@@ -2700,7 +2700,7 @@
     ]
   },
   "offset": 0.9,
-  "expected_result": {
+  "expected_output": {
     "elements": [
       {
         "center": {

@@ -11,7 +11,7 @@ struct ComputeIntersectionsTestParams
 {
     ShapeElement element_1;
     ShapeElement element_2;
-    ShapeElementIntersectionsOutput expected_result;
+    ShapeElementIntersectionsOutput expected_output;
 
     template <class basic_json>
     static ComputeIntersectionsTestParams from_json(
@@ -20,12 +20,12 @@ struct ComputeIntersectionsTestParams
         ComputeIntersectionsTestParams test_params;
         test_params.element_1 = ShapeElement::from_json(json_item["element_1"]);
         test_params.element_2 = ShapeElement::from_json(json_item["element_2"]);
-        for (auto& json_element: json_item["expected_result"]["overlapping_parts"].items())
-            test_params.expected_result.overlapping_parts.emplace_back(ShapeElement::from_json(json_element.value()));
-        for (auto& json_point: json_item["expected_result"]["improper_intersections"].items())
-            test_params.expected_result.improper_intersections.emplace_back(Point::from_json(json_point.value()));
-        for (auto& json_point: json_item["expected_result"]["proper_intersections"].items())
-            test_params.expected_result.proper_intersections.emplace_back(Point::from_json(json_point.value()));
+        for (auto& json_element: json_item["expected_output"]["overlapping_parts"].items())
+            test_params.expected_output.overlapping_parts.emplace_back(ShapeElement::from_json(json_element.value()));
+        for (auto& json_point: json_item["expected_output"]["improper_intersections"].items())
+            test_params.expected_output.improper_intersections.emplace_back(Point::from_json(json_point.value()));
+        for (auto& json_point: json_item["expected_output"]["proper_intersections"].items())
+            test_params.expected_output.proper_intersections.emplace_back(Point::from_json(json_point.value()));
         return test_params;
     }
 
@@ -52,34 +52,34 @@ TEST_P(ComputeIntersectionsTest, ComputeIntersections)
     ComputeIntersectionsTestParams test_params = GetParam();
     std::cout << "element_1 " << test_params.element_1.to_string() << std::endl;
     std::cout << "element_2 " << test_params.element_2.to_string() << std::endl;
-    std::cout << "expected_result" << std::endl;
-    std::cout << "  " << test_params.expected_result.to_string(2) << std::endl;
+    std::cout << "expected_output" << std::endl;
+    std::cout << "  " << test_params.expected_output.to_string(2) << std::endl;
     //write_json({}, {test_params.element_1, test_params.element_2}, "elements_intersections_input.json");
 
     ShapeElementIntersectionsOutput intersections = compute_intersections(
             test_params.element_1,
             test_params.element_2);
-    std::cout << "result" << std::endl;
+    std::cout << "output" << std::endl;
     std::cout << "  " << intersections.to_string(2) << std::endl;
 
-    ASSERT_EQ(intersections.overlapping_parts.size(), test_params.expected_result.overlapping_parts.size());
-    for (const auto& expected_intersection: test_params.expected_result.overlapping_parts) {
+    ASSERT_EQ(intersections.overlapping_parts.size(), test_params.expected_output.overlapping_parts.size());
+    for (const auto& expected_intersection: test_params.expected_output.overlapping_parts) {
         EXPECT_NE(std::find_if(
                     intersections.overlapping_parts.begin(),
                     intersections.overlapping_parts.end(),
                     [&expected_intersection](const ShapeElement& overlapping_part) { return equal(overlapping_part, expected_intersection) || equal(overlapping_part.reverse(), expected_intersection); }),
                 intersections.overlapping_parts.end());
     }
-    ASSERT_EQ(intersections.improper_intersections.size(), test_params.expected_result.improper_intersections.size());
-    for (const Point& expected_intersection: test_params.expected_result.improper_intersections) {
+    ASSERT_EQ(intersections.improper_intersections.size(), test_params.expected_output.improper_intersections.size());
+    for (const Point& expected_intersection: test_params.expected_output.improper_intersections) {
         EXPECT_NE(std::find_if(
                     intersections.improper_intersections.begin(),
                     intersections.improper_intersections.end(),
                     [&expected_intersection](const Point& point) { return equal(point, expected_intersection); }),
                 intersections.improper_intersections.end());
     }
-    ASSERT_EQ(intersections.proper_intersections.size(), test_params.expected_result.proper_intersections.size());
-    for (const Point& expected_intersection: test_params.expected_result.proper_intersections) {
+    ASSERT_EQ(intersections.proper_intersections.size(), test_params.expected_output.proper_intersections.size());
+    for (const Point& expected_intersection: test_params.expected_output.proper_intersections) {
         EXPECT_NE(std::find_if(
                     intersections.proper_intersections.begin(),
                     intersections.proper_intersections.end(),

@@ -13,7 +13,7 @@ struct InflateTestParams: TestParams<InflateTestParams>
 {
     ShapeWithHoles shape;
     LengthDbl offset = 0;
-    ShapeWithHoles expected_result;
+    ShapeWithHoles expected_output;
 
 
     static InflateTestParams from_json(
@@ -22,7 +22,7 @@ struct InflateTestParams: TestParams<InflateTestParams>
         InflateTestParams test_params = TestParams::from_json(json_item);
         test_params.shape = ShapeWithHoles::from_json(json_item["shape"]);
         test_params.offset = json_item["offset"];
-        test_params.expected_result = ShapeWithHoles::from_json(json_item["expected_result"]);
+        test_params.expected_output = ShapeWithHoles::from_json(json_item["expected_output"]);
         return test_params;
     }
 };
@@ -35,29 +35,29 @@ TEST_P(InflateTest, Inflate)
     std::cout << "Testing " << test_params.name << " (" << test_params.description << ")" << "..." << std::endl;
     std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
     std::cout << "offset " << test_params.offset << std::endl;
-    std::cout << "expected_result " << test_params.expected_result.to_string(0) << std::endl;
+    std::cout << "expected_output " << test_params.expected_output.to_string(0) << std::endl;
 
-    auto result = inflate(
+    auto output = inflate(
         test_params.shape,
         test_params.offset);
-    std::cout << "result " << result.to_string(0) << std::endl;
+    std::cout << "output " << output.to_string(0) << std::endl;
 
     if (test_params.write_json || test_params.write_svg) {
         std::string base_filename = "inflate_" + fs::path(test_params.name).filename().replace_extension("").string();
 
         if (test_params.write_json) {
             Writer().add_shape_with_holes(test_params.shape).write_json(base_filename + "_shapes.json");
-            Writer().add_shape_with_holes(test_params.expected_result).write_json(base_filename + "_expected_result.json");
-            Writer().add_shape_with_holes(result).write_json(base_filename + "_result.json");
+            Writer().add_shape_with_holes(test_params.expected_output).write_json(base_filename + "_expected_output.json");
+            Writer().add_shape_with_holes(output).write_json(base_filename + "_output.json");
         }
         if (test_params.write_svg) {
             Writer().add_shape_with_holes(test_params.shape).write_svg(base_filename + "_shapes.svg");
-            Writer().add_shape_with_holes(test_params.expected_result).write_svg(base_filename + "_expected_result.svg");
-            Writer().add_shape_with_holes(result).write_svg(base_filename + "_result.svg");
+            Writer().add_shape_with_holes(test_params.expected_output).write_svg(base_filename + "_expected_output.svg");
+            Writer().add_shape_with_holes(output).write_svg(base_filename + "_output.svg");
         }
     }
 
-    EXPECT_TRUE(equal(result, test_params.expected_result));
+    EXPECT_TRUE(equal(output, test_params.expected_output));
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -70,7 +70,7 @@ struct DeflateTestParams : TestParams<DeflateTestParams>
 {
     Shape shape;
     LengthDbl offset = 0;
-    std::vector<Shape> expected_result;
+    std::vector<Shape> expected_output;
 
 
     static DeflateTestParams from_json(
@@ -79,8 +79,8 @@ struct DeflateTestParams : TestParams<DeflateTestParams>
         DeflateTestParams test_params = TestParams::from_json(json_item);
         test_params.shape = Shape::from_json(json_item["shape"]);
         test_params.offset = json_item["offset"];
-        for (auto& json_shape: json_item["expected_result"].items())
-            test_params.expected_result.emplace_back(Shape::from_json(json_shape.value()));
+        for (auto& json_shape: json_item["expected_output"].items())
+            test_params.expected_output.emplace_back(Shape::from_json(json_shape.value()));
         return test_params;
     }
 };
@@ -93,15 +93,15 @@ TEST_P(DeflateTest, Deflate)
     std::cout << "Testing " << test_params.name << " (" << test_params.description << ")" << "..." << std::endl;
     std::cout << "hole " << test_params.shape.to_string(0) << std::endl;
     std::cout << "offset " << test_params.offset << std::endl;
-    std::cout << "expected_result" << std::endl;
-    for (const Shape& hole: test_params.expected_result)
+    std::cout << "expected_output" << std::endl;
+    for (const Shape& hole: test_params.expected_output)
         std::cout << "- " << hole.to_string(2) << std::endl;
 
-    auto result = deflate(
+    auto output = deflate(
         test_params.shape,
         test_params.offset);
-    std::cout << "result" << std::endl;
-    for (const Shape& hole: result)
+    std::cout << "output" << std::endl;
+    for (const Shape& hole: output)
         std::cout << "- " << hole.to_string(2) << std::endl;
 
     if (test_params.write_json || test_params.write_svg) {
@@ -109,38 +109,38 @@ TEST_P(DeflateTest, Deflate)
 
         if (test_params.write_json) {
             test_params.shape.write_json(base_filename + "_shape.json");
-            for (const auto& shape: test_params.expected_result)
-                shape.write_json(base_filename + "_expected_result.json");
-            for (const auto& shape: result)
-                shape.write_json(base_filename + "_result.json");
+            for (const auto& shape: test_params.expected_output)
+                shape.write_json(base_filename + "_expected_output.json");
+            for (const auto& shape: output)
+                shape.write_json(base_filename + "_output.json");
         }
         if (test_params.write_svg) {
             test_params.shape.write_svg(base_filename + "_shape.svg");
-            for (const auto& shape: test_params.expected_result)
-                shape.write_svg(base_filename + "_expected_result.svg");
-            for (const auto& shape: result)
-                shape.write_svg(base_filename + "_result.svg");
+            for (const auto& shape: test_params.expected_output)
+                shape.write_svg(base_filename + "_expected_output.svg");
+            for (const auto& shape: output)
+                shape.write_svg(base_filename + "_output.svg");
         }
 
         if (test_params.write_json) {
             Writer().add_shape(test_params.shape).write_json(base_filename + "_shapes.json");
-            Writer().add_shapes(test_params.expected_result).write_json(base_filename + "_expected_result.json");
-            Writer().add_shapes(result).write_json(base_filename + "_result.json");
+            Writer().add_shapes(test_params.expected_output).write_json(base_filename + "_expected_output.json");
+            Writer().add_shapes(output).write_json(base_filename + "_output.json");
         }
         if (test_params.write_svg) {
             Writer().add_shape(test_params.shape).write_svg(base_filename + "_shapes.svg");
-            Writer().add_shapes(test_params.expected_result).write_svg(base_filename + "_expected_result.svg");
-            Writer().add_shapes(result).write_svg(base_filename + "_result.svg");
+            Writer().add_shapes(test_params.expected_output).write_svg(base_filename + "_expected_output.svg");
+            Writer().add_shapes(output).write_svg(base_filename + "_output.svg");
         }
     }
 
-    ASSERT_EQ(result.size(), test_params.expected_result.size());
-    for (const Shape& expected_hole: test_params.expected_result) {
+    ASSERT_EQ(output.size(), test_params.expected_output.size());
+    for (const Shape& expected_hole: test_params.expected_output) {
         EXPECT_NE(std::find(
-                      result.begin(),
-                      result.end(),
+                      output.begin(),
+                      output.end(),
                       expected_hole),
-                  result.end());
+                  output.end());
     }
 }
 

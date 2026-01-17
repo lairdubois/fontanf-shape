@@ -82,7 +82,7 @@
     ]
   },
   "offset": 1.5,
-  "expected_result": {
+  "expected_output": {
     "elements": [
       {
         "center": {

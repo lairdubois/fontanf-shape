@@ -12,7 +12,7 @@ using namespace shape;
 struct FindHolesBridgesTestParams
 {
     ShapeWithHoles shape;
-    std::vector<ShapeElement> expected_result;
+    std::vector<ShapeElement> expected_output;
 
     template <class basic_json>
     static FindHolesBridgesTestParams from_json(
@@ -20,8 +20,8 @@ struct FindHolesBridgesTestParams
     {
         FindHolesBridgesTestParams test_params;
         test_params.shape = ShapeWithHoles::from_json(json_item["shape"]);
-        for (auto& json_element: json_item["expected_result"].items())
-            test_params.expected_result.emplace_back(ShapeElement::from_json(json_element.value()));
+        for (auto& json_element: json_item["expected_output"].items())
+            test_params.expected_output.emplace_back(ShapeElement::from_json(json_element.value()));
         return test_params;
     }
 
@@ -47,22 +47,22 @@ TEST_P(FindHolesBridgesTest, FindHolesBridges)
 {
     FindHolesBridgesTestParams test_params = GetParam();
     std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
-    std::cout << "expected_result" << std::endl;
-    for (const ShapeElement& bridge: test_params.expected_result)
+    std::cout << "expected_output" << std::endl;
+    for (const ShapeElement& bridge: test_params.expected_output)
         std::cout << "- " << bridge.to_string() << std::endl;
 
-    std::vector<ShapeElement> result = find_holes_bridges(test_params.shape);
-    std::cout << "result" << std::endl;
-    for (const ShapeElement& bridge: result)
+    std::vector<ShapeElement> output = find_holes_bridges(test_params.shape);
+    std::cout << "output" << std::endl;
+    for (const ShapeElement& bridge: output)
         std::cout << "- " << bridge.to_string() << std::endl;
 
-    ASSERT_EQ(result.size(), test_params.expected_result.size());
-    for (const ShapeElement& expected_bridge: test_params.expected_result) {
+    ASSERT_EQ(output.size(), test_params.expected_output.size());
+    for (const ShapeElement& expected_bridge: test_params.expected_output) {
         EXPECT_NE(std::find_if(
-                    result.begin(),
-                    result.end(),
+                    output.begin(),
+                    output.end(),
                     [&expected_bridge](const ShapeElement& bridge) { return equal(bridge, expected_bridge) || equal(bridge.reverse(), expected_bridge); }),
-                result.end());
+                output.end());
     }
 }
 
@@ -130,7 +130,7 @@ INSTANTIATE_TEST_SUITE_P(
 struct ComputeBooleanUnionTestParams: TestParams<ComputeBooleanUnionTestParams>
 {
     std::vector<ShapeWithHoles> shapes;
-    std::vector<ShapeWithHoles> expected_result;
+    std::vector<ShapeWithHoles> expected_output;
 
 
     static ComputeBooleanUnionTestParams from_json(
@@ -139,8 +139,8 @@ struct ComputeBooleanUnionTestParams: TestParams<ComputeBooleanUnionTestParams>
         ComputeBooleanUnionTestParams test_params = TestParams::from_json(json_item);
         for (auto& json_shape: json_item["shapes"].items())
             test_params.shapes.emplace_back(ShapeWithHoles::from_json(json_shape.value()));
-        for (auto& json_shape: json_item["expected_result"].items())
-            test_params.expected_result.emplace_back(ShapeWithHoles::from_json(json_shape.value()));
+        for (auto& json_shape: json_item["expected_output"].items())
+            test_params.expected_output.emplace_back(ShapeWithHoles::from_json(json_shape.value()));
         return test_params;
     }
 };
@@ -154,14 +154,14 @@ TEST_P(ComputeBooleanUnionTest, ComputeBooleanUnion)
     std::cout << "shapes" << std::endl;
     for (const ShapeWithHoles& shape: test_params.shapes)
         std::cout << "- " << shape.to_string(2) << std::endl;
-    std::cout << "expected_result" << std::endl;
-    for (const ShapeWithHoles& shape: test_params.expected_result)
+    std::cout << "expected_output" << std::endl;
+    for (const ShapeWithHoles& shape: test_params.expected_output)
         std::cout << "- " << shape.to_string(2) << std::endl;
 
-    auto result = compute_union(
+    auto output = compute_union(
             test_params.shapes);
-    std::cout << "result" << std::endl;
-    for (const ShapeWithHoles& shape: result)
+    std::cout << "output" << std::endl;
+    for (const ShapeWithHoles& shape: output)
         std::cout << "- " << shape.to_string(2) << std::endl;
 
     if (test_params.write_json || test_params.write_svg) {
@@ -169,24 +169,24 @@ TEST_P(ComputeBooleanUnionTest, ComputeBooleanUnion)
 
         if (test_params.write_json) {
             Writer().add_shapes_with_holes(test_params.shapes).write_json(base_filename + "_shapes.json");
-            Writer().add_shapes_with_holes(test_params.expected_result).write_json(base_filename + "_expected_result.json");
-            Writer().add_shapes_with_holes(result).write_json(base_filename + "_result.json");
+            Writer().add_shapes_with_holes(test_params.expected_output).write_json(base_filename + "_expected_output.json");
+            Writer().add_shapes_with_holes(output).write_json(base_filename + "_output.json");
         }
         if (test_params.write_svg) {
             Writer().add_shapes_with_holes(test_params.shapes).write_svg(base_filename + "_shapes.svg");
-            Writer().add_shapes_with_holes(test_params.expected_result).write_svg(base_filename + "_expected_result.svg");
-            Writer().add_shapes_with_holes(result).write_svg(base_filename + "_result.svg");
+            Writer().add_shapes_with_holes(test_params.expected_output).write_svg(base_filename + "_expected_output.svg");
+            Writer().add_shapes_with_holes(output).write_svg(base_filename + "_output.svg");
         }
 
     }
 
-    ASSERT_EQ(result.size(), test_params.expected_result.size());
-    for (const ShapeWithHoles& expected_shape: test_params.expected_result) {
+    ASSERT_EQ(output.size(), test_params.expected_output.size());
+    for (const ShapeWithHoles& expected_shape: test_params.expected_output) {
         EXPECT_NE(std::find_if(
-                      result.begin(),
-                      result.end(),
+                      output.begin(),
+                      output.end(),
                       [&expected_shape](const ShapeWithHoles& shape) { return equal(shape, expected_shape); }),
-                  result.end());
+                  output.end());
     }
 }
 
@@ -199,7 +199,7 @@ INSTANTIATE_TEST_SUITE_P(
 struct ComputeBooleanIntersectionTestParams: TestParams<ComputeBooleanIntersectionTestParams>
 {
     std::vector<ShapeWithHoles> shapes;
-    std::vector<ShapeWithHoles> expected_result;
+    std::vector<ShapeWithHoles> expected_output;
 
 
     static ComputeBooleanIntersectionTestParams from_json(
@@ -208,8 +208,8 @@ struct ComputeBooleanIntersectionTestParams: TestParams<ComputeBooleanIntersecti
         ComputeBooleanIntersectionTestParams test_params = TestParams::from_json(json_item);
         for (auto& json_shape: json_item["shapes"].items())
             test_params.shapes.emplace_back(ShapeWithHoles::from_json(json_shape.value()));
-        for (auto& json_shape: json_item["expected_result"].items())
-            test_params.expected_result.emplace_back(ShapeWithHoles::from_json(json_shape.value()));
+        for (auto& json_shape: json_item["expected_output"].items())
+            test_params.expected_output.emplace_back(ShapeWithHoles::from_json(json_shape.value()));
         return test_params;
     }
 };
@@ -223,14 +223,14 @@ TEST_P(ComputeBooleanIntersectionTest, ComputeBooleanIntersection)
     std::cout << "shapes" << std::endl;
     for (const ShapeWithHoles& shape: test_params.shapes)
         std::cout << "- " << shape.to_string(2) << std::endl;
-    std::cout << "expected_result" << std::endl;
-    for (const ShapeWithHoles& shape: test_params.expected_result)
+    std::cout << "expected_output" << std::endl;
+    for (const ShapeWithHoles& shape: test_params.expected_output)
         std::cout << "- " << shape.to_string(2) << std::endl;
 
-    auto result = compute_intersection(
+    auto output = compute_intersection(
             test_params.shapes);
-    std::cout << "result" << std::endl;
-    for (const ShapeWithHoles& shape: result)
+    std::cout << "output" << std::endl;
+    for (const ShapeWithHoles& shape: output)
         std::cout << "- " << shape.to_string(2) << std::endl;
 
     if (test_params.write_json || test_params.write_svg) {
@@ -238,24 +238,24 @@ TEST_P(ComputeBooleanIntersectionTest, ComputeBooleanIntersection)
 
         if (test_params.write_json) {
             Writer().add_shapes_with_holes(test_params.shapes).write_json(base_filename + "_shapes.json");
-            Writer().add_shapes_with_holes(test_params.expected_result).write_json(base_filename + "_expected_result.json");
-            Writer().add_shapes_with_holes(result).write_json(base_filename + "_result.json");
+            Writer().add_shapes_with_holes(test_params.expected_output).write_json(base_filename + "_expected_output.json");
+            Writer().add_shapes_with_holes(output).write_json(base_filename + "_output.json");
         }
         if (test_params.write_svg) {
             Writer().add_shapes_with_holes(test_params.shapes).write_svg(base_filename + "_shapes.svg");
-            Writer().add_shapes_with_holes(test_params.expected_result).write_svg(base_filename + "_expected_result.svg");
-            Writer().add_shapes_with_holes(result).write_svg(base_filename + "_result.svg");
+            Writer().add_shapes_with_holes(test_params.expected_output).write_svg(base_filename + "_expected_output.svg");
+            Writer().add_shapes_with_holes(output).write_svg(base_filename + "_output.svg");
         }
 
     }
 
-    ASSERT_EQ(result.size(), test_params.expected_result.size());
-    for (const ShapeWithHoles& expected_shape: test_params.expected_result) {
+    ASSERT_EQ(output.size(), test_params.expected_output.size());
+    for (const ShapeWithHoles& expected_shape: test_params.expected_output) {
         EXPECT_NE(std::find_if(
-                      result.begin(),
-                      result.end(),
+                      output.begin(),
+                      output.end(),
                       [&expected_shape](const ShapeWithHoles& shape) { return equal(shape, expected_shape); }),
-                  result.end());
+                  output.end());
     }
 }
 
@@ -269,7 +269,7 @@ struct ComputeBooleanDifferenceTestParams : TestParams<ComputeBooleanDifferenceT
 {
     ShapeWithHoles shape;
     std::vector<ShapeWithHoles> shapes;
-    std::vector<ShapeWithHoles> expected_result;
+    std::vector<ShapeWithHoles> expected_output;
 
 
     static ComputeBooleanDifferenceTestParams from_json(
@@ -279,8 +279,8 @@ struct ComputeBooleanDifferenceTestParams : TestParams<ComputeBooleanDifferenceT
         test_params.shape = ShapeWithHoles::from_json(json_item["shape"]);
         for (auto& json_shape: json_item["shapes"].items())
             test_params.shapes.emplace_back(ShapeWithHoles::from_json(json_shape.value()));
-        for (auto& json_shape: json_item["expected_result"].items())
-            test_params.expected_result.emplace_back(ShapeWithHoles::from_json(json_shape.value()));
+        for (auto& json_shape: json_item["expected_output"].items())
+            test_params.expected_output.emplace_back(ShapeWithHoles::from_json(json_shape.value()));
         return test_params;
     }
 };
@@ -296,15 +296,15 @@ TEST_P(ComputeBooleanDifferenceTest, ComputeBooleanDifference)
     std::cout << "shapes" << std::endl;
     for (const ShapeWithHoles& shape: test_params.shapes)
         std::cout << "- " << shape.to_string(2) << std::endl;
-    std::cout << "expected_result" << std::endl;
-    for (const ShapeWithHoles& shape: test_params.expected_result)
+    std::cout << "expected_output" << std::endl;
+    for (const ShapeWithHoles& shape: test_params.expected_output)
         std::cout << "- " << shape.to_string(2) << std::endl;
 
-    auto result = compute_difference(
+    auto output = compute_difference(
             test_params.shape,
             test_params.shapes);
-    std::cout << "result" << std::endl;
-    for (const ShapeWithHoles& shape: result)
+    std::cout << "output" << std::endl;
+    for (const ShapeWithHoles& shape: output)
         std::cout << "- " << shape.to_string(2) << std::endl;
 
     if (test_params.write_json || test_params.write_svg) {
@@ -312,23 +312,23 @@ TEST_P(ComputeBooleanDifferenceTest, ComputeBooleanDifference)
 
         if (test_params.write_json) {
             Writer().add_shape_with_holes(test_params.shape).add_shapes_with_holes(test_params.shapes).write_json(base_filename + "_shapes.json");
-            Writer().add_shapes_with_holes(test_params.expected_result).write_json(base_filename + "_expected_result.json");
-            Writer().add_shapes_with_holes(result).write_json(base_filename + "_result.json");
+            Writer().add_shapes_with_holes(test_params.expected_output).write_json(base_filename + "_expected_output.json");
+            Writer().add_shapes_with_holes(output).write_json(base_filename + "_output.json");
         }
         if (test_params.write_svg) {
             Writer().add_shape_with_holes(test_params.shape).add_shapes_with_holes(test_params.shapes).write_svg(base_filename + "_shapes.svg");
-            Writer().add_shapes_with_holes(test_params.expected_result).write_svg(base_filename + "_expected_result.svg");
-            Writer().add_shapes_with_holes(result).write_svg(base_filename + "_result.svg");
+            Writer().add_shapes_with_holes(test_params.expected_output).write_svg(base_filename + "_expected_output.svg");
+            Writer().add_shapes_with_holes(output).write_svg(base_filename + "_output.svg");
         }
     }
 
-    ASSERT_EQ(result.size(), test_params.expected_result.size());
-    for (const ShapeWithHoles& expected_shape: test_params.expected_result) {
+    ASSERT_EQ(output.size(), test_params.expected_output.size());
+    for (const ShapeWithHoles& expected_shape: test_params.expected_output) {
         EXPECT_NE(std::find_if(
-                      result.begin(),
-                      result.end(),
+                      output.begin(),
+                      output.end(),
                       [&expected_shape](const ShapeWithHoles& shape) { return equal(shape, expected_shape); }),
-                  result.end());
+                  output.end());
     }
 }
 
@@ -342,7 +342,7 @@ struct ComputeBooleanSymmetricDifferenceTestParams : TestParams<ComputeBooleanSy
 {
     ShapeWithHoles shape_1;
     ShapeWithHoles shape_2;
-    std::vector<ShapeWithHoles> expected_result;
+    std::vector<ShapeWithHoles> expected_output;
 
 
     static ComputeBooleanSymmetricDifferenceTestParams from_json(
@@ -351,8 +351,8 @@ struct ComputeBooleanSymmetricDifferenceTestParams : TestParams<ComputeBooleanSy
         ComputeBooleanSymmetricDifferenceTestParams test_params = TestParams::from_json(json_item);
         test_params.shape_1 = ShapeWithHoles::from_json(json_item["shape_1"]);
         test_params.shape_2 = ShapeWithHoles::from_json(json_item["shape_2"]);
-        for (auto& json_shape: json_item["expected_result"].items())
-            test_params.expected_result.emplace_back(ShapeWithHoles::from_json(json_shape.value()));
+        for (auto& json_shape: json_item["expected_output"].items())
+            test_params.expected_output.emplace_back(ShapeWithHoles::from_json(json_shape.value()));
         return test_params;
     }
 };
@@ -367,15 +367,15 @@ TEST_P(ComputeBooleanSymmetricDifferenceTest, ComputeBooleanSymetricDifference)
     std::cout << "- " << test_params.shape_1.to_string(2) << std::endl;
     std::cout << "shape_2" << std::endl;
     std::cout << "- " << test_params.shape_2.to_string(2) << std::endl;
-    std::cout << "expected_result" << std::endl;
-    for (const ShapeWithHoles& shape: test_params.expected_result)
+    std::cout << "expected_output" << std::endl;
+    for (const ShapeWithHoles& shape: test_params.expected_output)
         std::cout << "- " << shape.to_string(2) << std::endl;
 
-    auto result = compute_symmetric_difference(
+    auto output = compute_symmetric_difference(
             test_params.shape_1,
             test_params.shape_2);
-    std::cout << "result" << std::endl;
-    for (const ShapeWithHoles& shape: result)
+    std::cout << "output" << std::endl;
+    for (const ShapeWithHoles& shape: output)
         std::cout << "- " << shape.to_string(2) << std::endl;
 
     if (test_params.write_json || test_params.write_svg) {
@@ -383,24 +383,24 @@ TEST_P(ComputeBooleanSymmetricDifferenceTest, ComputeBooleanSymetricDifference)
 
         if (test_params.write_json) {
             Writer().add_shape_with_holes(test_params.shape_1).add_shape_with_holes(test_params.shape_2).write_json(base_filename + "_shapes.json");
-            Writer().add_shapes_with_holes(test_params.expected_result).write_json(base_filename + "_expected_result.json");
-            Writer().add_shapes_with_holes(result).write_json(base_filename + "_result.json");
+            Writer().add_shapes_with_holes(test_params.expected_output).write_json(base_filename + "_expected_output.json");
+            Writer().add_shapes_with_holes(output).write_json(base_filename + "_output.json");
         }
         if (test_params.write_svg) {
             Writer().add_shape_with_holes(test_params.shape_1).add_shape_with_holes(test_params.shape_2).write_svg(base_filename + "_shapes.svg");
-            Writer().add_shapes_with_holes(test_params.expected_result).write_svg(base_filename + "_expected_result.svg");
-            Writer().add_shapes_with_holes(result).write_svg(base_filename + "_result.svg");
+            Writer().add_shapes_with_holes(test_params.expected_output).write_svg(base_filename + "_expected_output.svg");
+            Writer().add_shapes_with_holes(output).write_svg(base_filename + "_output.svg");
         }
 
     }
 
-    ASSERT_EQ(result.size(), test_params.expected_result.size());
-    for (const ShapeWithHoles& expected_shape: test_params.expected_result) {
+    ASSERT_EQ(output.size(), test_params.expected_output.size());
+    for (const ShapeWithHoles& expected_shape: test_params.expected_output) {
         EXPECT_NE(std::find_if(
-                      result.begin(),
-                      result.end(),
+                      output.begin(),
+                      output.end(),
                       [&expected_shape](const ShapeWithHoles& shape) { return equal(shape, expected_shape); }),
-                  result.end());
+                  output.end());
     }
 }
 

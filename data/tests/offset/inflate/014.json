@@ -38,7 +38,7 @@
     "type": "general"
   },
   "offset": 1,
-  "expected_result": {
+  "expected_output": {
     "elements": [
       {
         "center": {

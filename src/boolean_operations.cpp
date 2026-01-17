@@ -1044,11 +1044,11 @@ std::vector<ShapeWithHoles> shape::compute_symmetric_difference(
 std::vector<Shape> shape::extract_faces(
         const Shape& shape)
 {
-    auto result = compute_boolean_operation(
+    auto output = compute_boolean_operation(
             {{shape}},
             BooleanOperation::FaceExtraction);
     std::vector<Shape> faces;
-    for (const ShapeWithHoles& shape: result)
+    for (const ShapeWithHoles& shape: output)
         faces.push_back(shape.shape);
     return faces;
 }

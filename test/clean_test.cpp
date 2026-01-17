@@ -102,7 +102,7 @@ INSTANTIATE_TEST_SUITE_P(
 struct FixSelfIntersectionsTestParams
 {
     ShapeWithHoles shape;
-    std::vector<ShapeWithHoles> expected_result;
+    std::vector<ShapeWithHoles> expected_output;
 };
 
 class FixSelfIntersectionsTest: public testing::TestWithParam<FixSelfIntersectionsTestParams> { };
@@ -112,20 +112,20 @@ TEST_P(FixSelfIntersectionsTest, FixSelfIntersections)
     FixSelfIntersectionsTestParams test_params = GetParam();
     std::cout << "shape " << test_params.shape.to_string(2) << std::endl;
     std::cout << "expected shapes:" << std::endl;
-    for (const ShapeWithHoles& shape: test_params.expected_result)
+    for (const ShapeWithHoles& shape: test_params.expected_output)
         std::cout << shape.to_string(2) << std::endl;
-    std::vector<ShapeWithHoles> result = fix_self_intersections(test_params.shape);
-    std::cout << "result:" << std::endl;
-    for (const ShapeWithHoles& shape: result)
+    std::vector<ShapeWithHoles> output = fix_self_intersections(test_params.shape);
+    std::cout << "output:" << std::endl;
+    for (const ShapeWithHoles& shape: output)
         std::cout << shape.to_string(2) << std::endl;
 
-    ASSERT_EQ(result.size(), test_params.expected_result.size());
-    for (const ShapeWithHoles& expected_shape: test_params.expected_result) {
+    ASSERT_EQ(output.size(), test_params.expected_output.size());
+    for (const ShapeWithHoles& expected_shape: test_params.expected_output) {
         EXPECT_NE(std::find_if(
-                      result.begin(),
-                      result.end(),
+                      output.begin(),
+                      output.end(),
                       [&expected_shape](const ShapeWithHoles& shape) { return equal(shape, expected_shape); }),
-                  result.end());
+                  output.end());
     }
 }
 

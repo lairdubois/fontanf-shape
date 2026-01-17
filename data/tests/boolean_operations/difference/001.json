@@ -112,7 +112,7 @@
       ]
     }
   ],
-  "expected_result": [
+  "expected_output": [
     {
       "type": "polygon",
       "vertices": [

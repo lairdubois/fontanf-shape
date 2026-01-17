@@ -347,7 +347,7 @@ struct ShapeContainsTestParams
     Shape shape;
     Point point;
     bool strict;
-    bool expected_result;
+    bool expected_output;
 };
 
 class ShapeContainsTest: public testing::TestWithParam<ShapeContainsTestParams> { };
@@ -358,12 +358,12 @@ TEST_P(ShapeContainsTest, ShapeContains)
     std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
     std::cout << "point " << test_params.point.to_string() << std::endl;
     std::cout << "strict " << test_params.strict << std::endl;
-    std::cout << "expceted result " << test_params.expected_result << std::endl;
-    bool result = test_params.shape.contains(
+    std::cout << "expceted output " << test_params.expected_output << std::endl;
+    bool output = test_params.shape.contains(
             test_params.point,
             test_params.strict);
-    std::cout << "result " << result << std::endl;
-    EXPECT_EQ(result, test_params.expected_result);
+    std::cout << "output " << output << std::endl;
+    EXPECT_EQ(output, test_params.expected_output);
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -390,9 +390,9 @@ TEST_P(ShapeFindPointStrictlyInsideTest, ShapeFindPointStrictlyInside)
 {
     ShapeFindPointStrictlyInsideTestParams test_params = GetParam();
     std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
-    Point result = test_params.shape.find_point_strictly_inside();
-    std::cout << "result " << result.to_string() << std::endl;
-    EXPECT_TRUE(test_params.shape.contains(result, true));
+    Point output = test_params.shape.find_point_strictly_inside();
+    std::cout << "output " << output.to_string() << std::endl;
+    EXPECT_TRUE(test_params.shape.contains(output, true));
 }
 
 INSTANTIATE_TEST_SUITE_P(

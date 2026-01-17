@@ -17,7 +17,7 @@ struct SimplificationTestParams
 {
     std::vector<SimplifyInputShape> shapes;
     AreaDbl maximum_approximation_area;
-    std::vector<ShapeWithHoles> expected_result;
+    std::vector<ShapeWithHoles> expected_output;
 
 
     template <class basic_json>
@@ -35,10 +35,10 @@ struct SimplificationTestParams
             test_params.shapes.push_back(input_shape);
         }
         test_params.maximum_approximation_area = json_item["maximum_approximation_area"];
-        if (json_item.contains("expected_result")) {
-            for (const auto& json_shape: json_item["expected_result"]) {
+        if (json_item.contains("expected_output")) {
+            for (const auto& json_shape: json_item["expected_output"]) {
                 ShapeWithHoles shape = ShapeWithHoles::from_json(json_shape);
-                test_params.expected_result.push_back(shape);
+                test_params.expected_output.push_back(shape);
             }
         }
         return test_params;
@@ -71,13 +71,13 @@ TEST_P(SimplificationTest, Simplification)
     //    writer.add_shape(shape.shape);
     //writer.write_json("simplify_input.json");
 
-    std::vector<ShapeWithHoles> result = simplify(
+    std::vector<ShapeWithHoles> output = simplify(
             test_params.shapes,
             test_params.maximum_approximation_area);
 
-    if (!test_params.expected_result.empty())
+    if (!test_params.expected_output.empty())
         for (ShapePos pos = 0; pos < (ShapePos)test_params.shapes.size(); ++pos)
-            EXPECT_TRUE(equal(result[pos], test_params.expected_result[pos]));
+            EXPECT_TRUE(equal(output[pos], test_params.expected_output[pos]));
 }
 
 INSTANTIATE_TEST_SUITE_P(

@@ -9,7 +9,7 @@ using namespace shape;
 struct TrapezoidationTestParams
 {
     ShapeWithHoles shape;
-    std::vector<GeneralizedTrapezoid> expected_result;
+    std::vector<GeneralizedTrapezoid> expected_output;
 
     template <class basic_json>
     static TrapezoidationTestParams from_json(
@@ -17,8 +17,8 @@ struct TrapezoidationTestParams
     {
         TrapezoidationTestParams test_params;
         test_params.shape = ShapeWithHoles::from_json(json_item["shape"]);
-        for (auto& json_trapezoid: json_item["expected_result"].items())
-            test_params.expected_result.emplace_back(GeneralizedTrapezoid::from_json(json_trapezoid.value()));
+        for (auto& json_trapezoid: json_item["expected_output"].items())
+            test_params.expected_output.emplace_back(GeneralizedTrapezoid::from_json(json_trapezoid.value()));
         return test_params;
     }
 
@@ -44,19 +44,19 @@ TEST_P(TrapezoidationTest, Trapezoidation)
 {
     TrapezoidationTestParams test_params = GetParam();
     std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
-    std::cout << "expected_result" << std::endl;
-    for (const GeneralizedTrapezoid& trapezoid: test_params.expected_result)
+    std::cout << "expected_output" << std::endl;
+    for (const GeneralizedTrapezoid& trapezoid: test_params.expected_output)
         std::cout << "- " << trapezoid << std::endl;
 
-    std::vector<GeneralizedTrapezoid> result = trapezoidation(
+    std::vector<GeneralizedTrapezoid> output = trapezoidation(
             test_params.shape);
-    std::cout << "result" << std::endl;
-    for (const GeneralizedTrapezoid& trapezoid: result)
+    std::cout << "output" << std::endl;
+    for (const GeneralizedTrapezoid& trapezoid: output)
         std::cout << "- " << trapezoid << std::endl;
 
-    ASSERT_EQ(result.size(), test_params.expected_result.size());
-    for (const GeneralizedTrapezoid& trapezoid: test_params.expected_result) {
-        EXPECT_NE(std::find(result.begin(), result.end(), trapezoid), result.end());
+    ASSERT_EQ(output.size(), test_params.expected_output.size());
+    for (const GeneralizedTrapezoid& trapezoid: test_params.expected_output) {
+        EXPECT_NE(std::find(output.begin(), output.end(), trapezoid), output.end());
     }
 }
 
