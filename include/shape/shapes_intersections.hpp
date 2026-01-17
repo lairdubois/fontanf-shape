@@ -12,6 +12,9 @@ bool intersect(
 bool intersect(
         const Shape& shape);
 
+std::vector<std::pair<ElementPos, ElementPos>> compute_intersecting_elements(
+        const Shape& shape);
+
 bool intersect(
         const Shape& shape,
         const ShapeElement& element,
