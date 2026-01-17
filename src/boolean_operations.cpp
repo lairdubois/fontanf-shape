@@ -481,6 +481,41 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
 
     IntersectionTree intersection_tree(shapes, {}, {});
 
+    std::vector<uint8_t> element_is_processed(splitted_elements.size(), 0);
+    for (NodeId node_id = 0;
+            node_id < (NodeId)graph.nodes.size();
+            ++node_id) {
+        NodeId node_cur_id = node_id;
+        for (;;) {
+            const BooleanOperationNode& node = graph.nodes[node_cur_id];
+            ElementPos node_degree = 0;
+            ElementPos element_next_pos = -1;
+            for (ElementPos element_pos: node.successors) {
+                if (element_is_processed[element_pos] == 0) {
+                    node_degree++;
+                    element_next_pos = element_pos;
+                }
+            }
+            //std::cout << "node " << node_id
+            //    << " degree " << node_degree << std::endl;
+            if (node_degree != 1)
+                break;
+            //std::cout << "fix element " << element_next_pos << std::endl;
+            element_is_processed[element_next_pos] = 1;
+            // Find the reverse arc to fix.
+            const BooleanOperationArc& arc_next = graph.arcs[element_next_pos];
+            for (ElementPos element_pos: graph.nodes[arc_next.end_node_id].successors) {
+                const BooleanOperationArc& arc = graph.arcs[element_pos];
+                if (arc.end_node_id == node_cur_id) {
+                    //std::cout << "fix element " << element_pos << std::endl;
+                    element_is_processed[element_pos] = 1;
+                    break;
+                }
+            }
+            node_cur_id = graph.arcs[element_next_pos].end_node_id;
+        }
+    }
+
     // Find an element from the outline.
     // To do so find, all elements from the original elements with the leftest
     // point.
@@ -493,6 +528,8 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
     for (ElementPos element_pos = 0;
             element_pos < (ElementPos)splitted_elements.size();
             ++element_pos) {
+        if (element_is_processed[element_pos])
+            continue;
         const SplittedElement& element = splitted_elements[element_pos];
         if (element.original_direction)
             continue;
@@ -575,8 +612,6 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
         throw std::logic_error(
                 FUNC_SIGNATURE + ": element_start_pos is '-1'.");
     }
-
-    std::vector<uint8_t> element_is_processed(splitted_elements.size(), 0);
 
     // Find outer loop.
     //std::cout << "find outer loop..." << std::endl;
