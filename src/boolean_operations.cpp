@@ -204,15 +204,15 @@ ComputeSplittedElementsOutput compute_splitted_elements(
     IntersectionTree intersection_tree_2(shapes, {}, {});
     for (auto it = output.shape_component_ids.values_begin();
             it != output.shape_component_ids.values_end();
-            ++it) {
+            ) {
         ComponentId component_id = *it;
-
-        // Draw a point strictly inside the component.
         //std::cout << "component_id " << component_id << std::endl;
-        //std::cout << output.shape_component_ids.number_of_elements(component_id) << std::endl;
-        //std::cout << *output.shape_component_ids.begin(component_id) << " / " << shapes.size() << std::endl;
-        //std::cout << shapes[*(output.shape_component_ids.begin(component_id))].to_string(0) << std::endl;
-        //std::cout << "point from component " << component_id << ": " << point.to_string() << std::endl;
+        //for (auto it_shape = output.shape_component_ids.begin(component_id);
+        //        it_shape != output.shape_component_ids.end(component_id);
+        //        ++it_shape) {
+        //    std::cout << " " << *it_shape;
+        //}
+        //std::cout << std::endl;
 
         // Check if it is inside another component.
         IntersectionTree::IntersectOutput it_output = intersection_tree_2.intersect(
@@ -237,6 +237,8 @@ ComputeSplittedElementsOutput compute_splitted_elements(
                 while (output.shape_component_ids.number_of_elements(component_id_2) > 0)
                     output.shape_component_ids.set(*output.shape_component_ids.begin(component_id_2), component_id);
             }
+        } else {
+            ++it;
         }
     }
 
