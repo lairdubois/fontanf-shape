@@ -6,6 +6,46 @@
 
 using namespace shape;
 
+namespace
+{
+
+LengthDbl find_median(
+        std::vector<LengthDbl>& values_left,
+        std::vector<LengthDbl>& values_right,
+        LengthDbl min,
+        LengthDbl max)
+{
+    if (values_left.empty())
+        return (min + max) / 2;
+    //std::cout << "find_median" << std::endl;
+    ElementPos k = values_right.size() / 2;
+    std::nth_element(values_right.begin(), values_right.begin() + k, values_right.end());
+    std::nth_element(values_left.begin(), values_left.begin() + k, values_left.end());
+    LengthDbl median = (values_right[k] + values_left[k]) / 2.0;
+
+    if (median < min)
+        return min;
+    if (median > max)
+        return max;
+
+    LengthDbl median_next = +std::numeric_limits<LengthDbl>::infinity();
+    LengthDbl median_prev = -std::numeric_limits<LengthDbl>::infinity();
+    for (auto it = values_right.begin(); it != values_right.begin() + k; ++it)
+        if (median_prev < *it && !equal(*it, median))
+            median_prev = *it;
+    for (auto it = values_right.begin(); it != values_right.begin() + k; ++it)
+        if (median_prev > *it && !equal(*it, median))
+            median_prev = *it;
+    if (strictly_lesser(median_next, max)) {
+        return (median + median_next) / 2;
+    } else if (strictly_greater(median_prev, min)) {
+        return (median + median_prev) / 2;
+    }
+    return median;
+}
+
+}
+
 IntersectionTree::IntersectionTree(
         const std::vector<ShapeWithHoles>& shapes,
         const std::vector<ShapeElement>& elements,
@@ -82,21 +122,43 @@ IntersectionTree::IntersectionTree(
         Node& node = tree_[node_id];
         //std::cout << "node_id " << node_id
         //    << " size " << stack_element.shape_ids.size()
+        //    << " " << stack_element.element_ids.size()
+        //    << " " << stack_element.point_ids.size()
         //    << " l " << node.l
         //    << " r " << node.r
         //    << " b " << node.b
         //    << " t " << node.t
         //    << std::endl;
 
+        std::vector<double> values_x_right;
+        std::vector<double> values_x_left;
+        std::vector<double> values_y_bottom;
+        std::vector<double> values_y_top;
+        for (ShapePos shape_id: stack_element.shape_ids) {
+            values_x_left.push_back(shapes_min_max[shape_id].first.x);
+            values_x_right.push_back(shapes_min_max[shape_id].second.x);
+            values_y_bottom.push_back(shapes_min_max[shape_id].first.y);
+            values_y_top.push_back(shapes_min_max[shape_id].second.y);
+        }
+        for (ElementPos element_id: stack_element.element_ids) {
+            auto mm = elements[element_id].min_max();
+            values_x_left.push_back(mm.first.x);
+            values_x_right.push_back(mm.second.x);
+            values_y_bottom.push_back(mm.first.y);
+            values_y_top.push_back(mm.second.y);
+        }
+        for (ElementPos point_id: stack_element.point_ids) {
+            const Point& point = points[point_id];
+            values_x_left.push_back(point.x);
+            values_x_right.push_back(point.x);
+            values_y_bottom.push_back(point.y);
+            values_y_top.push_back(point.y);
+        }
+
         // Compute x_middle / y_middle
-        std::vector<LengthDbl> xs =  {
-            2 * node.l / 3 + node.r / 3,
-            node.l / 2 + node.r / 2,
-            node.l / 3 + 2 * node.r / 3};
-        std::vector<LengthDbl> ys =  {
-            2 * node.b / 3 + node.t / 3,
-            node.b / 2 + node.t / 2,
-            node.b / 3 + 2 * node.t / 3};
+        std::vector<LengthDbl> xs = {find_median(values_x_left, values_x_right, node.l, node.r)};
+        std::vector<LengthDbl> ys = {find_median(values_y_bottom, values_y_top, node.b, node.t)};
+        //std::cout << xs.front() << " " << ys.front() << std::endl;
 
         // Compute left/right/bottom/top shapes.
         std::vector<std::vector<ShapePos>> left_shape_ids(xs.size());
@@ -162,12 +224,15 @@ IntersectionTree::IntersectionTree(
         ShapePos n = stack_element.shape_ids.size() + stack_element.element_ids.size() + stack_element.point_ids.size();
         ShapePos n_best = n * (n - 1) / 2;
         //std::cout << "n " << n << std::endl;
+        //std::cout << "n_best " << n << std::endl;
         int i_best = -1;
         for (int i = 0; i < (int)xs.size(); ++i) {
             ShapePos nl = left_shape_ids[i].size() + left_element_ids[i].size() + left_point_ids[i].size();
             ShapePos nr = right_shape_ids[i].size() + right_element_ids[i].size() + right_point_ids[i].size();
             ShapePos nv = nl * (nl - 1) / 1 + nr * (nr - 1) / 2;
-            //std::cout << "i " << i << " nv " << nv << std::endl;
+            if (nl == 0 || nr == 0)
+                continue;
+            //std::cout << "i " << i << " nl " << nl << " nr " << nr << " nv " << nv << std::endl;
             if (n_best > nv) {
                 n_best = nv;
                 best = 'v';
@@ -177,14 +242,17 @@ IntersectionTree::IntersectionTree(
         for (int i = 0; i < (int)ys.size(); ++i) {
             ShapePos nb = bottom_shape_ids[i].size() + bottom_element_ids[i].size() + bottom_point_ids[i].size();
             ShapePos nt = top_shape_ids[i].size() + top_element_ids[i].size() + top_point_ids[i].size();
+            if (nb == 0 || nt == 0)
+                continue;
             ShapePos nh = nb * (nb - 1) / 2 + nt * (nt - 1) / 2;
-            //std::cout << "i " << i << " nh " << nh << std::endl;
+            //std::cout << "i " << i << " nb " << nb << " nt " << nt << " nh " << nh << std::endl;
             if (n_best > nh) {
                 n_best = nh;
                 best = 'h';
                 i_best = i;
             }
         }
+        //std::cout << "best " << best << " n_best " << n_best << " i_best " << i_best << std::endl;
 
         if (best == 'x') {
             node.direction = 'x';
