@@ -11,6 +11,10 @@ namespace shape
 std::vector<ShapeWithHoles> compute_union(
         const std::vector<ShapeWithHoles>& shapes);
 
+void compute_union_export_inputs(
+        const std::string& file_path,
+        const std::vector<ShapeWithHoles>& shapes);
+
 /**
  * Compute the intersection of a given set of shapes.
  */

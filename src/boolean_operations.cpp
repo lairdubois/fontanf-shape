@@ -1003,6 +1003,20 @@ std::vector<ShapeWithHoles> shape::compute_union(
             BooleanOperation::Union);
 }
 
+void shape::compute_union_export_inputs(
+        const std::string& file_path,
+        const std::vector<ShapeWithHoles>& shapes)
+{
+    std::ofstream file{file_path};
+    nlohmann::json json;
+    for (ShapePos shape_pos = 0;
+            shape_pos < (ShapePos)shapes.size();
+            ++shape_pos) {
+        json["shapes"][shape_pos] = shapes[shape_pos].to_json();
+    }
+    file << std::setw(4) << json << std::endl;
+}
+
 std::vector<ShapeWithHoles> shape::compute_intersection(
         const std::vector<ShapeWithHoles>& shapes)
 {
