@@ -8,7 +8,7 @@
 #include "optimizationtools/containers/doubly_indexed_map.hpp"
 
 //#include <iostream>
-//#include <fstream>
+#include <fstream>
 
 using namespace shape;
 
