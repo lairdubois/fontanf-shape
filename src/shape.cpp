@@ -1382,7 +1382,7 @@ bool Shape::contains(
 Point Shape::find_point_strictly_inside() const
 {
     auto mm = this->compute_min_max();
-    for (Counter k = 2;; ++k) {
+    for (Counter k = 2; k < 8; ++k) {
         for (Counter k2 = 1; k2 < k; ++k2) {
             LengthDbl y = mm.first.y + (mm.second.y - mm.first.y) * k2 / k;
             Point point_min_1 = {
@@ -1435,10 +1435,7 @@ Point Shape::find_point_strictly_inside() const
             return {(point_min_1.x + point_min_2.x) / 2, y};
         }
     }
-    throw std::logic_error(
-            FUNC_SIGNATURE + ": "
-            "no point found inside the shape.");
-    return {0, 0};
+    return this->elements.front().start;
 }
 
 bool Shape::is_strictly_closer_to_path_start(
@@ -1989,6 +1986,14 @@ Shape shape::build_path(
     return shape;
 }
 
+AreaDbl ShapeWithHoles::compute_area() const
+{
+    AreaDbl area = this->shape.compute_area();
+    for (const Shape& hole: this->holes)
+        area -= hole.compute_area();
+    return area;
+}
+
 bool ShapeWithHoles::contains(
         const Point& point,
         bool strict) const
@@ -2004,7 +2009,7 @@ bool ShapeWithHoles::contains(
 Point ShapeWithHoles::find_point_strictly_inside() const
 {
     auto mm = this->compute_min_max();
-    for (Counter k = 2;; ++k) {
+    for (Counter k = 2; k < 8; ++k) {
         for (Counter k2 = 1; k2 < k; ++k2) {
             LengthDbl y = mm.first.y + (mm.second.y - mm.first.y) * k2 / k;
             Point point_min_1 = {
@@ -2064,10 +2069,7 @@ Point ShapeWithHoles::find_point_strictly_inside() const
             return {(point_min_1.x + point_min_2.x) / 2, y};
         }
     }
-    throw std::logic_error(
-            FUNC_SIGNATURE + ": "
-            "no point found inside the shape.");
-    return {0, 0};
+    return this->shape.elements.front().start;
 }
 
 std::string ShapeWithHoles::to_string(

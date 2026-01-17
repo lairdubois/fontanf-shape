@@ -544,6 +544,9 @@ struct ShapeWithHoles
     std::vector<Shape> holes;
 
 
+    /** Compute the area of the shape. */
+    AreaDbl compute_area() const;
+
     /** Compute the smallest and greatest x and y of the shape. */
     std::pair<Point, Point> compute_min_max(
             Angle angle = 0.0,

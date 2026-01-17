@@ -467,6 +467,7 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
     //std::cout << "compute_boolean_operation_component" << std::endl;
     //for (const SplittedElement& splitted_element: splitted_elements)
     //    std::cout << splitted_element.element.to_string() << std::endl;
+    //Writer().add_shapes_with_holes(shapes).write_json("compute_boolean_operation_component_input.json");
 
     std::vector<ShapeWithHoles> new_shapes;
     BooleanOperationGraph graph = compute_graph(splitted_elements);
