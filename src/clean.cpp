@@ -5,7 +5,7 @@
 #include "shape/boolean_operations.hpp"
 //#include "shape/writer.hpp"
 
-#include <iostream>
+//#include <iostream>
 
 using namespace shape;
 
@@ -169,7 +169,7 @@ std::pair<bool, ShapeWithHoles> shape::remove_aligned_vertices(
 Shape shape::remove_backtracks(
         const Shape& shape)
 {
-    std::cout << "remove_backtracks " << shape.to_string(0) << std::endl;
+    //std::cout << "remove_backtracks " << shape.to_string(0) << std::endl;
 
     // Handle circles.
     if (shape.elements.size() == 1)
