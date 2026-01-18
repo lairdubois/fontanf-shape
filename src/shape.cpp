@@ -820,13 +820,12 @@ ShapeElement ShapeElement::reverse() const
 {
     ShapeElement element_out;
     element_out.type = this->type;
-    element_out.start.x = this->end.x;
-    element_out.start.y = this->end.y;
-    element_out.end.x = this->start.x;
-    element_out.end.y = this->start.y;
-    element_out.center.x = this->center.x;
-    element_out.center.y = this->center.y;
-    element_out.orientation = opposite(this->orientation);
+    element_out.start = this->end;
+    element_out.end = this->start;
+    if (this->type == ShapeElementType::CircularArc) {
+        element_out.center = this->center;
+        element_out.orientation = opposite(this->orientation);
+    }
     return element_out;
 }
 

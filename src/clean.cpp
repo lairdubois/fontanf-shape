@@ -169,6 +169,8 @@ std::pair<bool, ShapeWithHoles> shape::remove_aligned_vertices(
 Shape shape::remove_backtracks(
         const Shape& shape)
 {
+    std::cout << "remove_backtracks " << shape.to_string(0) << std::endl;
+
     // Handle circles.
     if (shape.elements.size() == 1)
         return shape;
@@ -179,7 +181,7 @@ Shape shape::remove_backtracks(
             element_pos < (ElementPos)shape.elements.size();
             ++element_pos) {
         const ShapeElement& element = shape.elements[element_pos];
-        const ShapeElement& element_next = (element_pos != shape.elements.size())?
+        const ShapeElement& element_next = (element_pos + 1 != shape.elements.size())?
             shape.elements[element_pos + 1]:
             shape.elements[0];
         if (equal(element, element_next.reverse())) {
