@@ -71,7 +71,8 @@ struct ElementToSplit
 };
 
 ComputeSplittedElementsOutput compute_splitted_elements(
-        const std::vector<ShapeWithHoles>& shapes)
+        const std::vector<ShapeWithHoles>& shapes,
+        BooleanOperation boolean_operation)
 {
     //std::cout << "compute_splitted_elements"
     //    " shapes.size() " << shapes.size() << std::endl;
@@ -202,10 +203,13 @@ ComputeSplittedElementsOutput compute_splitted_elements(
     // For each pair of connected component, check if one is strictly inside the
     // other.
     IntersectionTree intersection_tree_2(shapes, {}, {});
-    for (auto it = output.shape_component_ids.values_begin();
-            it != output.shape_component_ids.values_end();
-            ) {
-        ComponentId component_id = *it;
+    optimizationtools::IndexedSet intersecting_compooents(shapes.size());
+    for (ComponentId component_id = 0;
+            component_id < (ComponentId)shapes.size();
+            ++component_id) {
+        if (output.shape_component_ids.number_of_elements(component_id) == 0)
+            continue;
+
         //std::cout << "component_id " << component_id << std::endl;
         //for (auto it_shape = output.shape_component_ids.begin(component_id);
         //        it_shape != output.shape_component_ids.end(component_id);
@@ -218,27 +222,68 @@ ComputeSplittedElementsOutput compute_splitted_elements(
         IntersectionTree::IntersectOutput it_output = intersection_tree_2.intersect(
                 shapes[*(output.shape_component_ids.begin(component_id))].find_point_strictly_inside(),
                 false);
-        if (it_output.shape_ids.empty())
-            continue;
-        ComponentId component_id_2 = -1;
+        intersecting_compooents.clear();
         for (ShapePos shape_id: it_output.shape_ids) {
-            if (output.shape_component_ids[shape_id] != component_id) {
-                component_id_2 = output.shape_component_ids[shape_id];
+            ComponentId component_2_id = output.shape_component_ids[shape_id];
+            if (component_2_id != component_id)
+                intersecting_compooents.add(component_2_id);
+        }
+        for (ComponentId component_2_id: intersecting_compooents) {
+            // Find a point on the outline of the component.
+            Point point = shapes[*(output.shape_component_ids.begin(component_2_id))].shape.elements.front().start;
+            // Check if the point is contained inside the first component.
+            IntersectionTree::IntersectOutput it_output_2 = intersection_tree_2.intersect(point, false);
+            bool contained = false;
+            for (ShapePos shape_id: it_output_2.shape_ids) {
+                ComponentId component_3_id = output.shape_component_ids[shape_id];
+                if (component_3_id == component_id)
+                    contained = true;
+            }
+            // If the point is contained, then the first component contains the
+            // second one.
+            // We do nothing here since the first component might contain the
+            // second one while we don't get here, since the point drawn inside
+            // the first component could not be inside the second component in
+            // this case.
+            if (contained)
+                continue;
+            // The first component is contained inside the second component.
+            // - union: remove first component
+            // - intersection: remove second component
+            // - difference: replace second component by first and remove first
+            // - symmetric difference: bridge the two components
+            switch (boolean_operation) {
+            case BooleanOperation::Union: {
+                while (output.shape_component_ids.number_of_elements(component_id) > 0) {
+                    output.shape_component_ids.set(
+                            *output.shape_component_ids.begin(component_id),
+                            shapes.size());
+                }
+                break;
+            } case BooleanOperation::Intersection: {
+                while (output.shape_component_ids.number_of_elements(component_2_id) > 0) {
+                    output.shape_component_ids.set(
+                            *output.shape_component_ids.begin(component_2_id),
+                            shapes.size());
+                }
+                break;
+            } case BooleanOperation::Difference: {
+                throw std::logic_error(
+                        FUNC_SIGNATURE + ": "
+                        "not implemented.");
+                break;
+            } case BooleanOperation::SymmetricDifference: {
+                throw std::logic_error(
+                        FUNC_SIGNATURE + ": "
+                        "not implemented.");
+                break;
+            } case BooleanOperation::FaceExtraction: {
+                throw std::logic_error(
+                        FUNC_SIGNATURE + ": "
+                        "not implemented.");
                 break;
             }
-        }
-        //std::cout << "component_id_2 " << component_id_2 << std::endl;
-        if (component_id_2 != -1) {
-            // Update shape_component_ids.
-            if (component_id > component_id_2) {
-                while (output.shape_component_ids.number_of_elements(component_id) > 0)
-                    output.shape_component_ids.set(*output.shape_component_ids.begin(component_id), component_id_2);
-            } else {
-                while (output.shape_component_ids.number_of_elements(component_id_2) > 0)
-                    output.shape_component_ids.set(*output.shape_component_ids.begin(component_id_2), component_id);
             }
-        } else {
-            ++it;
         }
     }
 
@@ -248,6 +293,8 @@ ComputeSplittedElementsOutput compute_splitted_elements(
             ++element_pos) {
         ShapeElement element = elements_tmp[element_pos];
         ShapePos shape_pos = elements_info[element_pos].orig_shape_id;
+        if (!output.shape_component_ids.contains(shape_pos))
+            continue;
         ComponentId component_id = output.shape_component_ids[shape_pos];
         //std::cout << "element_pos " << element_pos
         //    << " " << element.to_string()
@@ -495,26 +542,21 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
             element_pos < (ElementPos)splitted_elements.size();
             ++element_pos) {
         const SplittedElement& element = splitted_elements[element_pos];
-        if (element.original_direction)
-            continue;
         auto p = element.element.furthest_points(90);
-        //std::cout << "element_pos " << element_pos
-        //    << " " << element.element.to_string()
-        //    << " p " << p.first.to_string() << " " << p.second.to_string()
-        //    << std::endl;
+        //std::cout << "element_pos " << element_pos << std::endl
+        //    << "    " << element.element.to_string() << std::endl
+        //    << "    p " << p.first.to_string() << " " << p.second.to_string() << std::endl;
+        if (element.element.contains(p_min))
+            leftest_elements_pos.push_back(element_pos);
         if (strictly_lesser(p.first.x, p_min.x)
                 || (equal(p.first.x, p_min.x) && strictly_lesser(p.first.y, p_min.y))) {
             leftest_elements_pos = {element_pos};
             p_min = p.first;
-        } else if (equal(p.first, p_min)) {
-            leftest_elements_pos.push_back(element_pos);
         }
         if (strictly_lesser(p.second.x, p_min.x)
                 || (equal(p.second.x, p_min.x) && strictly_lesser(p.second.y, p_min.y))) {
             leftest_elements_pos = {element_pos};
             p_min = p.second;
-        } else if (equal(p.second, p_min)) {
-            leftest_elements_pos.push_back(element_pos);
         }
     }
     //std::cout << "leftest_elements_pos.size() " << leftest_elements_pos.size() << std::endl;
@@ -524,7 +566,7 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
         for (ElementPos element_pos: leftest_elements_pos) {
             const SplittedElement& element = splitted_elements[element_pos];
             //std::cout << element.element.to_string() << std::endl;
-            if (!equal(element.element.start, p_min))
+            if (element.element.end == p_min)
                 continue;
             leftest_elements_pos_tmp.push_back(element_pos);
         }
@@ -533,45 +575,24 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
     //std::cout << "leftest_elements_pos.size() " << leftest_elements_pos.size() << std::endl;
 
     ElementPos element_start_pos = -1;
-    Angle angle_best = 3 * M_PI;
-    Point direction_0 = {0, 1};
+    Jet largest_jet;
+    ShapeElement ref = build_line_segment(p_min, p_min + Point{-1, 0});
+    Jet current_jet = ref.jet(p_min, false);
     for (ElementPos element_pos: leftest_elements_pos) {
         const SplittedElement& splitted_element = splitted_elements[element_pos];
         const ShapeElement& element = splitted_element.element;
-        // Compute angle with -y.
-        Point direction = {0, 0};
-        switch (element.type) {
-        case ShapeElementType::LineSegment: {
-            direction = element.end - element.start;
-            break;
-        } case ShapeElementType::CircularArc: {
-            if (element.orientation == ShapeElementOrientation::Anticlockwise) {
-                direction = {
-                    element.center.y - element.start.y,
-                    element.start.x - element.center.x};
-            } else {
-                direction = {
-                    element.start.y - element.center.y,
-                    element.center.x - element.start.x};
-            }
-            break;
-        }
-        }
-
-        Angle angle = angle_radian(
-                direction,
-                direction_0);
-        //std::cout << "element_pos " << element_pos
-        //    << " " << element.to_string()
-        //    << " angle " << angle
-        //    << std::endl;
-        if (angle_best > angle
-                || equal(angle_best, angle) && element.type == ShapeElementType::LineSegment) {
+        Jet jet = element.jet(p_min, false) - current_jet;
+        //std::cout << "element_pos " << element_pos << std::endl
+        //    << "    " << element.to_string() << std::endl
+        //    << "    jet " << jet.to_string() << std::endl;
+        if (element_start_pos == -1
+                || largest_jet < jet) {
             element_start_pos = element_pos;
-            angle_best = angle;
+            largest_jet = jet;
         }
     }
-    //std::cout << "element_start_pos " << element_start_pos << std::endl;
+    //std::cout << "element_start_pos " << element_start_pos << std::endl
+    //    << "    " << splitted_elements[element_start_pos].element.to_string() << std::endl;
     if (element_start_pos == -1) {
         throw std::logic_error(
                 FUNC_SIGNATURE + ": element_start_pos is '-1'.");
@@ -709,16 +730,16 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
             ElementPos largest_jet_element_pos = -1;
             Jet largest_jet;
             Jet current_jet = element_cur.jet(element_cur.end, true);
-            //std::cout << "element_cur_pos " << element_cur_pos
-            //    << " element_cur " << element_cur.to_string() << std::endl;
+            //std::cout << "element_cur_pos " << element_cur_pos << std::endl
+            //    << "    " << element_cur.to_string() << std::endl;
             for (ElementPos element_pos_next: node.successors) {
                 const SplittedElement& splitted_element_next = splitted_elements[element_pos_next];
                 const ShapeElement& element_next = splitted_element_next.element;
                 Jet jet = element_next.jet(element_next.start, false) - current_jet;
-                //std::cout << "element_next_pos " << element_pos_next
-                //    << " element_next " << element_next.to_string()
-                //    << " jet " << jet.to_string()
-                //    << std::endl;
+                //std::cout << "  element_next_pos " << element_pos_next << std::endl
+                //    << "    " << element_next.to_string() << std::endl
+                //    << "    jet " << jet.to_string() << std::endl
+                //    << "    element_is_processed " << (int)element_is_processed[element_pos_next] << std::endl;
                 if (largest_jet_element_pos == -1
                         || largest_jet < jet) {
                     largest_jet_element_pos = element_pos_next;
@@ -758,16 +779,31 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
             //std::vector<ShapeElement> elements;
             //Writer writer;
             //for (const auto& splitted_element: splitted_elements) {
-            //    //auto mm = splitted_element.element.min_max();
-            //    //if (mm.first.x < 8.10 || mm.second. x > 8.20
-            //    //        || mm.first.y < 8.10 || mm.second.y > 8.20)
-            //    //    continue;
+            //    auto mm = splitted_element.element.min_max();
+            //    if (mm.first.x < 5.57 || mm.second. x > 5.58
+            //            || mm.first.y < 19.91 || mm.second.y > 19.92)
+            //        continue;
             //    writer.add_element(splitted_element.element);
+            //}
             //writer.write_json("overlay.json");
             //Writer().add_shapes_with_holes(shapes).write_json("shape.json");
             throw std::logic_error(
                     FUNC_SIGNATURE + ": "
                     "face is not closed.");
+        }
+
+        // Check if the face is valid.
+        if (strictly_lesser(face.compute_area(), 0.0)) {
+            //std::cout << face.to_string(0) << std::endl;
+            //std::vector<ShapeElement> elements;
+            //Writer writer;
+            //for (const auto& splitted_element: splitted_elements)
+            //    writer.add_element(splitted_element.element);
+            //writer.write_json("overlay.json");
+            //Writer().add_shapes_with_holes(shapes).write_json("shape.json");
+            throw std::logic_error(
+                    FUNC_SIGNATURE + ": "
+                    "face area is not positive.");
         }
 
         switch (boolean_operation) {
@@ -935,7 +971,7 @@ std::vector<ShapeWithHoles> compute_boolean_operation(
 
     // Compute intersections and update the connected component of each input
     // shape.
-    ComputeSplittedElementsOutput cse_output = compute_splitted_elements(shapes);
+    ComputeSplittedElementsOutput cse_output = compute_splitted_elements(shapes, boolean_operation);
 
     if (boolean_operation == BooleanOperation::Intersection
             || boolean_operation == BooleanOperation::SymmetricDifference) {

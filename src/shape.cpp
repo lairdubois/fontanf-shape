@@ -418,6 +418,14 @@ std::pair<Point, Point> ShapeElement::furthest_points(Angle angle) const
                     }
                 }
             }
+            if (point_max.y < this->start.y)
+                point_max = this->start;
+            if (point_max.y < this->end.y)
+                point_max = this->end;
+            if (point_min.y > this->start.y)
+                point_min = this->start;
+            if (point_min.y > this->end.y)
+                point_min = this->end;
         }
 
         return {point_min, point_max};

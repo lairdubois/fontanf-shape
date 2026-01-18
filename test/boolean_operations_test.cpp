@@ -157,6 +157,8 @@ TEST_P(ComputeBooleanUnionTest, ComputeBooleanUnion)
     std::cout << "expected_output" << std::endl;
     for (const ShapeWithHoles& shape: test_params.expected_output)
         std::cout << "- " << shape.to_string(2) << std::endl;
+    //Writer().add_shapes_with_holes(test_params.shapes).write_json("compute_union_input.json");
+    //Writer().add_shapes_with_holes(test_params.expected_output).write_json("compute_union_expected_output.json");
 
     auto output = compute_union(
             test_params.shapes);

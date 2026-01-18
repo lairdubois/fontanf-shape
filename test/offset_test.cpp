@@ -36,6 +36,7 @@ TEST_P(InflateTest, Inflate)
     std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
     std::cout << "offset " << test_params.offset << std::endl;
     std::cout << "expected_output " << test_params.expected_output.to_string(0) << std::endl;
+    //Writer().add_shape_with_holes(test_params.shape).add_shape_with_holes(test_params.expected_output).write_json("inflate_input.json");
 
     auto output = inflate(
         test_params.shape,
