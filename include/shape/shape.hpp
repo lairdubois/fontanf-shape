@@ -221,7 +221,7 @@ struct Jet
     Angle tangent_angle = 0.0;
 
     /** Curvature. */
-    LengthDbl curvature = 0.0;
+    LengthDbl curvature_inverse = 0.0;
 
 
     std::string to_string() const;
@@ -649,10 +649,6 @@ bool operator==(
         const Jet& jet_2);
 
 bool operator<(
-        const Jet& jet_1,
-        const Jet& jet_2);
-
-bool operator>(
         const Jet& jet_1,
         const Jet& jet_2);
 

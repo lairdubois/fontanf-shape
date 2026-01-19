@@ -631,6 +631,9 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
         for (ElementPos element_pos_next: node.successors) {
             const ShapeElement& element_next = splitted_elements[element_pos_next].element;
             Jet jet = element_next.jet(element_next.start, false) - current_jet;
+            //std::cout << "  element_next_pos " << element_pos_next << std::endl
+            //    << "    " << element_next.to_string() << std::endl
+            //    << "    jet " << jet.to_string() << std::endl;
             if (largest_jet_element_pos == -1
                     || largest_jet < jet) {
                 largest_jet_element_pos = element_pos_next;
@@ -780,13 +783,16 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
             //Writer writer;
             //for (const auto& splitted_element: splitted_elements) {
             //    auto mm = splitted_element.element.min_max();
-            //    if (mm.first.x < 5.57 || mm.second. x > 5.58
-            //            || mm.first.y < 19.91 || mm.second.y > 19.92)
-            //        continue;
+            //    //if (mm.first.x < 5.57 || mm.second. x > 5.58
+            //    //        || mm.first.y < 19.91 || mm.second.y > 19.92)
+            //    //    continue;
             //    writer.add_element(splitted_element.element);
             //}
             //writer.write_json("overlay.json");
             //Writer().add_shapes_with_holes(shapes).write_json("shape.json");
+            //compute_union_export_inputs(
+            //        "compute_union_inputs.json",
+            //        shapes);
             throw std::logic_error(
                     FUNC_SIGNATURE + ": "
                     "face is not closed.");
