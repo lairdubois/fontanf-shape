@@ -1930,6 +1930,11 @@ Shape shape::approximate_by_line_segments(
     }
 
     shape_new = remove_redundant_vertices(shape_new).second;
+
+    // When the original shape contains two touching circular arcs, the
+    // approximation generates a backtrack in the approximated shape.
+    shape_new = remove_backtracks(shape_new);
+
     //std::cout << "approximate_by_line_segments end" << std::endl;
     return shape_new;
 }
