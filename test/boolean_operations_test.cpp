@@ -165,6 +165,7 @@ TEST_P(ComputeBooleanUnionTest, ComputeBooleanUnion)
     std::cout << "output" << std::endl;
     for (const ShapeWithHoles& shape: output)
         std::cout << "- " << shape.to_string(2) << std::endl;
+    //Writer().add_shapes_with_holes(output).write_json("compute_union_output.json");
 
     if (test_params.write_json || test_params.write_svg) {
         std::string base_filename = "union_" + fs::path(test_params.name).filename().replace_extension("").string();
