@@ -31,7 +31,11 @@ inline bool intersect(
 std::vector<ShapePoint> compute_intersections(
         const ShapeElement& element,
         const Shape& shape,
-        bool strict = false,
+        bool only_first = false);
+
+std::vector<ShapePoint> compute_strict_intersections(
+        const ShapeElement& element,
+        const Shape& shape,
         bool only_first = false);
 
 struct PathShapeIntersectionPoint
@@ -49,7 +53,11 @@ bool intersect(
 std::vector<PathShapeIntersectionPoint> compute_intersections(
         const Shape& path,
         const Shape& shape,
-        bool strict = false,
+        bool only_first = false);
+
+std::vector<PathShapeIntersectionPoint> compute_strict_intersections(
+        const Shape& path,
+        const Shape& shape,
         bool only_first = false);
 
 void compute_intersections_export_inputs(

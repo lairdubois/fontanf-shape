@@ -3,7 +3,7 @@
 #include "shape/elements_intersections.hpp"
 #include "shape/boolean_operations.hpp"
 
-//#include <iostream>
+#include <iostream>
 #include <fstream>
 
 using namespace shape;
@@ -367,10 +367,58 @@ bool shape::intersect(
 std::vector<ShapePoint> shape::compute_intersections(
         const ShapeElement& element,
         const Shape& shape,
-        bool strict,
         bool only_first)
 {
-    if (shape.is_path && strict) {
+    std::vector<ShapePoint> output;
+    for (ElementPos shape_element_pos = 0;
+            shape_element_pos < (ElementPos)shape.elements.size();
+            ++shape_element_pos) {
+        const ShapeElement& shape_element = shape.elements[shape_element_pos];
+        ShapeElementIntersectionsOutput intersections_cur = compute_intersections(
+                element,
+                shape_element);
+        for (const ShapeElement& overlapping_part: intersections_cur.overlapping_parts) {
+            output.push_back({shape_element_pos, overlapping_part.start});
+            output.push_back({shape_element_pos, overlapping_part.end});
+        }
+        for (const Point& intersection: intersections_cur.improper_intersections)
+            output.push_back({shape_element_pos, intersection});
+        for (const Point& intersection: intersections_cur.proper_intersections)
+            output.push_back({shape_element_pos, intersection});
+    }
+    if (output.empty())
+        return {};
+    if (only_first) {
+        auto it = std::min_element(
+            output.begin(),
+            output.end(),
+            [&element](
+                const ShapePoint& point_1,
+                const ShapePoint& point_2)
+            {
+                return strictly_lesser(element.length(point_1.point), element.length(point_2.point));
+            });
+        return {*it};
+    }
+    // Sort intersections.
+    std::sort(
+        output.begin(),
+        output.end(),
+        [&element](
+            const ShapePoint& point_1,
+            const ShapePoint& point_2)
+        {
+            return strictly_lesser(element.length(point_1.point), element.length(point_2.point));
+        });
+    return output;
+}
+
+std::vector<ShapePoint> shape::compute_strict_intersections(
+        const ShapeElement& element,
+        const Shape& shape,
+        bool only_first)
+{
+    if (shape.is_path) {
         throw std::invalid_argument(
                 FUNC_SIGNATURE + ": "
                 "intersections involving a path and an element must not be strict.");
@@ -407,12 +455,12 @@ std::vector<ShapePoint> shape::compute_intersections(
                 const std::pair<int, ElementPos>& p1,
                 const std::pair<int, ElementPos>& p2)
             {
-                const ShapePoint& point_1 = (p1.first == 0)?
+                ShapePoint point_1 = (p1.first == 0)?
                         ShapePoint{
                             overlapping_parts[p1.second].first,
                             overlapping_parts[p1.second].second.start}:
                         intersection_points[p1.second];
-                const ShapePoint& point_2 = (p2.first == 0)?
+                ShapePoint point_2 = (p2.first == 0)?
                         ShapePoint{
                             overlapping_parts[p2.second].first,
                             overlapping_parts[p2.second].second.start}:
@@ -430,27 +478,21 @@ std::vector<ShapePoint> shape::compute_intersections(
             ElementPos shape_element_pos = overlapping_parts[intersections[pos].second].first;
             const ShapeElement& overlapping_part = overlapping_parts[intersections[pos].second].second;
             if (strictly_lesser(element.length(current_point.point), element.length(overlapping_part.start))) {
-                if (!strict) {
-                    output.push_back({shape_element_pos, overlapping_part.start});
-                    if (only_first)
-                        return output;
-                } else {
-                    Point point_between = element.find_point_between(current_point.point, overlapping_part.start);
-                    if (shape.contains(point_between, true)) {
-                        if (status == 0) {
-                            output.push_back(current_point);
-                            if (only_first)
-                                return output;
-                        }
-                        status = 1;
-                    } else {
-                        if (status == 1) {
-                            output.push_back(current_point);
-                            if (only_first)
-                                return output;
-                        }
-                        status = 0;
+                Point point_between = element.find_point_between(current_point.point, overlapping_part.start);
+                if (shape.contains(point_between, true)) {
+                    if (status == 0) {
+                        output.push_back(current_point);
+                        if (only_first)
+                            return output;
                     }
+                    status = 1;
+                } else {
+                    if (status == 1) {
+                        output.push_back(current_point);
+                        if (only_first)
+                            return output;
+                    }
+                    status = 0;
                 }
             }
             if (strictly_lesser(element.length(current_point.point), element.length(overlapping_part.end)))
@@ -459,27 +501,21 @@ std::vector<ShapePoint> shape::compute_intersections(
             // Intersection point.
             const ShapePoint& point = intersection_points[intersections[pos].second];
             if (strictly_lesser(element.length(current_point.point), element.length(point.point))) {
-                if (!strict) {
-                    output.push_back(current_point);
-                    if (only_first)
-                        return output;
-                } else {
-                    Point point_between = element.find_point_between(current_point.point, point.point);
-                    if (shape.contains(point_between, true)) {
-                        if (status == 0) {
-                            output.push_back(current_point);
-                            if (only_first)
-                                return output;
-                        }
-                        status = 1;
-                    } else {
-                        if (status == 1) {
-                            output.push_back(current_point);
-                            if (only_first)
-                                return output;
-                        }
-                        status = 0;
+                Point point_between = element.find_point_between(current_point.point, point.point);
+                if (shape.contains(point_between, true)) {
+                    if (status == 0) {
+                        output.push_back(current_point);
+                        if (only_first)
+                            return output;
                     }
+                    status = 1;
+                } else {
+                    if (status == 1) {
+                        output.push_back(current_point);
+                        if (only_first)
+                            return output;
+                    }
+                    status = 0;
                 }
             }
         }
@@ -553,12 +589,12 @@ bool shape::intersect(
                 const std::pair<int, ElementPos>& p1,
                 const std::pair<int, ElementPos>& p2)
             {
-                const ShapePoint& point_1 = (p1.first == 0)?
+                ShapePoint point_1 = (p1.first == 0)?
                         ShapePoint{
                             overlapping_parts[p1.second].first,
                             overlapping_parts[p1.second].second.start}:
                         intersection_points[p1.second];
-                const ShapePoint& point_2 = (p2.first == 0)?
+                ShapePoint point_2 = (p2.first == 0)?
                         ShapePoint{
                             overlapping_parts[p2.second].first,
                             overlapping_parts[p2.second].second.start}:
@@ -612,10 +648,67 @@ struct PathShapeOverlappingPart
 std::vector<PathShapeIntersectionPoint> shape::compute_intersections(
         const Shape& path,
         const Shape& shape,
-        bool strict,
         bool only_first)
 {
-    if (shape.is_path && strict) {
+    std::vector<PathShapeIntersectionPoint> output;
+    for (ElementPos path_element_pos = 0;
+            path_element_pos < (ElementPos)path.elements.size();
+            ++path_element_pos) {
+        const ShapeElement& path_element = path.elements[path_element_pos];
+        for (ElementPos shape_element_pos = 0;
+                shape_element_pos < (ElementPos)shape.elements.size();
+                ++shape_element_pos) {
+            const ShapeElement& shape_element = shape.elements[shape_element_pos];
+            ShapeElementIntersectionsOutput intersections_cur = compute_intersections(
+                    path_element,
+                    shape_element);
+            for (const ShapeElement& overlapping_part: intersections_cur.overlapping_parts) {
+                output.push_back({path_element_pos, shape_element_pos, overlapping_part.start});
+                output.push_back({path_element_pos, shape_element_pos, overlapping_part.end});
+            }
+            for (const Point& intersection: intersections_cur.improper_intersections)
+                output.push_back({path_element_pos, shape_element_pos, intersection});
+            for (const Point& intersection: intersections_cur.proper_intersections)
+                output.push_back({path_element_pos, shape_element_pos, intersection});
+        }
+    }
+    if (output.empty())
+        return {};
+    if (only_first) {
+        auto it = std::min_element(
+            output.begin(),
+            output.end(),
+            [&path](
+                const PathShapeIntersectionPoint& p1,
+                const PathShapeIntersectionPoint& p2)
+            {
+                ShapePoint point_1 = {p1.path_element_pos, p1.point};
+                ShapePoint point_2 = {p2.path_element_pos, p2.point};
+                return path.is_strictly_closer_to_path_start(point_1, point_2);
+            });
+        return {*it};
+    }
+    // Sort intersections.
+    std::sort(
+        output.begin(),
+        output.end(),
+        [&path](
+            const PathShapeIntersectionPoint& p1,
+            const PathShapeIntersectionPoint& p2)
+        {
+            ShapePoint point_1 = {p1.path_element_pos, p1.point};
+            ShapePoint point_2 = {p2.path_element_pos, p2.point};
+            return path.is_strictly_closer_to_path_start(point_1, point_2);
+        });
+    return output;
+}
+
+std::vector<PathShapeIntersectionPoint> shape::compute_strict_intersections(
+        const Shape& path,
+        const Shape& shape,
+        bool only_first)
+{
+    if (shape.is_path) {
         throw std::invalid_argument(
                 FUNC_SIGNATURE + ": "
                 "intersections involving a path and an element must not be strict.");
@@ -662,14 +755,14 @@ std::vector<PathShapeIntersectionPoint> shape::compute_intersections(
                 const std::pair<int, ElementPos>& p1,
                 const std::pair<int, ElementPos>& p2)
             {
-                const ShapePoint& point_1 = (p1.first == 0)?
+                ShapePoint point_1 = (p1.first == 0)?
                         ShapePoint{
                             overlapping_parts[p1.second].path_element_pos,
                             overlapping_parts[p1.second].overlapping_part.start}:
                         ShapePoint{
                             intersection_points[p1.second].path_element_pos,
                             intersection_points[p1.second].point};
-                const ShapePoint& point_2 = (p2.first == 0)?
+                ShapePoint point_2 = (p2.first == 0)?
                         ShapePoint{
                             overlapping_parts[p2.second].path_element_pos,
                             overlapping_parts[p2.second].overlapping_part.start}:
@@ -697,27 +790,21 @@ std::vector<PathShapeIntersectionPoint> shape::compute_intersections(
             //std::cout << "overlapping_part " << overlapping_part.to_string() << std::endl;
             ShapePoint point_start = {path_element_pos, overlapping_part.start};
             if (path.is_strictly_closer_to_path_start(current_path_point, point_start)) {
-                if (!strict) {
-                    output.push_back({path_element_pos, shape_element_pos, overlapping_part.start});
-                    if (only_first)
-                        return output;
-                } else {
-                    ShapePoint point_between = path.find_point_between(current_path_point, point_start);
-                    if (shape.contains(point_between.point, true)) {
-                        if (status == 0) {
-                            output.push_back(current_point);
-                            if (only_first)
-                                return output;
-                        }
-                        status = 1;
-                    } else {
-                        if (status == 1) {
-                            output.push_back(current_point);
-                            if (only_first)
-                                return output;
-                        }
-                        status = 0;
+                ShapePoint point_between = path.find_point_between(current_path_point, point_start);
+                if (shape.contains(point_between.point, true)) {
+                    if (status == 0) {
+                        output.push_back(current_point);
+                        if (only_first)
+                            return output;
                     }
+                    status = 1;
+                } else {
+                    if (status == 1) {
+                        output.push_back(current_point);
+                        if (only_first)
+                            return output;
+                    }
+                    status = 0;
                 }
             }
             ShapePoint point_end = {path_element_pos, overlapping_part.end};
@@ -730,28 +817,22 @@ std::vector<PathShapeIntersectionPoint> shape::compute_intersections(
             //    << " " << point.point.to_string() << std::endl;
             ShapePoint path_point = {point.path_element_pos, point.point};
             if (path.is_strictly_closer_to_path_start(current_path_point, path_point)) {
-                if (!strict) {
-                    output.push_back(point);
-                    if (only_first)
-                        return output;
-                } else {
-                    ShapePoint point_between = path.find_point_between(current_path_point, path_point);
-                    //std::cout << "point_between " << point_between.point.to_string() << std::endl;
-                    if (shape.contains(point_between.point, true)) {
-                        if (status == 0) {
-                            output.push_back(current_point);
-                            if (only_first)
-                                return output;
-                        }
-                        status = 1;
-                    } else {
-                        if (status == 1) {
-                            output.push_back(current_point);
-                            if (only_first)
-                                return output;
-                        }
-                        status = 0;
+                ShapePoint point_between = path.find_point_between(current_path_point, path_point);
+                //std::cout << "point_between " << point_between.point.to_string() << std::endl;
+                if (shape.contains(point_between.point, true)) {
+                    if (status == 0) {
+                        output.push_back(current_point);
+                        if (only_first)
+                            return output;
                     }
+                    status = 1;
+                } else {
+                    if (status == 1) {
+                        output.push_back(current_point);
+                        if (only_first)
+                            return output;
+                    }
+                    status = 0;
                 }
                 current_point = point;
             }
