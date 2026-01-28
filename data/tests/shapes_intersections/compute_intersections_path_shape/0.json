@@ -1,5 +1,5 @@
 {
-    "only_first": true,
+    "only_min_max": true,
     "path": {
         "elements": [
             {
@@ -89,6 +89,11 @@
         "type": "general"
     },
     "expected_output": [
+        {
+            "path_element_pos": 0,
+            "shape_element_pos": 0,
+            "point": {"x": 173.7666015625, "y": 708.0771484375}
+        },
         {
             "path_element_pos": 0,
             "shape_element_pos": 0,

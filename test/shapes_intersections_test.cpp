@@ -197,7 +197,7 @@ struct ComputeIntersectionsPathShapeTestParams
 {
     Shape path;
     Shape shape;
-    bool only_first;
+    bool only_min_max;
     std::vector<PathShapeIntersectionPoint> expected_output;
 
 
@@ -208,7 +208,7 @@ struct ComputeIntersectionsPathShapeTestParams
         ComputeIntersectionsPathShapeTestParams test_params;
         test_params.path = Shape::from_json(json_item["path"]);
         test_params.shape = Shape::from_json(json_item["shape"]);
-        test_params.only_first = json_item["only_first"];
+        test_params.only_min_max = json_item["only_min_max"];
         for (auto& json_intersection: json_item["expected_output"]) {
             PathShapeIntersectionPoint intersection;
             intersection.path_element_pos = json_intersection["path_element_pos"];
@@ -242,7 +242,7 @@ TEST_P(ComputeIntersectionsPathShapeTest, ComputeIntersectionsPathShape)
     ComputeIntersectionsPathShapeTestParams test_params = GetParam();
     std::cout << "path " << test_params.path.to_string(0) << std::endl;
     std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
-    std::cout << "only_first " << test_params.only_first << std::endl;
+    std::cout << "only_min_max " << test_params.only_min_max << std::endl;
     std::cout << "expected_output" << std::endl;
     for (const PathShapeIntersectionPoint& intersection: test_params.expected_output) {
         std::cout << "path_element_pos " << intersection.path_element_pos
@@ -253,7 +253,7 @@ TEST_P(ComputeIntersectionsPathShapeTest, ComputeIntersectionsPathShape)
     std::vector<PathShapeIntersectionPoint> output = compute_intersections(
             test_params.path,
             test_params.shape,
-            test_params.only_first);
+            test_params.only_min_max);
     std::cout << "output" << std::endl;
     for (const PathShapeIntersectionPoint& intersection: output) {
         std::cout << "path_element_pos " << intersection.path_element_pos
@@ -285,7 +285,10 @@ INSTANTIATE_TEST_SUITE_P(
                         build_circular_arc({704, 128}, {832, 2.842170943040401e-14}, {704, 2.842170943040401e-14}, ShapeElementOrientation::Clockwise)}),
                 build_shape({{384, 320}, {448, -192}, {448, 832}}),
                 true,
-                {{1, 0, {408, 128}}},
+                {
+                    {1, 0, {408, 128}},
+                    {1, 1, {448, 128}},
+                },
             },
             ComputeIntersectionsPathShapeTestParams::read_json(
                     (fs::path("data") / "tests" / "shapes_intersections" / "compute_intersections_path_shape" / "0.json").string()),

@@ -367,7 +367,7 @@ bool shape::intersect(
 std::vector<ShapePoint> shape::compute_intersections(
         const ShapeElement& element,
         const Shape& shape,
-        bool only_first)
+        bool only_min_max)
 {
     std::vector<ShapePoint> output;
     for (ElementPos shape_element_pos = 0;
@@ -388,8 +388,8 @@ std::vector<ShapePoint> shape::compute_intersections(
     }
     if (output.empty())
         return {};
-    if (only_first) {
-        auto it = std::min_element(
+    if (only_min_max) {
+        auto p = std::minmax_element(
             output.begin(),
             output.end(),
             [&element](
@@ -398,7 +398,7 @@ std::vector<ShapePoint> shape::compute_intersections(
             {
                 return strictly_lesser(element.length(point_1.point), element.length(point_2.point));
             });
-        return {*it};
+        return {*p.first, *p.second};
     }
     // Sort intersections.
     std::sort(
@@ -648,7 +648,7 @@ struct PathShapeOverlappingPart
 std::vector<PathShapeIntersectionPoint> shape::compute_intersections(
         const Shape& path,
         const Shape& shape,
-        bool only_first)
+        bool only_min_max)
 {
     std::vector<PathShapeIntersectionPoint> output;
     for (ElementPos path_element_pos = 0;
@@ -674,8 +674,8 @@ std::vector<PathShapeIntersectionPoint> shape::compute_intersections(
     }
     if (output.empty())
         return {};
-    if (only_first) {
-        auto it = std::min_element(
+    if (only_min_max) {
+        auto p = std::minmax_element(
             output.begin(),
             output.end(),
             [&path](
@@ -686,7 +686,7 @@ std::vector<PathShapeIntersectionPoint> shape::compute_intersections(
                 ShapePoint point_2 = {p2.path_element_pos, p2.point};
                 return path.is_strictly_closer_to_path_start(point_1, point_2);
             });
-        return {*it};
+        return {*p.first, *p.second};
     }
     // Sort intersections.
     std::sort(
@@ -845,14 +845,26 @@ void shape::compute_intersections_export_inputs(
         const std::string& file_path,
         const Shape& path,
         const Shape& shape,
-        bool strict,
+        bool only_min_max)
+{
+    std::ofstream file{file_path};
+    nlohmann::json json;
+    json["path"] = path.to_json();
+    json["shape"] = shape.to_json();
+    json["only_min_max"] = only_min_max;
+    file << std::setw(4) << json << std::endl;
+}
+
+void shape::compute_strict_intersections_export_inputs(
+        const std::string& file_path,
+        const Shape& path,
+        const Shape& shape,
         bool only_first)
 {
     std::ofstream file{file_path};
     nlohmann::json json;
     json["path"] = path.to_json();
     json["shape"] = shape.to_json();
-    json["strict"] = strict;
     json["only_first"] = only_first;
     file << std::setw(4) << json << std::endl;
 }
