@@ -224,7 +224,12 @@ ComputeSplittedElementsOutput compute_splitted_elements(
                 false);
         intersecting_compooents.clear();
         for (ShapePos shape_id: it_output.shape_ids) {
+            if (!output.shape_component_ids.contains(shape_id))
+                continue;
             ComponentId component_2_id = output.shape_component_ids[shape_id];
+            //std::cout << "shape_id " << shape_id
+            //    << " component_2_id " << component_2_id
+            //    << std::endl;
             if (component_2_id != component_id)
                 intersecting_compooents.add(component_2_id);
         }
