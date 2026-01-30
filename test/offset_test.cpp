@@ -62,6 +62,19 @@ INSTANTIATE_TEST_SUITE_P(
                     build_shape({{-1, 0}, {0, 0, 1}, {1, 0}, {1, 10}, {0, 10, 1}, {-1, 10}}),
                 },
             },
+            {
+                build_path({{6, 5}, {7, 13}}),
+                1e-3,
+                {
+                    build_shape({
+                            {6.000992277876714, 4.999875965265411},
+                            {7.000992277876714, 12.99987596526541},
+                            {7, 13, 1},
+                            {6.999007722123286, 13.00012403473459},
+                            {5.999007722123286, 5.000124034734589},
+                            {6, 5, 1}}),
+                },
+            },
             //SimplificationTestParams::read_json(
             //        (fs::path("data") / "tests" / "simplification" / "2.json").string()),
             }));
@@ -94,7 +107,7 @@ TEST_P(InflateShapeWithHolesTest, InflateShapeWithHoles)
     std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
     std::cout << "offset " << test_params.offset << std::endl;
     std::cout << "expected_output " << test_params.expected_output.to_string(0) << std::endl;
-    //Writer().add_shape_with_holes(test_params.shape).add_shape_with_holes(test_params.expected_output).write_json("inflate_input.json");
+    Writer().add_shape_with_holes(test_params.shape).add_shape_with_holes(test_params.expected_output).write_json("inflate_input.json");
 
     auto output = inflate(
         test_params.shape,

@@ -496,7 +496,7 @@ int shape::counter_clockwise(
 std::string Jet::to_string() const
 {
     return "tangent_angle " + shape::to_string(this->tangent_angle)
-        + " curvature_inverse " + shape::to_string(this->curvature_inverse);
+        + " curvature " + shape::to_string(this->curvature);
 }
 
 Jet shape::operator-(
@@ -505,12 +505,8 @@ Jet shape::operator-(
 {
     Jet jet;
     jet.tangent_angle = jet_1.tangent_angle - jet_2.tangent_angle;
-    if (equal(jet_1.curvature_inverse, jet_2.curvature_inverse)) {
-        jet.curvature_inverse = std::numeric_limits<LengthDbl>::infinity();
-    } else {
-        jet.curvature_inverse = 1 / ((1.0 / jet_1.curvature_inverse) - (1.0 / jet_2.curvature_inverse));
-    }
-    if (jet.tangent_angle < 0.0)
+    jet.curvature = jet_1.curvature - jet_2.curvature;
+    if (strictly_lesser(jet.tangent_angle, 0.0))
         jet.tangent_angle += 2 * M_PI;
     return jet;
 }
@@ -634,7 +630,7 @@ Jet ShapeElement::jet(
         } else {
             jet.tangent_angle = angle_radian(this->start - this->end);
         }
-        jet.curvature_inverse = std::numeric_limits<LengthDbl>::infinity();
+        jet.curvature = 0;
         return jet;
     } case ShapeElementType::CircularArc: {
         LengthDbl radius = distance(this->center, this->start);
@@ -645,10 +641,10 @@ Jet ShapeElement::jet(
                 || (this->orientation == ShapeElementOrientation::Clockwise
                     && reverse)) {
             jet.tangent_angle = angle_radian({-p.y, p.x});
-            jet.curvature_inverse = radius;
+            jet.curvature = 1.0 / radius;
         } else {
             jet.tangent_angle = angle_radian({p.y, -p.x});
-            jet.curvature_inverse = -radius;
+            jet.curvature = -1.0 / radius;
         }
         return jet;
     }
@@ -2216,7 +2212,7 @@ bool shape::operator==(
 {
     if (jet_1.tangent_angle != jet_2.tangent_angle)
         return false;
-    if (jet_1.curvature_inverse != jet_2.curvature_inverse)
+    if (jet_1.curvature != jet_2.curvature)
         return false;
     return true;
 }
@@ -2225,31 +2221,19 @@ bool shape::operator<(
         const Jet& jet_1,
         const Jet& jet_2)
 {
-    if (jet_1.tangent_angle == 0 && jet_1.curvature_inverse < 0) {
-        if (jet_2.tangent_angle != 0
-                || (jet_2.tangent_angle == 0 && jet_2.curvature_inverse >= 0)) {
+    if (equal(jet_1.tangent_angle, 0) && strictly_lesser(jet_1.curvature, 0)) {
+        if (!equal(jet_2.tangent_angle, 0)
+                || (equal(jet_2.tangent_angle, 0) && !strictly_lesser(jet_2.curvature, 0))) {
             return false;
         } else {
-            return jet_1.curvature_inverse > jet_2.curvature_inverse;
+            return strictly_greater(jet_1.curvature, jet_2.curvature);
         }
-    } else if (jet_2.tangent_angle == 0 && jet_2.curvature_inverse < 0) {
+    } else if (equal(jet_2.tangent_angle, 0) && strictly_lesser(jet_2.curvature, 0)) {
         return true;
     }
-    if (jet_1.tangent_angle != jet_2.tangent_angle)
+    if (!equal(jet_1.tangent_angle, jet_2.tangent_angle))
         return jet_1.tangent_angle < jet_2.tangent_angle;
-    if (jet_1.curvature_inverse > 0) {
-        if (jet_2.curvature_inverse > 0) {
-            return jet_1.curvature_inverse > jet_2.curvature_inverse;
-        } else {
-            return false;
-        }
-    } else {
-        if (jet_2.curvature_inverse > 0) {
-            return true;
-        } else {
-            return jet_1.curvature_inverse > jet_2.curvature_inverse;
-        }
-    }
+    return strictly_lesser(jet_1.curvature, jet_2.curvature);
 }
 
 bool shape::operator==(

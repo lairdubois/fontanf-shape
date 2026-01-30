@@ -114,27 +114,27 @@ INSTANTIATE_TEST_SUITE_P(
                 build_line_segment({0, 0}, {1, 0}),
                 {0, 0},
                 false,
-                {0, std::numeric_limits<LengthDbl>::infinity()},
+                {0, 0},
             }, {
                 build_line_segment({0, 0}, {1, 0}),
                 {0, 0},
                 true,
-                {M_PI, std::numeric_limits<LengthDbl>::infinity()},
+                {M_PI, 0},
             }, {
                 build_line_segment({0, 0}, {0, 1}),
                 {0, 0},
                 false,
-                {M_PI / 2, std::numeric_limits<LengthDbl>::infinity()}
+                {M_PI / 2, 0}
             }, {
                 build_line_segment({0, 0}, {0, 1}),
                 {0, 0},
                 true,
-                {3 * M_PI / 2, std::numeric_limits<LengthDbl>::infinity()}
+                {3 * M_PI / 2, 0}
             }, {
                 build_line_segment({0, 0}, {-1, 0}),
                 {0, 0},
                 false,
-                {M_PI, std::numeric_limits<LengthDbl>::infinity()},
+                {M_PI, 0},
             }, {
                 build_circular_arc({1, 0}, {0, -1}, {0, 0}, ShapeElementOrientation::Anticlockwise),
                 {1, 0},

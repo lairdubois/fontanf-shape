@@ -221,7 +221,7 @@ struct Jet
     Angle tangent_angle = 0.0;
 
     /** Curvature. */
-    LengthDbl curvature_inverse = 0.0;
+    LengthDbl curvature = 0.0;
 
 
     std::string to_string() const;

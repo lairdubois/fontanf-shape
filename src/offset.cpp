@@ -3,8 +3,8 @@
 #include "shape/boolean_operations.hpp"
 #include "shape/clean.hpp"
 
-#include <iostream>
-#include <fstream>
+//#include <iostream>
+//#include <fstream>
 
 using namespace shape;
 
@@ -408,17 +408,8 @@ ShapeWithHoles shape::inflate(
         union_input.push_back(circle);
     }
 
-    try {
-        return compute_union(union_input).front();
-    } catch (...) {
-        std::ofstream file{"inflate_input.json"};
-        nlohmann::json json;
-        json["shape"] = shape.to_json();
-        json["offset"] = offset;
-        file << std::setw(4) << json << std::endl;
-        return {};
-    }
-    //return compute_union(union_input).front();
+    //compute_union_export_inputs("union_input.json", union_input);
+    return compute_union(union_input).front();
 }
 
 std::vector<Shape> shape::deflate(
