@@ -3,8 +3,8 @@
 #include "shape/boolean_operations.hpp"
 #include "shape/clean.hpp"
 
-//#include <iostream>
-//#include <fstream>
+#include <iostream>
+#include <fstream>
 
 using namespace shape;
 
@@ -328,7 +328,9 @@ ShapeWithHoles shape::inflate(
         return output;
     }
 
-    std::vector<ShapeWithHoles> union_input = {{shape}};
+    std::vector<ShapeWithHoles> union_input;
+    if (!shape.is_path)
+        union_input.push_back({shape});
 
     // Inflate outline.
     ElementPos element_prev_pos = shape.elements.size() - 1;
@@ -380,8 +382,8 @@ ShapeWithHoles shape::inflate(
             ShapeWithHoles circle;
             ShapeElement circle_element;
             circle_element.type = ShapeElementType::CircularArc;
-            circle_element.start = union_input.back().shape.elements[0].end;
-            circle_element.end = union_input.back().shape.elements[0].end;
+            circle_element.start = rectangle.elements[0].start;
+            circle_element.end = rectangle.elements[0].start;
             circle_element.center = element.start;
             circle_element.orientation = ShapeElementOrientation::Full;
             circle.shape.elements.push_back(circle_element);
@@ -394,7 +396,29 @@ ShapeWithHoles shape::inflate(
         rectangle_prev = rectangle;
     }
 
-    return compute_union(union_input).front();
+    if (shape.is_path) {
+        ShapeWithHoles circle;
+        ShapeElement circle_element;
+        circle_element.type = ShapeElementType::CircularArc;
+        circle_element.start = rectangle_prev.elements[1].start;
+        circle_element.end = rectangle_prev.elements[1].start;
+        circle_element.center = shape.elements.back().end;
+        circle_element.orientation = ShapeElementOrientation::Full;
+        circle.shape.elements.push_back(circle_element);
+        union_input.push_back(circle);
+    }
+
+    try {
+        return compute_union(union_input).front();
+    } catch (...) {
+        std::ofstream file{"inflate_input.json"};
+        nlohmann::json json;
+        json["shape"] = shape.to_json();
+        json["offset"] = offset;
+        file << std::setw(4) << json << std::endl;
+        return {};
+    }
+    //return compute_union(union_input).front();
 }
 
 std::vector<Shape> shape::deflate(

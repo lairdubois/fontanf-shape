@@ -9,17 +9,75 @@
 using namespace shape;
 
 
-struct InflateTestParams: TestParams<InflateTestParams>
+struct InflateShapeTestParams
+{
+    Shape shape;
+    LengthDbl offset;
+    ShapeWithHoles expected_output;
+
+
+    static InflateShapeTestParams from_json(
+            nlohmann::basic_json<>& json_item)
+    {
+        InflateShapeTestParams test_params;
+        test_params.shape = Shape::from_json(json_item["shape"]);
+        test_params.offset = json_item["offset"];
+        test_params.expected_output = ShapeWithHoles::from_json(json_item["expected_output"]);
+        return test_params;
+    }
+};
+
+class InflateShapeTest: public testing::TestWithParam<InflateShapeTestParams> { };
+
+TEST_P(InflateShapeTest, InflateShape)
+{
+    InflateShapeTestParams test_params = GetParam();
+    std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
+    std::cout << "offset " << test_params.offset << std::endl;
+    std::cout << "expected_output " << test_params.expected_output.to_string(0) << std::endl;
+
+    auto output = inflate(
+        test_params.shape,
+        test_params.offset);
+    std::cout << "output " << output.to_string(0) << std::endl;
+
+    Writer writer;
+    writer.add_shape(test_params.shape);
+    if (!test_params.expected_output.shape.elements.empty())
+        writer.add_shape_with_holes(test_params.expected_output);
+    writer.add_shape_with_holes(output);
+    writer.write_json("inflate_shape_input.json");;
+
+    EXPECT_TRUE(equal(output, test_params.expected_output));
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Shape,
+        InflateShapeTest,
+        testing::ValuesIn(std::vector<InflateShapeTestParams>{
+            {
+                build_path({{0, 0}, {0, 10}}),
+                1.0,
+                {
+                    build_shape({{-1, 0}, {0, 0, 1}, {1, 0}, {1, 10}, {0, 10, 1}, {-1, 10}}),
+                },
+            },
+            //SimplificationTestParams::read_json(
+            //        (fs::path("data") / "tests" / "simplification" / "2.json").string()),
+            }));
+
+
+struct InflateShapeWithHolesTestParams: TestParams<InflateShapeWithHolesTestParams>
 {
     ShapeWithHoles shape;
     LengthDbl offset = 0;
     ShapeWithHoles expected_output;
 
 
-    static InflateTestParams from_json(
+    static InflateShapeWithHolesTestParams from_json(
             nlohmann::basic_json<>& json_item)
     {
-        InflateTestParams test_params = TestParams::from_json(json_item);
+        InflateShapeWithHolesTestParams test_params = TestParams::from_json(json_item);
         test_params.shape = ShapeWithHoles::from_json(json_item["shape"]);
         test_params.offset = json_item["offset"];
         test_params.expected_output = ShapeWithHoles::from_json(json_item["expected_output"]);
@@ -27,11 +85,11 @@ struct InflateTestParams: TestParams<InflateTestParams>
     }
 };
 
-class InflateTest: public testing::TestWithParam<InflateTestParams> { };
+class InflateShapeWithHolesTest: public testing::TestWithParam<InflateShapeWithHolesTestParams> { };
 
-TEST_P(InflateTest, Inflate)
+TEST_P(InflateShapeWithHolesTest, InflateShapeWithHoles)
 {
-    InflateTestParams test_params = GetParam();
+    InflateShapeWithHolesTestParams test_params = GetParam();
     std::cout << "Testing " << test_params.name << " (" << test_params.description << ")" << "..." << std::endl;
     std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
     std::cout << "offset " << test_params.offset << std::endl;
@@ -63,11 +121,11 @@ TEST_P(InflateTest, Inflate)
 
 INSTANTIATE_TEST_SUITE_P(
         Shape,
-        InflateTest,
-        testing::ValuesIn(InflateTestParams::read_dir((fs::path("data") / "tests" / "offset" / "inflate").string())));
+        InflateShapeWithHolesTest,
+        testing::ValuesIn(InflateShapeWithHolesTestParams::read_dir((fs::path("data") / "tests" / "offset" / "inflate").string())));
 
 
-struct DeflateTestParams : TestParams<DeflateTestParams>
+struct DeflateTestParams: TestParams<DeflateTestParams>
 {
     Shape shape;
     LengthDbl offset = 0;

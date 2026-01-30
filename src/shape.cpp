@@ -2247,7 +2247,7 @@ bool shape::operator<(
         if (jet_2.curvature_inverse > 0) {
             return true;
         } else {
-            return jet_1.curvature_inverse < jet_2.curvature_inverse;
+            return jet_1.curvature_inverse > jet_2.curvature_inverse;
         }
     }
 }
