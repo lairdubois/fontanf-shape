@@ -633,7 +633,7 @@ Jet ShapeElement::jet(
         jet.curvature = 0;
         return jet;
     } case ShapeElementType::CircularArc: {
-        LengthDbl radius = distance(this->center, this->start);
+        LengthDbl radius = distance(this->center, point);
         Point p = point - this->center;
         Jet jet;
         if ((this->orientation != ShapeElementOrientation::Clockwise

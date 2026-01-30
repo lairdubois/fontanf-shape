@@ -2,6 +2,7 @@
 
 #include "shape/boolean_operations.hpp"
 #include "shape/clean.hpp"
+//#include "shape/writer.hpp"
 
 //#include <iostream>
 //#include <fstream>
@@ -409,6 +410,7 @@ ShapeWithHoles shape::inflate(
     }
 
     //compute_union_export_inputs("union_input.json", union_input);
+    //Writer().add_shapes_with_holes(union_input).write_json("shapes.json");
     return compute_union(union_input).front();
 }
 
