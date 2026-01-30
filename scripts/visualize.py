@@ -98,7 +98,7 @@ with open(args.path, 'r') as f:
                 name=f"Shape with holes {shape_pos}",
                 # legendgroup=filepath,
                     showlegend=True,
-                    fillcolor=colors[shape_pos % len(colors)],
+                    fillcolor=(colors[shape_pos % len(colors)]),
                     opacity=0.2,
                     fill="toself",
                     marker=dict(
@@ -113,17 +113,18 @@ with open(args.path, 'r') as f:
 
             shape_path(shape_x, shape_y, shape)
 
+            color = colors[shape_pos % len(colors)];
             fig.add_trace(go.Scatter(
                 x=shape_x,
                 y=shape_y,
                 name=f"Shape {shape_pos}",
                 # legendgroup=filepath,
                     showlegend=True,
-                    fillcolor=colors[shape_pos % len(colors)],
+                    fillcolor=color,
                     opacity=0.2,
-                    fill="toself",
+                    fill="toself" if not shape["is_path"] else 'none',
                     marker=dict(
-                        color='black',
+                        color='black' if not shape["is_path"] else color,
                         size=1)))
 
     # Plot elements.
