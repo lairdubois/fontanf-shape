@@ -22,8 +22,24 @@ struct InflateShapeTestParams
         InflateShapeTestParams test_params;
         test_params.shape = Shape::from_json(json_item["shape"]);
         test_params.offset = json_item["offset"];
-        test_params.expected_output = ShapeWithHoles::from_json(json_item["expected_output"]);
+        if (json_item.contains("expected_output"))
+            test_params.expected_output = ShapeWithHoles::from_json(json_item["expected_output"]);
         return test_params;
+    }
+
+    static InflateShapeTestParams read_json(
+            const std::string& file_path)
+    {
+        std::ifstream file(file_path);
+        if (!file.good()) {
+            throw std::runtime_error(
+                    FUNC_SIGNATURE + ": "
+                    "unable to open file \"" + file_path + "\".");
+        }
+
+        nlohmann::json json;
+        file >> json;
+        return from_json(json);
     }
 };
 
@@ -36,17 +52,17 @@ TEST_P(InflateShapeTest, InflateShape)
     std::cout << "offset " << test_params.offset << std::endl;
     std::cout << "expected_output " << test_params.expected_output.to_string(0) << std::endl;
 
+    //Writer writer;
+    //writer.add_shape(test_params.shape);
+    //if (!test_params.expected_output.shape.elements.empty())
+    //    writer.add_shape_with_holes(test_params.expected_output);
+    //writer.write_json("inflate_shape_input.json");;
+
     auto output = inflate(
         test_params.shape,
         test_params.offset);
     std::cout << "output " << output.to_string(0) << std::endl;
-
-    Writer writer;
-    writer.add_shape(test_params.shape);
-    if (!test_params.expected_output.shape.elements.empty())
-        writer.add_shape_with_holes(test_params.expected_output);
-    writer.add_shape_with_holes(output);
-    writer.write_json("inflate_shape_input.json");;
+    //Writer().add_shape_with_holes(output).write_json("inflate_shape_output.json");
 
     EXPECT_TRUE(equal(output, test_params.expected_output));
 }
@@ -92,8 +108,8 @@ INSTANTIATE_TEST_SUITE_P(
                             {8, 0, 1}}),
                 },
             },
-            //SimplificationTestParams::read_json(
-            //        (fs::path("data") / "tests" / "simplification" / "2.json").string()),
+            InflateShapeTestParams::read_json(
+                    (fs::path("data") / "tests" / "offset" / "inflate_shape" / "0.json").string()),
             }));
 
 

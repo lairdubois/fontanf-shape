@@ -79,11 +79,11 @@ Shape inflate_element(
         p2.x = element.end.x + inflate * normal_end.x;
         p2.y = element.end.y + inflate * normal_end.y;
         Point p3;
-        p3.x = element.end.x + deflate * normal_end.x;
-        p3.y = element.end.y + deflate * normal_end.y;
+        p3.x = element.end.x - deflate * normal_end.x;
+        p3.y = element.end.y - deflate * normal_end.y;
         Point p4;
-        p4.x = element.start.x + deflate * normal_start.x;
-        p4.y = element.start.y + deflate * normal_start.y;
+        p4.x = element.start.x - deflate * normal_start.x;
+        p4.y = element.start.y - deflate * normal_start.y;
 
         ShapeElement element_1;
         element_1.type = ShapeElementType::CircularArc;
@@ -102,7 +102,7 @@ Shape inflate_element(
         element_3.start = p3;
         element_3.end = p4;
         element_3.center = element.center;
-        element_3.orientation = element.orientation;
+        element_3.orientation = opposite(element.orientation);
         shape.elements.push_back(element_3);
         ShapeElement element_4;
         element_4.type = ShapeElementType::LineSegment;

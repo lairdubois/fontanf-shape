@@ -47,7 +47,8 @@ std::pair<bool, Shape> shape::remove_redundant_vertices(
             number_of_elements_removed++;
         }
     }
-    shape_new.elements.back().end = shape_new.elements.front().start;
+    if (!shape.is_path)
+        shape_new.elements.back().end = shape_new.elements.front().start;
 
     //if (!shape_new.check()) {
     //    throw std::invalid_argument(
@@ -138,7 +139,8 @@ std::pair<bool, Shape> shape::remove_aligned_vertices(
             number_of_elements_removed++;
         }
     }
-    shape_new.elements.back().end = shape_new.elements.front().start;
+    if (!shape.is_path)
+        shape_new.elements.back().end = shape_new.elements.front().start;
 
     return {(number_of_elements_removed > 0), shape_new};
 }
