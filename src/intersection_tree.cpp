@@ -9,43 +9,32 @@ using namespace shape;
 namespace
 {
 
-LengthDbl find_median(
+std::vector<LengthDbl> find_median(
         std::vector<LengthDbl>& values_left,
         std::vector<LengthDbl>& values_right,
         LengthDbl min,
         LengthDbl max)
 {
     if (values_left.empty())
-        return (min + max) / 2;
+        return {(min + max) / 2};
     //std::cout << "find_median" << std::endl;
     ElementPos k = values_right.size() / 2;
     std::nth_element(values_right.begin(), values_right.begin() + k, values_right.end());
     std::nth_element(values_left.begin(), values_left.begin() + k, values_left.end());
-    LengthDbl median = (values_right[k] + values_left[k]) / 2.0;
+    LengthDbl median_r = values_right[k];
+    LengthDbl median_l = values_left[k];
+    LengthDbl median_r_next = +std::numeric_limits<LengthDbl>::infinity();
+    for (LengthDbl v: values_left)
+        if (median_r_next > v && strictly_greater(v, median_r))
+            median_r_next = v;
+    LengthDbl median_l_prev = -std::numeric_limits<LengthDbl>::infinity();
+    for (LengthDbl v: values_right)
+        if (median_l_prev < v && strictly_lesser(v, median_l))
+            median_l_prev = v;
 
-    if (median < min)
-        return min;
-    if (median > max)
-        return max;
-
-    LengthDbl median_next = +std::numeric_limits<LengthDbl>::infinity();
-    LengthDbl median_prev = -std::numeric_limits<LengthDbl>::infinity();
-    for (auto it = values_right.begin(); it != values_right.end(); ++it) {
-        if (median_prev < *it && !strictly_greater(*it, median))
-            median_prev = *it;
-        if (median_next > *it && !strictly_lesser(*it, median))
-            median_next = *it;
-    }
-    //std::cout << "median_prev " << median_prev
-    //    << " median " << median
-    //    << " median_next " << median_next
-    //    << std::endl;
-    if (strictly_lesser(median_next, max)) {
-        return (median + median_next) / 2;
-    } else if (strictly_greater(median_prev, min)) {
-        return (median + median_prev) / 2;
-    }
-    return median;
+    //std::cout << "median_r " << median_r << " median_r_next " << median_r_next << std::endl;
+    //std::cout << "median_l " << median_l << " median_l_prev " << median_l_prev << std::endl;
+    return {(median_r + median_r_next) / 2, (median_l + median_l_prev) / 2};
 }
 
 }
@@ -160,8 +149,8 @@ IntersectionTree::IntersectionTree(
         }
 
         // Compute x_middle / y_middle
-        std::vector<LengthDbl> xs = {find_median(values_x_left, values_x_right, node.l, node.r)};
-        std::vector<LengthDbl> ys = {find_median(values_y_bottom, values_y_top, node.b, node.t)};
+        std::vector<LengthDbl> xs = find_median(values_x_left, values_x_right, node.l, node.r);
+        std::vector<LengthDbl> ys = find_median(values_y_bottom, values_y_top, node.b, node.t);
         //std::cout << xs.front() << " " << ys.front() << std::endl;
 
         // Compute left/right/bottom/top shapes.
@@ -228,7 +217,7 @@ IntersectionTree::IntersectionTree(
         ShapePos n = stack_element.shape_ids.size() + stack_element.element_ids.size() + stack_element.point_ids.size();
         ShapePos n_best = n * (n - 1) / 2;
         //std::cout << "n " << n << std::endl;
-        //std::cout << "n_best " << n << std::endl;
+        //std::cout << "n_best " << n_best << std::endl;
         int i_best = -1;
         for (int i = 0; i < (int)xs.size(); ++i) {
             ShapePos nl = left_shape_ids[i].size() + left_element_ids[i].size() + left_point_ids[i].size();
