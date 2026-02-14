@@ -498,24 +498,6 @@ bool shape::strictly_greater_angle(
 ///////////////////////////////// ShapeElement /////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-std::string Jet::to_string() const
-{
-    return "tangent_angle " + shape::to_string(this->tangent_angle)
-        + " curvature " + shape::to_string(this->curvature);
-}
-
-Jet shape::operator-(
-        const Jet& jet_1,
-        const Jet& jet_2)
-{
-    Jet jet;
-    jet.tangent_angle = jet_1.tangent_angle - jet_2.tangent_angle;
-    jet.curvature = jet_1.curvature - jet_2.curvature;
-    if (strictly_lesser(jet.tangent_angle, 0.0))
-        jet.tangent_angle += 2 * M_PI;
-    return jet;
-}
-
 bool ShapeElement::contains(const Point& point) const
 {
     switch (type) {
@@ -630,40 +612,6 @@ Point ShapeElement::find_point_between(
     LengthDbl l1 = this->length(point_1);
     LengthDbl l2 = this->length(point_2);
     return this->point((l1 + l2) / 2);
-}
-
-Jet ShapeElement::jet(
-        const Point& point,
-        bool reverse) const
-{
-    switch (type) {
-    case ShapeElementType::LineSegment: {
-        Jet jet;
-        if (!reverse) {
-            jet.tangent_angle = angle_radian(this->end - this->start);
-        } else {
-            jet.tangent_angle = angle_radian(this->start - this->end);
-        }
-        jet.curvature = 0;
-        return jet;
-    } case ShapeElementType::CircularArc: {
-        LengthDbl radius = distance(this->center, point);
-        Point p = point - this->center;
-        Jet jet;
-        if ((this->orientation != ShapeElementOrientation::Clockwise
-                    && !reverse)
-                || (this->orientation == ShapeElementOrientation::Clockwise
-                    && reverse)) {
-            jet.tangent_angle = angle_radian({-p.y, p.x});
-            jet.curvature = 1.0 / radius;
-        } else {
-            jet.tangent_angle = angle_radian({p.y, -p.x});
-            jet.curvature = -1.0 / radius;
-        }
-        return jet;
-    }
-    }
-    return {};
 }
 
 bool ShapeElement::same_direction(
@@ -2080,36 +2028,6 @@ ShapeWithHoles shape::operator*(
     for (const Shape& hole: shape.holes)
         shape_new.holes.push_back(scalar * hole);
     return shape_new;
-}
-
-bool shape::operator==(
-        const Jet& jet_1,
-        const Jet& jet_2)
-{
-    if (jet_1.tangent_angle != jet_2.tangent_angle)
-        return false;
-    if (jet_1.curvature != jet_2.curvature)
-        return false;
-    return true;
-}
-
-bool shape::operator<(
-        const Jet& jet_1,
-        const Jet& jet_2)
-{
-    if (equal(jet_1.tangent_angle, 0) && strictly_lesser(jet_1.curvature, 0)) {
-        if (!equal(jet_2.tangent_angle, 0)
-                || (equal(jet_2.tangent_angle, 0) && !strictly_lesser(jet_2.curvature, 0))) {
-            return false;
-        } else {
-            return strictly_lesser(jet_1.curvature, jet_2.curvature);
-        }
-    } else if (equal(jet_2.tangent_angle, 0) && strictly_lesser(jet_2.curvature, 0)) {
-        return true;
-    }
-    if (!equal(jet_1.tangent_angle, jet_2.tangent_angle))
-        return jet_1.tangent_angle < jet_2.tangent_angle;
-    return strictly_lesser(jet_1.curvature, jet_2.curvature);
 }
 
 bool shape::operator==(

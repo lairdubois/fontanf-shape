@@ -118,67 +118,6 @@ INSTANTIATE_TEST_SUITE_P(
             }}));
 
 
-struct ShapeElementJetTestParams
-{
-    ShapeElement element;
-    Point point;
-    bool reverse;
-    Jet expected_jet;
-};
-
-class ShapeElementJetTest: public testing::TestWithParam<ShapeElementJetTestParams> { };
-
-TEST_P(ShapeElementJetTest, ShapeElementJet)
-{
-    ShapeElementJetTestParams test_params = GetParam();
-    Jet jet = test_params.element.jet(
-            test_params.point,
-            test_params.reverse);
-    EXPECT_TRUE(jet == test_params.expected_jet);
-}
-
-INSTANTIATE_TEST_SUITE_P(
-        Shape,
-        ShapeElementJetTest,
-        testing::ValuesIn(std::vector<ShapeElementJetTestParams>{
-            {
-                build_line_segment({0, 0}, {1, 0}),
-                {0, 0},
-                false,
-                {0, 0},
-            }, {
-                build_line_segment({0, 0}, {1, 0}),
-                {0, 0},
-                true,
-                {M_PI, 0},
-            }, {
-                build_line_segment({0, 0}, {0, 1}),
-                {0, 0},
-                false,
-                {M_PI / 2, 0}
-            }, {
-                build_line_segment({0, 0}, {0, 1}),
-                {0, 0},
-                true,
-                {3 * M_PI / 2, 0}
-            }, {
-                build_line_segment({0, 0}, {-1, 0}),
-                {0, 0},
-                false,
-                {M_PI, 0},
-            }, {
-                build_circular_arc({1, 0}, {0, -1}, {0, 0}, ShapeElementOrientation::Anticlockwise),
-                {1, 0},
-                false,
-                {M_PI / 2, 1},
-            }, {
-                build_circular_arc({1, 0}, {0, 1}, {0, 0}, ShapeElementOrientation::Clockwise),
-                {1, 0},
-                false,
-                {3 * M_PI / 2, -1},
-            } }));
-
-
 struct ShapeElementMiddleTestParams
 {
     ShapeElement circular_arc;

@@ -237,25 +237,6 @@ char orientation2char(ShapeElementOrientation type);
 ShapeElementOrientation opposite(ShapeElementOrientation orientation);
 
 /**
- * Structure for a jet of an element.
- */
-struct Jet
-{
-    /** Angle of the tangent. */
-    Angle tangent_angle = 0.0;
-
-    /** Curvature. */
-    LengthDbl curvature = 0.0;
-
-
-    std::string to_string() const;
-};
-
-Jet operator-(
-        const Jet& jet_1,
-        const Jet& jet_2);
-
-/**
  * Structure for the elementary elements composing a shape.
  */
 struct ShapeElement
@@ -302,11 +283,6 @@ struct ShapeElement
      */
     Point normal(
             const Point& point) const;
-
-    /** Jet of the element. */
-    Jet jet(
-            const Point& point,
-            bool reverse) const;
 
     bool same_direction(
             const ShapeElement& overlapping_part) const;
@@ -660,14 +636,6 @@ inline bool equal(
 {
     return equal(point_1.x, point_2.x) && equal(point_1.y, point_2.y);
 }
-
-bool operator==(
-        const Jet& jet_1,
-        const Jet& jet_2);
-
-bool operator<(
-        const Jet& jet_1,
-        const Jet& jet_2);
 
 bool operator==(
         const ShapeElement& element_1,

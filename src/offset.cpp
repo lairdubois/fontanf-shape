@@ -235,9 +235,9 @@ ShapeWithHoles shape::inflate(
 
             Shape rectangle = inflate_element(element, offset, 0);
 
-            Angle angle = (
-                    element.jet(element.start, false)
-                    - element_prev.jet(element_prev.end, true)).tangent_angle;
+            Angle angle = angle_radian(
+                    element_prev.reverse().normal(element_prev.end),
+                    element.normal(element.start));
 
             if (angle >= M_PI) {
                 Point point_prev = element_prev.end + offset * element_prev.normal(element_prev.end);
@@ -298,9 +298,9 @@ ShapeWithHoles shape::inflate(
 
                 Shape rectangle = inflate_element(element, 0, offset);
 
-                Angle angle = (
-                        element.jet(element.start, false)
-                        - element_prev.jet(element_prev.end, true)).tangent_angle;
+                Angle angle = angle_radian(
+                        element_prev.reverse().normal(element_prev.end),
+                        element.normal(element.start));
 
                 if (angle <= M_PI) {
                     Point point_prev = element_prev.end - offset * element_prev.normal(element_prev.end);
@@ -333,8 +333,8 @@ ShapeWithHoles shape::inflate(
         }
     }
 
-    //write_json(union_input, {}, "union_input.json");
     //compute_union_export_inputs("compute_union_input.json", union_input);
+    //Writer().add_shapes_with_holes(union_input).write_json("shapes.json");
     return compute_union(union_input).front();
 }
 
@@ -397,9 +397,9 @@ ShapeWithHoles shape::inflate(
         //std::cout << "element_pos " << element_pos << std::endl;
         //std::cout << "rectangle " << rectangle.to_string(2) << std::endl;
 
-        Angle angle = (
-                element.jet(element.start, false)
-                - element_prev.jet(element_prev.end, true)).tangent_angle;
+        Angle angle = angle_radian(
+                element_prev.reverse().normal(element_prev.end),
+                element.normal(element.start));
         //std::cout << "angle " << angle << std::endl;
 
         if (!shape.is_path) {
@@ -576,9 +576,9 @@ std::vector<Shape> shape::deflate(
 
         Shape rectangle = inflate_element(element, 0, offset);
 
-        Angle angle = (
-                element.jet(element.start, false)
-                - element_prev.jet(element_prev.end, true)).tangent_angle;
+        Angle angle = angle_radian(
+                element_prev.reverse().normal(element_prev.end),
+                element.normal(element.start));
 
         if (angle <= M_PI) {
             Point point_prev = element_prev.end - offset * element_prev.normal(element_prev.end);
