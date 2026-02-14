@@ -630,65 +630,43 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
     IntersectionTree intersection_tree(shapes, {}, {});
 
     // Find an element from the outline.
-    // To do so find, all elements from the original elements with the leftest
-    // point.
-    // If there are multiple such elements, then necessarily, the leftest point
-    // is their start and/or their end.
-    // Discard elements for which it's not the start.
-    // Find the element with the smallest angle with -y.
-    std::vector<ElementPos> leftest_elements_pos;
-    Point p_min = {std::numeric_limits<LengthDbl>::infinity(), std::numeric_limits<LengthDbl>::infinity()};
+    // To do so, we look at the rightmost node of the graph.
+    std::vector<ElementPos> rightest_elements_pos;
+    Point p_max = {-std::numeric_limits<LengthDbl>::infinity(), -std::numeric_limits<LengthDbl>::infinity()};
     for (ElementPos element_pos = 0;
             element_pos < (ElementPos)splitted_elements.size();
             ++element_pos) {
         const SplittedElement& element = splitted_elements[element_pos];
-        auto p = element.element.furthest_points(90);
         //std::cout << "element_pos " << element_pos << std::endl
         //    << "    " << element.element.to_string() << std::endl
         //    << "    p " << p.first.to_string() << " " << p.second.to_string() << std::endl;
-        if (element.element.contains(p_min))
-            leftest_elements_pos.push_back(element_pos);
-        if (strictly_lesser(p.first.x, p_min.x)
-                || (equal(p.first.x, p_min.x) && strictly_lesser(p.first.y, p_min.y))) {
-            leftest_elements_pos = {element_pos};
-            p_min = p.first;
-        }
-        if (strictly_lesser(p.second.x, p_min.x)
-                || (equal(p.second.x, p_min.x) && strictly_lesser(p.second.y, p_min.y))) {
-            leftest_elements_pos = {element_pos};
-            p_min = p.second;
+        if (element.element.start == p_max) {
+            rightest_elements_pos.push_back(element_pos);
+        } else if (strictly_greater(element.element.start.x, p_max.x)
+                || (equal(element.element.start.x, p_max.x) && strictly_greater(element.element.start.y, p_max.y))) {
+            rightest_elements_pos = {element_pos};
+            p_max = element.element.start;
         }
     }
-    //std::cout << "leftest_elements_pos.size() " << leftest_elements_pos.size() << std::endl;
+    //std::cout << "rightest_elements_pos.size() " << rightest_elements_pos.size() << std::endl;
 
-    if (leftest_elements_pos.size() > 1) {
-        std::vector<ElementPos> leftest_elements_pos_tmp;
-        for (ElementPos element_pos: leftest_elements_pos) {
-            const SplittedElement& element = splitted_elements[element_pos];
-            //std::cout << element.element.to_string() << std::endl;
-            if (element.element.end == p_min)
-                continue;
-            leftest_elements_pos_tmp.push_back(element_pos);
-        }
-        leftest_elements_pos = leftest_elements_pos_tmp;
+    LengthDbl l = std::numeric_limits<LengthDbl>::infinity();
+    for (ElementPos element_pos: rightest_elements_pos) {
+        const SplittedElement& splitted_element = splitted_elements[element_pos];
+        l = (std::min)(l, splitted_element.element.length());
     }
-    //std::cout << "leftest_elements_pos.size() " << leftest_elements_pos.size() << std::endl;
+    l /= 2;
 
     ElementPos element_start_pos = -1;
-    Jet largest_jet;
-    ShapeElement ref = build_line_segment(p_min, p_min + Point{-1, 0});
-    Jet current_jet = ref.jet(p_min, false);
-    for (ElementPos element_pos: leftest_elements_pos) {
+    Point largest_angle_point = p_max + Point{1, 0};
+    for (ElementPos element_pos: rightest_elements_pos) {
         const SplittedElement& splitted_element = splitted_elements[element_pos];
-        const ShapeElement& element = splitted_element.element;
-        Jet jet = element.jet(p_min, false) - current_jet;
-        //std::cout << "element_pos " << element_pos << std::endl
-        //    << "    " << element.to_string() << std::endl
-        //    << "    jet " << jet.to_string() << std::endl;
-        if (element_start_pos == -1
-                || largest_jet < jet) {
+        Point point = splitted_element.element.point(l);
+        if (strictly_lesser_angle(
+                    largest_angle_point - p_max,
+                    point - p_max)) {
             element_start_pos = element_pos;
-            largest_jet = jet;
+            largest_angle_point = point;
         }
     }
     //std::cout << "element_start_pos " << element_start_pos << std::endl
