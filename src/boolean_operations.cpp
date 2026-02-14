@@ -598,32 +598,9 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
                 {
                     const SplittedElement& splitted_element_1 = splitted_elements[arc_1_id];
                     const SplittedElement& splitted_element_2 = splitted_elements[arc_2_id];
-                    //std::cout << "element_1 " << splitted_element_1.element.to_string() << std::endl;
-                    //std::cout << "element_2 " << splitted_element_2.element.to_string() << std::endl;
-                    Point p1 = splitted_element_1.element.point(l);
-                    Point p2 = splitted_element_2.element.point(l);
-                    //std::cout << "p1 " << p1.to_string() << std::endl;
-                    //std::cout << "p2 " << p2.to_string() << std::endl;
-                    p1 = p1 - splitted_element_1.element.start;
-                    p2 = p2 - splitted_element_2.element.start;
-                    if (p1.y >= 0 && p2.y < 0) {
-                        //std::cout << "return " << "true" << std::endl;
-                        return true;
-                    }
-                    if (p1.y < 0 && p2.y >= 0) {
-                        //std::cout << "return " << "false" << std::endl;
-                        return false;
-                    }
-                    if (p1.y == 0 && p2.y == 0) {
-                        //std::cout << "return " << (p1.x < p2.x) << std::endl;
-                        return p1.x > p2.x;
-                    }
-                    LengthDbl v = p1.x * p2.y - p1.y * p2.x;
-                    //std::cout << "p1 " << p1.to_string() << std::endl;
-                    //std::cout << "p2 " << p2.to_string() << std::endl;
-                    //std::cout << "v " << v << std::endl;
-                    //std::cout << "return " << (v > 0) << std::endl;
-                    return v > 0;
+                    return strictly_lesser_angle(
+                            splitted_element_1.element.point(l) - splitted_element_1.element.start,
+                            splitted_element_2.element.point(l) - splitted_element_2.element.start);
                 });
         // Update arcs_next.
         ElementPos arc_prev_id = node.successors.back();
