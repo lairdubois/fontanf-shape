@@ -587,6 +587,7 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
             const SplittedElement& splitted_element = splitted_elements[arc_id];
             l = (std::min)(l, splitted_element.element.length());
         }
+        l /= 2;
         // Sort the arcs at this node.
         std::sort(
                 node.successors.begin(),
