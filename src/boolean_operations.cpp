@@ -467,8 +467,6 @@ struct BooleanOperationArc
 
 struct BooleanOperationNode
 {
-    std::vector<ElementPos> predecessors;
-
     std::vector<ElementPos> successors;
 };
 
@@ -533,7 +531,6 @@ BooleanOperationGraph compute_graph(
             graph.nodes[node_id].successors.push_back(element_pos);
         } else {
             graph.arcs[element_pos].end_node_id = node_id;
-            graph.nodes[node_id].predecessors.push_back(element_pos);
         }
         point_prev = point;
     }
@@ -719,7 +716,7 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
     element_start_pos = -1;
     for (;;) {
         // Find an unprocessed element.
-        NodeId node_start_id = -1;
+        element_start_pos = -1;
         for (ElementPos element_pos = element_start_pos + 1;
                 element_pos < (ElementPos)splitted_elements.size();
                 ++element_pos) {
@@ -731,12 +728,11 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
             //    << std::endl;
             if (!element_is_processed[element_pos]) {
                 element_start_pos = element_pos;
-                node_start_id = arc.end_node_id;
                 break;
             }
         }
         // If all elements have already been processed, stop.
-        if (node_start_id == -1)
+        if (element_start_pos == -1)
             break;
 
         //std::cout << "find faces..." << std::endl;
