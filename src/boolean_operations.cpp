@@ -634,31 +634,48 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
             element_pos < (ElementPos)splitted_elements.size();
             ++element_pos) {
         const SplittedElement& element = splitted_elements[element_pos];
+        auto p = element.element.furthest_points(90);
         //std::cout << "element_pos " << element_pos << std::endl
         //    << "    " << element.element.to_string() << std::endl
         //    << "    p " << p.first.to_string() << " " << p.second.to_string() << std::endl;
-        if (element.element.start == p_max) {
+        if (element.element.contains(p_max))
             rightest_elements_pos.push_back(element_pos);
-        } else if (strictly_greater(element.element.start.x, p_max.x)
-                || (equal(element.element.start.x, p_max.x) && strictly_greater(element.element.start.y, p_max.y))) {
+        if (strictly_greater(p.first.x, p_max.x)
+                || (equal(p.first.x, p_max.x) && strictly_greater(p.first.y, p_max.y))) {
             rightest_elements_pos = {element_pos};
-            p_max = element.element.start;
+            p_max = p.first;
+        }
+        if (strictly_greater(p.second.x, p_max.x)
+                || (equal(p.second.x, p_max.x) && strictly_greater(p.second.y, p_max.y))) {
+            rightest_elements_pos = {element_pos};
+            p_max = p.second;
         }
     }
+    //std::cout << "p_max " << p_max.to_string() << std::endl;
     //std::cout << "rightest_elements_pos.size() " << rightest_elements_pos.size() << std::endl;
 
     LengthDbl l = std::numeric_limits<LengthDbl>::infinity();
     for (ElementPos element_pos: rightest_elements_pos) {
         const SplittedElement& splitted_element = splitted_elements[element_pos];
-        l = (std::min)(l, splitted_element.element.length());
+        if (equal(p_max, splitted_element.element.end)
+                && !equal(p_max, splitted_element.element.start))
+            continue;
+        //std::cout << splitted_element.element.to_string() << std::endl;
+        LengthDbl l0 = splitted_element.element.length(p_max);
+        l = (std::min)(l, splitted_element.element.length() - l0);
     }
     l /= 2;
+    //std::cout << "l " << l << std::endl;
 
     ElementPos element_start_pos = -1;
     Point largest_angle_point = p_max + Point{1, 0};
     for (ElementPos element_pos: rightest_elements_pos) {
         const SplittedElement& splitted_element = splitted_elements[element_pos];
-        Point point = splitted_element.element.point(l);
+        if (equal(p_max, splitted_element.element.end)
+                && !equal(p_max, splitted_element.element.start))
+            continue;
+        LengthDbl l0 = splitted_element.element.length(p_max);
+        Point point = splitted_element.element.point(l0 + l);
         if (strictly_lesser_angle(
                     largest_angle_point - p_max,
                     point - p_max)) {
