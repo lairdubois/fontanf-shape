@@ -1485,6 +1485,120 @@ std::vector<Shape> Shape::split(const std::vector<ShapePoint>& points) const
     return output;
 }
 
+Shape Shape::replace(const std::vector<PathReplacement>& paths) const
+{
+    if (paths.empty())
+        return *this;
+
+    std::vector<ShapePos> sorted_paths(paths.size());
+    std::iota(sorted_paths.begin(), sorted_paths.end(), 0);
+    std::sort(
+            sorted_paths.begin(),
+            sorted_paths.end(),
+            [this, &paths](
+                const ShapePos& path_pos_1,
+                const ShapePos& path_pos_2)
+            {
+                const PathReplacement& path_1 = paths[path_pos_1];
+                const PathReplacement& path_2 = paths[path_pos_2];
+                return this->is_strictly_closer_to_path_start(path_1.start, path_2.start);
+            });
+
+    Shape shape;
+    shape.is_path = this->is_path;
+
+    const PathReplacement& first_path = paths[sorted_paths.front()];
+    ElementPos element_pos = 0;
+    while (element_pos < first_path.start.element_pos) {
+        shape.elements.push_back(this->elements[element_pos]);
+        element_pos++;
+    }
+    const ShapeElement& element_in = this->elements[element_pos];
+    if (equal(first_path.start.point, element_in.start)) {
+    } else if (equal(first_path.start.point, element_in.end)) {
+        shape.elements.push_back(element_in);
+    } else {
+        auto splitted_elements = element_in.split(first_path.start.point);
+        shape.elements.push_back(splitted_elements.first);
+    }
+    element_pos++;
+    for (const ShapeElement& element: first_path.path)
+        shape.elements.push_back(element);
+    element_pos = first_path.end.element_pos;
+
+    for (ShapePos pos = 1; pos < (ShapePos)sorted_paths.size(); ++pos) {
+        ShapePos path_curr_pos = sorted_paths[pos];
+        ShapePos path_prev_pos = sorted_paths[pos - 1];
+        const PathReplacement& path_curr = paths[path_curr_pos];
+        const PathReplacement& path_prev = paths[path_prev_pos];
+        if (path_prev.end.element_pos == path_curr.start.element_pos) {
+            const ShapeElement& element = this->elements[element_pos];
+            if (equal(path_prev.end.point, path_curr.start.point)) {
+            } else if (equal(path_prev.end.point, element.start)) {
+                if (equal(path_curr.start.point, element.end)) {
+                    shape.elements.push_back(element);
+                } else {
+                    auto splitted_elements = element.split(path_curr.start.point);
+                    shape.elements.push_back(splitted_elements.second);
+                }
+            } else if (equal(path_curr.start.point, element.end)) {
+                auto splitted_elements = element.split(path_prev.end.point);
+                shape.elements.push_back(splitted_elements.first);
+            } else {
+                auto splitted_elements = element.split(path_prev.end.point);
+                auto splitted_elements_2 = splitted_elements.second.split(path_curr.start.point);
+                shape.elements.push_back(splitted_elements_2.first);
+            }
+        } else {
+            const ShapeElement& element_out = this->elements[element_pos];
+            if (equal(path_prev.end.point, element_out.start)) {
+                shape.elements.push_back(element_out);
+            } else if (equal(path_prev.end.point, element_out.end)) {
+            } else {
+                auto splitted_elements = element_out.split(path_prev.end.point);
+                shape.elements.push_back(splitted_elements.second);
+            }
+            element_pos++;
+
+            while (element_pos < path_curr.start.element_pos) {
+                shape.elements.push_back(this->elements[element_pos]);
+                element_pos++;
+            }
+
+            const ShapeElement& element_in = this->elements[element_pos];
+            if (equal(path_curr.start.point, element_in.start)) {
+            } else if (equal(path_curr.start.point, element_in.end)) {
+                shape.elements.push_back(element_in);
+            } else {
+                auto splitted_elements = element_in.split(path_curr.start.point);
+                shape.elements.push_back(splitted_elements.first);
+            }
+        }
+
+        for (const ShapeElement& element: path_curr.path)
+            shape.elements.push_back(element);
+        element_pos = path_curr.end.element_pos;
+    }
+
+    const PathReplacement& last_path = paths[sorted_paths.back()];
+    const ShapeElement& element_out = this->elements[element_pos];
+    if (equal(last_path.end.point, element_out.start)) {
+        shape.elements.push_back(element_out);
+    } else if (equal(last_path.end.point, element_out.end)) {
+    } else {
+        auto splitted_elements = element_out.split(last_path.end.point);
+        shape.elements.push_back(splitted_elements.second);
+    }
+    element_pos++;
+
+    while (element_pos < (ElementPos)this->elements.size()) {
+        shape.elements.push_back(this->elements[element_pos]);
+        element_pos++;
+    }
+
+    return shape;
+}
+
 std::pair<LengthDbl, LengthDbl> Shape::compute_width_and_height(
         Angle angle,
         bool mirror) const

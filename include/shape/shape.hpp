@@ -479,6 +479,16 @@ struct Shape
     /** Split a shape/path at given points. */
     std::vector<Shape> split(const std::vector<ShapePoint>& points) const;
 
+    struct PathReplacement
+    {
+        ShapePoint start;
+        ShapePoint end;
+        std::vector<ShapeElement> path;
+    };
+
+    /** Replace parts of the shape by other given paths. */
+    Shape replace(const std::vector<PathReplacement>& paths) const;
+
     /*
      * Export
      */

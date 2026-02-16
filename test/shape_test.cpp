@@ -510,3 +510,52 @@ INSTANTIATE_TEST_SUITE_P(
                 },
             },
             }));
+
+
+struct ShapeReplaceTestParams
+{
+    Shape shape;
+    std::vector<Shape::PathReplacement> paths;
+    Shape expected_output;
+};
+
+class ShapeReplaceTest: public testing::TestWithParam<ShapeReplaceTestParams> { };
+
+TEST_P(ShapeReplaceTest, ShapeReplace)
+{
+    ShapeReplaceTestParams test_params = GetParam();
+    std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
+    for (const Shape::PathReplacement& path: test_params.paths) {
+        std::cout << "start " << path.start.element_pos << " " << path.start.point.to_string() << std::endl;
+        std::cout << "end " << path.end.element_pos << " " << path.end.point.to_string() << std::endl;
+    }
+    std::cout << "expceted output " << test_params.expected_output.to_string(0) << std::endl;
+    Shape output = test_params.shape.replace(test_params.paths);
+    std::cout << "output " << output.to_string(0) << std::endl;
+    ASSERT_TRUE(equal(output, test_params.expected_output));
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Shape,
+        ShapeReplaceTest,
+        testing::ValuesIn(std::vector<ShapeReplaceTestParams>{
+            {
+                build_path({{0, 0}, {0, 10}}),
+                {
+                    {{0, {0, 1}}, {0, {0, 9}}, build_path({{0, 1}, {1, 5}, {0, 9}}).elements},
+                },
+                build_path({{0, 0}, {0, 1}, {1, 5}, {0, 9}, {0, 10}}),
+            }, {
+                build_path({{0, 0}, {0, 10}, {10, 10}}),
+                {
+                    {{0, {0, 5}}, {1, {5, 10}}, build_path({{0, 5}, {5, 10}}).elements},
+                },
+                build_path({{0, 0}, {0, 5}, {5, 10}, {10, 10}}),
+            }, {
+                build_path({{0, 0}, {0, 10}, {10, 10}}),
+                {
+                    {{1, {1, 10}}, {1, {9, 10}}, build_path({{1, 10}, {5, 11}, {9, 10}}).elements},
+                    {{0, {0, 1}}, {0, {0, 9}}, build_path({{0, 1}, {1, 5}, {0, 9}}).elements},
+                },
+                build_path({{0, 0}, {0, 1}, {1, 5}, {0, 9}, {0, 10}, {1, 10}, {5, 11}, {9, 10}, {10, 10}}),
+            }}));
