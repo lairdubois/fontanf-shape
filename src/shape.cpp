@@ -1424,14 +1424,24 @@ std::vector<Shape> Shape::split(const std::vector<ShapePoint>& points) const
                 const ShapeElement& element = this->elements[element_pos];
                 path_1.elements.push_back(element);
             }
-            path_1.elements.push_back(this->elements[point_first.element_pos].split(point_first.point).first);
+            if (equal(point_first.point, this->elements[point_first.element_pos].start)) {
+            } else if (equal(point_first.point, this->elements[point_first.element_pos].end)) {
+                path_1.elements.push_back(this->elements[point_first.element_pos]);
+            } else {
+                path_1.elements.push_back(this->elements[point_first.element_pos].split(point_first.point).first);
+            }
             output.push_back(path_1);
         }
 
         {
             Shape path_2;
             path_2.is_path = true;
-            path_2.elements.push_back(this->elements[point_last.element_pos].split(point_last.point).second);
+            if (equal(point_last.point, this->elements[point_last.element_pos].start)) {
+                path_2.elements.push_back(this->elements[point_last.element_pos]);
+            } else if (equal(point_last.point, this->elements[point_last.element_pos].end)) {
+            } else {
+                path_2.elements.push_back(this->elements[point_last.element_pos].split(point_last.point).second);
+            }
             for (ElementPos element_pos = point_last.element_pos + 1;
                     element_pos < (ElementPos)this->elements.size();
                     ++element_pos) {
@@ -1445,7 +1455,12 @@ std::vector<Shape> Shape::split(const std::vector<ShapePoint>& points) const
         // For a shape, create a path from last point to first point.
         Shape path;
         path.is_path = true;
-        path.elements.push_back(this->elements[point_last.element_pos].split(point_last.point).second);
+        if (equal(point_last.point, this->elements[point_last.element_pos].start)) {
+            path.elements.push_back(this->elements[point_last.element_pos]);
+        } else if (equal(point_last.point, this->elements[point_last.element_pos].end)) {
+        } else {
+            path.elements.push_back(this->elements[point_last.element_pos].split(point_last.point).second);
+        }
         for (ElementPos element_pos = point_last.element_pos + 1;
                 element_pos < (ElementPos)this->elements.size();
                 ++element_pos) {
@@ -1458,7 +1473,12 @@ std::vector<Shape> Shape::split(const std::vector<ShapePoint>& points) const
             const ShapeElement& element = this->elements[element_pos];
             path.elements.push_back(element);
         }
-        path.elements.push_back(this->elements[point_first.element_pos].split(point_first.point).first);
+        if (equal(point_first.point, this->elements[point_first.element_pos].start)) {
+        } else if (equal(point_first.point, this->elements[point_first.element_pos].end)) {
+            path.elements.push_back(this->elements[point_first.element_pos]);
+        } else {
+            path.elements.push_back(this->elements[point_first.element_pos].split(point_first.point).first);
+        }
         output.push_back(path);
     }
 
@@ -1472,17 +1492,45 @@ std::vector<Shape> Shape::split(const std::vector<ShapePoint>& points) const
         Shape path;
         path.is_path = true;
         if (point_start.element_pos == point_end.element_pos) {
-            ShapeElement element_tmp = this->elements[point_start.element_pos].split(point_start.point).second;
-            path.elements.push_back(element_tmp.split(point_end.point).first);
+            if (equal(point_start.point, point_end.point)) {
+                throw std::invalid_argument(
+                        FUNC_SIGNATURE + ": "
+                        "splitting points must be distinct.");
+            }
+            const ShapeElement& element = this->elements[point_start.element_pos];
+            if (equal(point_start.point, element.start)) {
+                if (equal(point_end.point, element.end)) {
+                    path.elements.push_back(element);
+                } else {
+                    path.elements.push_back(element.split(point_end.point).first);
+                }
+            } else {
+                ShapeElement element_tmp = this->elements[point_start.element_pos].split(point_start.point).second;
+                if (equal(point_end.point, element.end)) {
+                    path.elements.push_back(element_tmp);
+                } else {
+                    path.elements.push_back(element_tmp.split(point_end.point).first);
+                }
+            }
         } else {
-            path.elements.push_back(this->elements[point_start.element_pos].split(point_start.point).second);
+            if (equal(point_start.point, this->elements[point_start.element_pos].start)) {
+                path.elements.push_back(this->elements[point_start.element_pos]);
+            } else if (equal(point_start.point, this->elements[point_start.element_pos].end)) {
+            } else {
+                path.elements.push_back(this->elements[point_start.element_pos].split(point_start.point).second);
+            }
             for (ElementPos element_pos = point_start.element_pos + 1;
                     element_pos < point_end.element_pos;
                     ++element_pos) {
                 const ShapeElement& element = this->elements[element_pos];
                 path.elements.push_back(element);
             }
-            path.elements.push_back(this->elements[point_end.element_pos].split(point_end.point).first);
+            if (equal(point_end.point, this->elements[point_end.element_pos].start)) {
+                path.elements.push_back(this->elements[point_end.element_pos]);
+            } else if (equal(point_end.point, this->elements[point_end.element_pos].end)) {
+            } else {
+                path.elements.push_back(this->elements[point_end.element_pos].split(point_end.point).first);
+            }
         }
         output.push_back(path);
     }
