@@ -1471,14 +1471,19 @@ std::vector<Shape> Shape::split(const std::vector<ShapePoint>& points) const
 
         Shape path;
         path.is_path = true;
-        path.elements.push_back(this->elements[point_start.element_pos].split(point_start.point).second);
-        for (ElementPos element_pos = point_start.element_pos + 1;
-                element_pos < point_end.element_pos;
-                ++element_pos) {
-            const ShapeElement& element = this->elements[element_pos];
-            path.elements.push_back(element);
+        if (point_start.element_pos == point_end.element_pos) {
+            ShapeElement element_tmp = this->elements[point_start.element_pos].split(point_start.point).second;
+            path.elements.push_back(element_tmp.split(point_end.point).first);
+        } else {
+            path.elements.push_back(this->elements[point_start.element_pos].split(point_start.point).second);
+            for (ElementPos element_pos = point_start.element_pos + 1;
+                    element_pos < point_end.element_pos;
+                    ++element_pos) {
+                const ShapeElement& element = this->elements[element_pos];
+                path.elements.push_back(element);
+            }
+            path.elements.push_back(this->elements[point_end.element_pos].split(point_end.point).first);
         }
-        path.elements.push_back(this->elements[point_end.element_pos].split(point_end.point).first);
         output.push_back(path);
     }
 
