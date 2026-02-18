@@ -14,7 +14,7 @@ std::pair<bool, Shape> shape::remove_redundant_vertices(
 {
     //std::cout << "remove_redundant_vertices " << shape.to_string(2) << std::endl;
 
-    if (shape.elements.size() <= 3)
+    if (!shape.is_path && shape.elements.size() <= 3)
         return {false, shape};
 
     ElementPos number_of_elements_removed = 0;
