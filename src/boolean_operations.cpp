@@ -21,6 +21,7 @@ enum class BooleanOperation
     Intersection,
     Difference,
     SymmetricDifference,
+    OutlineExtraction,
     FaceExtraction,
 };
 
@@ -298,6 +299,11 @@ ComputeSplittedElementsOutput compute_splitted_elements(
                         "not implemented.");
                 break;
             } case BooleanOperation::SymmetricDifference: {
+                throw std::logic_error(
+                        FUNC_SIGNATURE + ": "
+                        "not implemented.");
+                break;
+            } case BooleanOperation::OutlineExtraction: {
                 throw std::logic_error(
                         FUNC_SIGNATURE + ": "
                         "not implemented.");
@@ -730,6 +736,22 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
         break;
     } case BooleanOperation::SymmetricDifference: {
         break;
+    } case BooleanOperation::OutlineExtraction: {
+        ShapeWithHoles new_shape;
+        new_shape.shape = outline.reverse();
+        new_shape.shape = remove_redundant_vertices(new_shape.shape).second;
+        new_shape.shape = remove_aligned_vertices(new_shape.shape).second;
+
+        // Check if the face is valid.
+        if (strictly_lesser(new_shape.shape.compute_area(), 0.0)) {
+            throw std::logic_error(
+                    FUNC_SIGNATURE + ": "
+                    "outline area is not positive.");
+        }
+
+        new_shapes.push_back(new_shape);
+        return new_shapes;
+        break;
     } case BooleanOperation::FaceExtraction: {
         break;
     }
@@ -919,6 +941,9 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
             }
 
             break;
+        } case BooleanOperation::OutlineExtraction: {
+            throw std::logic_error(FUNC_SIGNATURE);
+            break;
         } case BooleanOperation::FaceExtraction: {
             face = remove_redundant_vertices(face).second;
             face = remove_aligned_vertices(face).second;
@@ -1071,6 +1096,15 @@ std::vector<ShapeWithHoles> shape::compute_symmetric_difference(
             v,
             BooleanOperation::SymmetricDifference);
     return compute_union(faces);
+}
+
+Shape shape::extract_outline(
+        const Shape& shape)
+{
+    auto output = compute_boolean_operation(
+            {{shape}},
+            BooleanOperation::OutlineExtraction);
+    return output.front().shape;
 }
 
 std::vector<Shape> shape::extract_faces(

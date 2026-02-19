@@ -35,6 +35,9 @@ std::vector<ShapeWithHoles> compute_symmetric_difference(
         const ShapeWithHoles& shape_1,
         const ShapeWithHoles& shape_2);
 
+Shape extract_outline(
+        const Shape& shape);
+
 /**
  * Extract the faces of a shape.
  */

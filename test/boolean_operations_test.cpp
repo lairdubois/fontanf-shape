@@ -422,6 +422,69 @@ INSTANTIATE_TEST_SUITE_P(
         testing::ValuesIn(ComputeBooleanSymmetricDifferenceTestParams::read_dir((fs::path("data") / "tests" / "boolean_operations" / "symmetric_difference").string())));
 
 
+struct ExtractOutlineTestParams
+{
+    Shape shape;
+    Shape expected_output;
+
+
+    static ExtractOutlineTestParams from_json(
+            nlohmann::basic_json<>& json_item)
+    {
+        ExtractOutlineTestParams test_params;
+        test_params.shape = Shape::from_json(json_item["shape"]);
+        test_params.expected_output = Shape::from_json(json_item["expected_output"]);
+        return test_params;
+    }
+
+    static ExtractOutlineTestParams read_json(
+            const std::string& file_path)
+    {
+        std::ifstream file(file_path);
+        if (!file.good()) {
+            throw std::runtime_error(
+                    FUNC_SIGNATURE + ": "
+                    "unable to open file \"" + file_path + "\".");
+        }
+
+        nlohmann::json json;
+        file >> json;
+        return from_json(json);
+    }
+};
+
+class ExtractOutlineTest: public testing::TestWithParam<ExtractOutlineTestParams> { };
+
+TEST_P(ExtractOutlineTest, ExtractOutline)
+{
+    ExtractOutlineTestParams test_params = GetParam();
+    std::cout << "shape " << test_params.shape.to_string(2) << std::endl;
+    std::cout << "expected_output " << test_params.expected_output.to_string(2) << std::endl;
+
+    Shape output = extract_outline(test_params.shape);
+    std::cout << "output " << output.to_string(2) << std::endl;
+    //Writer()
+    //    .add_shape(test_params.shape)
+    //    .add_shape(test_params.expected_output)
+    //    .add_shape(output)
+    //    .write_json("extract_outline_output.json");
+
+    ASSERT_TRUE(equal(output, test_params.expected_output));
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Shape,
+        ExtractOutlineTest,
+        testing::ValuesIn(std::vector<ExtractOutlineTestParams>{
+            {
+                build_shape({{0, 0}, {10, 0}, {10, 10}, {1, 1}, {9, 1}, {0, 10}}),
+                build_shape({{0, 0}, {10, 0}, {10, 10}, {5, 5}, {0, 10}}),
+            },
+            ExtractOutlineTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "extract_outline" / "0.json").string()),
+            }));
+
+
 struct ExtractFacesTestParams
 {
     Shape shape;
