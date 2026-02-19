@@ -1527,8 +1527,8 @@ std::vector<Shape> Shape::split(const std::vector<ShapePoint>& points) const
                 path.elements.push_back(element);
             }
             if (equal(point_end.point, this->elements[point_end.element_pos].start)) {
-                path.elements.push_back(this->elements[point_end.element_pos]);
             } else if (equal(point_end.point, this->elements[point_end.element_pos].end)) {
+                path.elements.push_back(this->elements[point_end.element_pos]);
             } else {
                 path.elements.push_back(this->elements[point_end.element_pos].split(point_end.point).first);
             }
@@ -1543,6 +1543,23 @@ Shape Shape::replace(const std::vector<PathReplacement>& paths) const
 {
     if (paths.empty())
         return *this;
+
+    for (const PathReplacement& path: paths) {
+        if (!equal(path.path.front().start, path.start.point)) {
+            throw std::invalid_argument(
+                    FUNC_SIGNATURE + ": "
+                    "wrong start; "
+                    "path.front().start: " + path.path.front().start.to_string() + "; "
+                    "start.point: " + path.start.point.to_string() + ".");
+        }
+        if (!equal(path.path.back().end, path.end.point)) {
+            throw std::invalid_argument(
+                    FUNC_SIGNATURE + ": "
+                    "wrong end; "
+                    "path.back().end: " + path.path.back().end.to_string() + "; "
+                    "end.point: " + path.end.point.to_string() + ".");
+        }
+    }
 
     std::vector<ShapePos> sorted_paths(paths.size());
     std::iota(sorted_paths.begin(), sorted_paths.end(), 0);
