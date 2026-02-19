@@ -628,30 +628,31 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
 
     // Find an element from the outline.
     // To do so, we look at the rightmost node of the graph.
-    std::vector<ElementPos> rightest_elements_pos;
     Point p_max = {-std::numeric_limits<LengthDbl>::infinity(), -std::numeric_limits<LengthDbl>::infinity()};
     for (ElementPos element_pos = 0;
             element_pos < (ElementPos)splitted_elements.size();
             ++element_pos) {
         const SplittedElement& element = splitted_elements[element_pos];
         auto p = element.element.furthest_points(90);
-        //std::cout << "element_pos " << element_pos << std::endl
-        //    << "    " << element.element.to_string() << std::endl
-        //    << "    p " << p.first.to_string() << " " << p.second.to_string() << std::endl;
-        if (element.element.contains(p_max))
-            rightest_elements_pos.push_back(element_pos);
-        if (strictly_greater(p.first.x, p_max.x)
-                || (equal(p.first.x, p_max.x) && strictly_greater(p.first.y, p_max.y))) {
-            rightest_elements_pos = {element_pos};
+        if (p.first.x > p_max.x
+                || (p.first.x == p_max.x && p.first.y > p_max.y)) {
             p_max = p.first;
         }
-        if (strictly_greater(p.second.x, p_max.x)
-                || (equal(p.second.x, p_max.x) && strictly_greater(p.second.y, p_max.y))) {
-            rightest_elements_pos = {element_pos};
+        if (p.second.x > p_max.x
+                || (p.second.x == p_max.x && p.second.y > p_max.y)) {
             p_max = p.second;
         }
     }
     //std::cout << "p_max " << p_max.to_string() << std::endl;
+
+    std::vector<ElementPos> rightest_elements_pos;
+    for (ElementPos element_pos = 0;
+            element_pos < (ElementPos)splitted_elements.size();
+            ++element_pos) {
+        const SplittedElement& element = splitted_elements[element_pos];
+        if (element.element.contains(p_max))
+            rightest_elements_pos.push_back(element_pos);
+    }
     //std::cout << "rightest_elements_pos.size() " << rightest_elements_pos.size() << std::endl;
 
     LengthDbl l = std::numeric_limits<LengthDbl>::infinity();
@@ -705,6 +706,7 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
             break;
         element_cur_pos = arcs_next[element_cur_pos];
     }
+
     //std::cout << "shape " << outline.to_string(0) << std::endl;
     switch (boolean_operation) {
     case BooleanOperation::Union: {
@@ -712,6 +714,14 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
         new_shape.shape = outline.reverse();
         new_shape.shape = remove_redundant_vertices(new_shape.shape).second;
         new_shape.shape = remove_aligned_vertices(new_shape.shape).second;
+
+        // Check if the face is valid.
+        if (strictly_lesser(new_shape.shape.compute_area(), 0.0)) {
+            throw std::logic_error(
+                    FUNC_SIGNATURE + ": "
+                    "outline area is not positive.");
+        }
+
         new_shapes.push_back(new_shape);
         break;
     } case BooleanOperation::Intersection: {
@@ -721,10 +731,6 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
     } case BooleanOperation::SymmetricDifference: {
         break;
     } case BooleanOperation::FaceExtraction: {
-        outline = remove_redundant_vertices(outline).second;
-        outline = remove_aligned_vertices(outline).second;
-        if (outline.compute_area() > 0)
-            new_shapes.push_back({outline});
         break;
     }
     }
