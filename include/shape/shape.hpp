@@ -256,6 +256,7 @@ struct ShapeElement
     /** If the element is a CircularArc, direction of the rotation. */
     ShapeElementOrientation orientation = ShapeElementOrientation::Anticlockwise;
 
+    bool in_circular_arc_cone(const Point& point) const;
 
     /** Check if a point is on the element. */
     bool contains(const Point& point) const;

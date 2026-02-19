@@ -498,6 +498,30 @@ bool shape::strictly_greater_angle(
 ///////////////////////////////// ShapeElement /////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
+bool ShapeElement::in_circular_arc_cone(const Point& point) const
+{
+    if (this->orientation == ShapeElementOrientation::Full) {
+        return true;
+    } else if (this->orientation == ShapeElementOrientation::Anticlockwise) {
+        Angle a0 = angle_radian(
+                this->start - this->center,
+                this->end - this->center);
+        Angle a = angle_radian(
+                this->start - this->center,
+                point - this->center);
+        return !strictly_greater(a, a0);
+    } else {
+        Angle a0 = angle_radian(
+                this->end - this->center,
+                this->start - this->center);
+        Angle a = angle_radian(
+                this->end - this->center,
+                point - this->center);
+        return !strictly_greater(a, a0);
+    }
+    return false;
+}
+
 bool ShapeElement::contains(const Point& point) const
 {
     switch (type) {
@@ -514,32 +538,9 @@ bool ShapeElement::contains(const Point& point) const
                     distance(this->start, this->center))) {
             return false;
         }
-
         if (this->orientation == ShapeElementOrientation::Full)
             return true;
-
-        // Calculate angles
-        Angle point_angle = angle_radian(point - this->center);
-        Angle start_angle = angle_radian(this->start - this->center);
-        Angle end_angle = angle_radian(this->end - this->center);
-
-        if (this->orientation == ShapeElementOrientation::Anticlockwise) {
-            Angle a0 = angle_radian(
-                    this->start - this->center,
-                    this->end - this->center);
-            Angle a = angle_radian(
-                    this->start - this->center,
-                    point - this->center);
-            return !strictly_greater(a, a0);
-        } else {
-            Angle a0 = angle_radian(
-                    this->end - this->center,
-                    this->start - this->center);
-            Angle a = angle_radian(
-                    this->end - this->center,
-                    point - this->center);
-            return !strictly_greater(a, a0);
-        }
+        return this->in_circular_arc_cone(point);
     }
     }
     return false;

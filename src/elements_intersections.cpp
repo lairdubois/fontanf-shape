@@ -357,7 +357,7 @@ ShapeElementIntersectionsOutput compute_line_arc_intersections(
         } else if (equal(p, arc.end)) {
             p = arc.end;
         }
-        if (line.contains(p) && arc.contains(p)) {
+        if (line.contains(p) && arc.in_circular_arc_cone(p)) {
             return {{}, {p}, {}};
         } else {
             return {};
@@ -368,10 +368,10 @@ ShapeElementIntersectionsOutput compute_line_arc_intersections(
     for (Point& p: ps) {
         // Check if any intersection coincides with an arc endpoint
         if (equal(p, line.start)) {
-            if (arc.contains(p))
+            if (arc.in_circular_arc_cone(p))
                 output.improper_intersections.push_back(line.start);
         } else if (equal(p, line.end)) {
-            if (arc.contains(p))
+            if (arc.in_circular_arc_cone(p))
                 output.improper_intersections.push_back(line.end);
         } else if (equal(p, arc.start)) {
             if (line.contains(p))
@@ -379,7 +379,7 @@ ShapeElementIntersectionsOutput compute_line_arc_intersections(
         } else if (equal(p, arc.end)) {
             if (line.contains(p))
                 output.improper_intersections.push_back(arc.end);
-        } else if (line.contains(p) && arc.contains(p)) {
+        } else if (line.contains(p) && arc.in_circular_arc_cone(p)) {
             output.proper_intersections.push_back(p);
         }
     }
@@ -496,7 +496,7 @@ ShapeElementIntersectionsOutput compute_arc_arc_intersections(
     ShapeElementIntersectionsOutput output;
     if (points.size() == 2) {
         for (const Point& p: points)
-            if (arc.contains(p) && arc_2.contains(p))
+            if (arc.in_circular_arc_cone(p) && arc_2.in_circular_arc_cone(p))
                 output.improper_intersections.push_back(p);
 
     } else if (points.size() == 1) {
@@ -507,12 +507,11 @@ ShapeElementIntersectionsOutput compute_arc_arc_intersections(
         Point m = arc.center + alpha * u;
         Point p = 2 * m - points[0];
 
-        ShapeElementIntersectionsOutput output;
-        if (arc.contains(points[0]) && arc_2.contains(points[0]))
+        if (arc.in_circular_arc_cone(points[0]) && arc_2.in_circular_arc_cone(points[0]))
             output.improper_intersections.push_back(points[0]);
         if (equal(p, points[0]))
             return output;
-        if (arc.contains(p) && arc_2.contains(p))
+        if (arc.in_circular_arc_cone(p) && arc_2.in_circular_arc_cone(p))
             output.proper_intersections.push_back(p);
 
     } else {
@@ -562,7 +561,7 @@ ShapeElementIntersectionsOutput compute_arc_arc_intersections(
             } else if (equal(p, arc_2.end)) {
                 p = arc_2.end;
             }
-            if (arc.contains(p) && arc_2.contains(p)) {
+            if (arc.in_circular_arc_cone(p) && arc_2.in_circular_arc_cone(p)) {
                 return {{}, {p}, {}};
             } else {
                 return {};
@@ -573,18 +572,18 @@ ShapeElementIntersectionsOutput compute_arc_arc_intersections(
             //std::cout << "p " << p.to_string() << std::endl;
             // Check if any intersection coincides with an arc endpoint
             if (equal(p, arc.start)) {
-                if (arc_2.contains(p))
+                if (arc_2.in_circular_arc_cone(p))
                     output.improper_intersections.push_back(arc.start);
             } else if (equal(p, arc.end)) {
-                if (arc_2.contains(p))
+                if (arc_2.in_circular_arc_cone(p))
                     output.improper_intersections.push_back(arc.end);
             } else if (equal(p, arc_2.start)) {
-                if (arc.contains(p))
+                if (arc.in_circular_arc_cone(p))
                     output.improper_intersections.push_back(arc_2.start);
             } else if (equal(p, arc_2.end)) {
-                if (arc.contains(p))
+                if (arc.in_circular_arc_cone(p))
                     output.improper_intersections.push_back(arc_2.end);
-            } else if (arc.contains(p) && arc_2.contains(p)) {
+            } else if (arc.in_circular_arc_cone(p) && arc_2.in_circular_arc_cone(p)) {
                 output.proper_intersections.push_back(p);
             }
         }
