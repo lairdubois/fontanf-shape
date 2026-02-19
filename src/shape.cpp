@@ -538,8 +538,6 @@ bool ShapeElement::contains(const Point& point) const
                     distance(this->start, this->center))) {
             return false;
         }
-        if (this->orientation == ShapeElementOrientation::Full)
-            return true;
         return this->in_circular_arc_cone(point);
     }
     }
