@@ -981,6 +981,20 @@ bool shape::intersect(
     return !compute_intersection({shape_with_holes_1, shape_with_holes_2}).empty();
 }
 
+void shape::intersect_export_inputs(
+        const std::string& file_path,
+        const Shape& shape_1,
+        const Shape& shape_2,
+        bool strict)
+{
+    std::ofstream file{file_path};
+    nlohmann::json json;
+    json["shape_1"] = shape_1.to_json();
+    json["shape_2"] = shape_2.to_json();
+    json["strict"] = strict;
+    file << std::setw(4) << json << std::endl;
+}
+
 void shape::compute_intersections_export_inputs(
         const std::string& file_path,
         const Shape& path,
@@ -1011,6 +1025,20 @@ void shape::compute_strict_intersections_export_inputs(
 
 void shape::intersect_export_inputs(
         const std::string& file_path,
+        const ShapeWithHoles& shape_with_holes,
+        const ShapeElement& element,
+        bool strict)
+{
+    std::ofstream file{file_path};
+    nlohmann::json json;
+    json["shape_with_holes"] = shape_with_holes.to_json();
+    json["element"] = element.to_json();
+    json["strict"] = strict;
+    file << std::setw(4) << json << std::endl;
+}
+
+void shape::intersect_export_inputs(
+        const std::string& file_path,
         const ShapeWithHoles& shape_with_holes_1,
         const Shape& shape_2,
         bool strict)
@@ -1019,6 +1047,20 @@ void shape::intersect_export_inputs(
     nlohmann::json json;
     json["shape_with_holes"] = shape_with_holes_1.to_json();
     json["shape"] = shape_2.to_json();
+    json["strict"] = strict;
+    file << std::setw(4) << json << std::endl;
+}
+
+void shape::intersect_export_inputs(
+        const std::string& file_path,
+        const ShapeWithHoles& shape_with_holes_1,
+        const ShapeWithHoles& shape_with_holes_2,
+        bool strict)
+{
+    std::ofstream file{file_path};
+    nlohmann::json json;
+    json["shape_with_holes_1"] = shape_with_holes_1.to_json();
+    json["shape_with_holes_2"] = shape_with_holes_2.to_json();
     json["strict"] = strict;
     file << std::setw(4) << json << std::endl;
 }

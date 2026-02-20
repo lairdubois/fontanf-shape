@@ -6,9 +6,11 @@
 namespace shape
 {
 
+
 bool intersect(
         const ShapeElement& element_1,
         const ShapeElement& element_2);
+
 
 bool intersect(
         const Shape& shape);
@@ -22,6 +24,7 @@ struct ElementElementIntersection
 
 std::vector<ElementElementIntersection> compute_intersecting_elements(
         const Shape& shape);
+
 
 bool intersect(
         const Shape& shape,
@@ -46,6 +49,7 @@ std::vector<ShapePoint> compute_strict_intersections(
         const Shape& shape,
         bool only_first = false);
 
+
 struct PathShapeIntersectionPoint
 {
     ElementPos path_element_pos;
@@ -54,6 +58,12 @@ struct PathShapeIntersectionPoint
 };
 
 bool intersect(
+        const Shape& shape_1,
+        const Shape& shape_2,
+        bool strict = false);
+
+void intersect_export_inputs(
+        const std::string& file_path,
         const Shape& shape_1,
         const Shape& shape_2,
         bool strict = false);
@@ -80,13 +90,15 @@ void compute_strict_intersections_export_inputs(
         const Shape& shape,
         bool only_first);
 
-bool intersect(
-        const ShapeWithHoles& shape,
-        const ShapeElement& element,
-        bool strict = false);
 
 bool intersect(
         const ShapeWithHoles& shape_with_holes);
+
+
+bool intersect(
+        const ShapeWithHoles& shape_with_holes,
+        const ShapeElement& element,
+        bool strict = false);
 
 inline bool intersect(
         const ShapeElement& element,
@@ -96,13 +108,14 @@ inline bool intersect(
     return intersect(shape_with_holes, element, strict);
 }
 
-bool intersect(
-        const ShapeWithHoles& shape_with_holes_1,
-        const Shape& shape_2,
-        bool strict = false);
-
 void intersect_export_inputs(
         const std::string& file_path,
+        const ShapeWithHoles& shape_with_holes,
+        const ShapeElement& element,
+        bool strict = false);
+
+
+bool intersect(
         const ShapeWithHoles& shape_with_holes_1,
         const Shape& shape_2,
         bool strict = false);
@@ -115,7 +128,20 @@ inline bool intersect(
     return intersect(shape_with_holes_2, shape_1, strict);
 }
 
+void intersect_export_inputs(
+        const std::string& file_path,
+        const ShapeWithHoles& shape_with_holes_1,
+        const Shape& shape_2,
+        bool strict = false);
+
+
 bool intersect(
+        const ShapeWithHoles& shape_with_holes_1,
+        const ShapeWithHoles& shape_with_holes_2,
+        bool strict = false);
+
+void intersect_export_inputs(
+        const std::string& file_path,
         const ShapeWithHoles& shape_with_holes_1,
         const ShapeWithHoles& shape_with_holes_2,
         bool strict = false);

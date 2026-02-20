@@ -629,8 +629,8 @@ INSTANTIATE_TEST_SUITE_P(
 
 struct IntersectShapeWithHolesShapeWithHolesTestParams
 {
-    ShapeWithHoles shape_1;
-    ShapeWithHoles shape_2;
+    ShapeWithHoles shape_with_holes_1;
+    ShapeWithHoles shape_with_holes_2;
     bool strict = false;
     bool expected_output;
 
@@ -640,8 +640,8 @@ struct IntersectShapeWithHolesShapeWithHolesTestParams
             basic_json& json_item)
     {
         IntersectShapeWithHolesShapeWithHolesTestParams test_params;
-        test_params.shape_1 = ShapeWithHoles::from_json(json_item["shape_1"]);
-        test_params.shape_2 = ShapeWithHoles::from_json(json_item["shape_2"]);
+        test_params.shape_with_holes_1 = ShapeWithHoles::from_json(json_item["shape_with_holes_1"]);
+        test_params.shape_with_holes_2 = ShapeWithHoles::from_json(json_item["shape_with_holes_2"]);
         test_params.strict = json_item["strict"];
         test_params.expected_output = json_item["expected_output"];
         return test_params;
@@ -668,14 +668,14 @@ class IntersectShapeWithHolesShapeWithHolesTest: public testing::TestWithParam<I
 TEST_P(IntersectShapeWithHolesShapeWithHolesTest, IntersectShapeWithHolesShapeWithHoles)
 {
     IntersectShapeWithHolesShapeWithHolesTestParams test_params = GetParam();
-    std::cout << "shape_1 " << test_params.shape_1.to_string(0) << std::endl;
-    std::cout << "shape_2 " << test_params.shape_2.to_string(0) << std::endl;
+    std::cout << "shape_with_holes_1 " << test_params.shape_with_holes_1.to_string(0) << std::endl;
+    std::cout << "shape_with_holes_2 " << test_params.shape_with_holes_2.to_string(0) << std::endl;
     std::cout << "strict " << test_params.strict << std::endl;
     std::cout << "expected_output " << test_params.expected_output << std::endl;
 
     bool output = intersect(
-            test_params.shape_1,
-            test_params.shape_2,
+            test_params.shape_with_holes_1,
+            test_params.shape_with_holes_2,
             test_params.strict);
     std::cout << "output " << output << std::endl;
 
