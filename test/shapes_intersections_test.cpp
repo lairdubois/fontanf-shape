@@ -173,7 +173,7 @@ INSTANTIATE_TEST_SUITE_P(
         IntersectShapeShapeElementTest,
         testing::ValuesIn(std::vector<IntersectShapeShapeElementTestParams>{
             IntersectShapeShapeElementTestParams::read_json(
-                    (fs::path("data") / "tests" / "elements_intersections" / "shape_shape_element" / "0.json").string()),
+                    (fs::path("data") / "tests" / "shapes_intersections" / "intersect_shape_shape_element" / "0.json").string()),
             {
                 build_shape({{0, 0}, {2, 0}, {2, 2}, {0, 2}}),
                 build_line_segment({3, 0}, {3, 2}),
@@ -484,7 +484,7 @@ INSTANTIATE_TEST_SUITE_P(
                 false,
             }, {
                 IntersectShapeShapeTestParams::read_json(
-                        (fs::path("data") / "tests" / "elements_intersections" / "shape_shape" / "0.json").string()),
+                        (fs::path("data") / "tests" / "shapes_intersections" / "intersect_shape_shape" / "0.json").string()),
             }, {
                 build_shape({{4, 0}, {0, 0}, {0, 2}, {1, 2}, {2, 3}, {3, 2}, {4, 2}}),
                 build_shape({{0, 2}, {0, 4}, {4, 4}, {4, 2}, {3, 2}, {2, 1}, {1, 2}}),
