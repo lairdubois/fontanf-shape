@@ -101,6 +101,12 @@ bool intersect(
         const Shape& shape_2,
         bool strict = false);
 
+void intersect_export_inputs(
+        const std::string& file_path,
+        const ShapeWithHoles& shape_with_holes_1,
+        const Shape& shape_2,
+        bool strict = false);
+
 inline bool intersect(
         const Shape& shape_1,
         const ShapeWithHoles& shape_with_holes_2,

@@ -721,34 +721,6 @@ std::vector<PathShapeIntersectionPoint> shape::compute_strict_intersections(
     return output;
 }
 
-void shape::compute_intersections_export_inputs(
-        const std::string& file_path,
-        const Shape& path,
-        const Shape& shape,
-        bool only_min_max)
-{
-    std::ofstream file{file_path};
-    nlohmann::json json;
-    json["path"] = path.to_json();
-    json["shape"] = shape.to_json();
-    json["only_min_max"] = only_min_max;
-    file << std::setw(4) << json << std::endl;
-}
-
-void shape::compute_strict_intersections_export_inputs(
-        const std::string& file_path,
-        const Shape& path,
-        const Shape& shape,
-        bool only_first)
-{
-    std::ofstream file{file_path};
-    nlohmann::json json;
-    json["path"] = path.to_json();
-    json["shape"] = shape.to_json();
-    json["only_first"] = only_first;
-    file << std::setw(4) << json << std::endl;
-}
-
 bool shape::intersect(
         const ShapeWithHoles& shape_with_holes)
 {
@@ -1007,4 +979,46 @@ bool shape::intersect(
     }
 
     return !compute_intersection({shape_with_holes_1, shape_with_holes_2}).empty();
+}
+
+void shape::compute_intersections_export_inputs(
+        const std::string& file_path,
+        const Shape& path,
+        const Shape& shape,
+        bool only_min_max)
+{
+    std::ofstream file{file_path};
+    nlohmann::json json;
+    json["path"] = path.to_json();
+    json["shape"] = shape.to_json();
+    json["only_min_max"] = only_min_max;
+    file << std::setw(4) << json << std::endl;
+}
+
+void shape::compute_strict_intersections_export_inputs(
+        const std::string& file_path,
+        const Shape& path,
+        const Shape& shape,
+        bool only_first)
+{
+    std::ofstream file{file_path};
+    nlohmann::json json;
+    json["path"] = path.to_json();
+    json["shape"] = shape.to_json();
+    json["only_first"] = only_first;
+    file << std::setw(4) << json << std::endl;
+}
+
+void shape::intersect_export_inputs(
+        const std::string& file_path,
+        const ShapeWithHoles& shape_with_holes_1,
+        const Shape& shape_2,
+        bool strict)
+{
+    std::ofstream file{file_path};
+    nlohmann::json json;
+    json["shape_with_holes"] = shape_with_holes_1.to_json();
+    json["shape"] = shape_2.to_json();
+    json["strict"] = strict;
+    file << std::setw(4) << json << std::endl;
 }
