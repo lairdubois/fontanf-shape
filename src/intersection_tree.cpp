@@ -50,6 +50,11 @@ IntersectionTree::IntersectionTree(
     potentially_intersecting_elements_(this->number_of_elements()),
     potentially_intersecting_points_(this->number_of_points())
 {
+    if (shapes.size() + elements.size() + points.size() < 32) {
+        small_ = true;
+        return;
+    }
+
     // Compute min/max of shapes and elements.
     std::vector<std::pair<Point, Point>> shapes_min_max(shapes.size());
     for (ShapePos shape_id = 0;
@@ -326,36 +331,43 @@ IntersectionTree::IntersectOutput IntersectionTree::intersect(
     //std::cout << "intersect..." << std::endl;
     IntersectOutput output;
 
-    auto mm = shape.compute_min_max();
+    if (small_) {
+        potentially_intersecting_shapes_.fill();
+        potentially_intersecting_elements_.fill();
+        potentially_intersecting_points_.fill();
 
-    potentially_intersecting_shapes_.clear();
-    potentially_intersecting_elements_.clear();
-    potentially_intersecting_points_.clear();
-    std::vector<NodeId> stack = {0};
+    } else {
+        auto mm = shape.compute_min_max();
 
-    while (!stack.empty()) {
+        potentially_intersecting_shapes_.clear();
+        potentially_intersecting_elements_.clear();
+        potentially_intersecting_points_.clear();
+        std::vector<NodeId> stack = {0};
 
-        NodeId node_id = stack.back();
-        stack.pop_back();
-        const Node& node = tree_[node_id];
+        while (!stack.empty()) {
 
-        if (node.direction == 'x') {
-            for (ShapePos shape_id: node.shape_ids)
-                potentially_intersecting_shapes_.add(shape_id);
-            for (ElementPos element_id: node.element_ids)
-                potentially_intersecting_elements_.add(element_id);
-            for (ElementPos point_id: node.point_ids)
-                potentially_intersecting_points_.add(point_id);
-        } else if (node.direction == 'v') {
-            if (!strictly_greater(mm.first.x, node.position))
-                stack.push_back(node.lesser_child_id);
-            if (!strictly_lesser(mm.second.x, node.position))
-                stack.push_back(node.greater_child_id);
-        } else {  // node.direction == 'h'
-            if (!strictly_greater(mm.first.y, node.position))
-                stack.push_back(node.lesser_child_id);
-            if (!strictly_lesser(mm.second.y, node.position))
-                stack.push_back(node.greater_child_id);
+            NodeId node_id = stack.back();
+            stack.pop_back();
+            const Node& node = tree_[node_id];
+
+            if (node.direction == 'x') {
+                for (ShapePos shape_id: node.shape_ids)
+                    potentially_intersecting_shapes_.add(shape_id);
+                for (ElementPos element_id: node.element_ids)
+                    potentially_intersecting_elements_.add(element_id);
+                for (ElementPos point_id: node.point_ids)
+                    potentially_intersecting_points_.add(point_id);
+            } else if (node.direction == 'v') {
+                if (!strictly_greater(mm.first.x, node.position))
+                    stack.push_back(node.lesser_child_id);
+                if (!strictly_lesser(mm.second.x, node.position))
+                    stack.push_back(node.greater_child_id);
+            } else {  // node.direction == 'h'
+                if (!strictly_greater(mm.first.y, node.position))
+                    stack.push_back(node.lesser_child_id);
+                if (!strictly_lesser(mm.second.y, node.position))
+                    stack.push_back(node.greater_child_id);
+            }
         }
     }
 
@@ -378,36 +390,43 @@ IntersectionTree::IntersectOutput IntersectionTree::intersect(
     //std::cout << "intersect..." << std::endl;
     IntersectOutput output;
 
-    auto mm = shape.compute_min_max();
+    if (small_) {
+        potentially_intersecting_shapes_.fill();
+        potentially_intersecting_elements_.fill();
+        potentially_intersecting_points_.fill();
 
-    potentially_intersecting_shapes_.clear();
-    potentially_intersecting_elements_.clear();
-    potentially_intersecting_points_.clear();
-    std::vector<NodeId> stack = {0};
+    } else {
+        auto mm = shape.compute_min_max();
 
-    while (!stack.empty()) {
+        potentially_intersecting_shapes_.clear();
+        potentially_intersecting_elements_.clear();
+        potentially_intersecting_points_.clear();
+        std::vector<NodeId> stack = {0};
 
-        NodeId node_id = stack.back();
-        stack.pop_back();
-        const Node& node = tree_[node_id];
+        while (!stack.empty()) {
 
-        if (node.direction == 'x') {
-            for (ShapePos shape_id: node.shape_ids)
-                potentially_intersecting_shapes_.add(shape_id);
-            for (ElementPos element_id: node.element_ids)
-                potentially_intersecting_elements_.add(element_id);
-            for (ElementPos point_id: node.point_ids)
-                potentially_intersecting_points_.add(point_id);
-        } else if (node.direction == 'v') {
-            if (!strictly_greater(mm.first.x, node.position))
-                stack.push_back(node.lesser_child_id);
-            if (!strictly_lesser(mm.second.x, node.position))
-                stack.push_back(node.greater_child_id);
-        } else {  // node.direction == 'h'
-            if (!strictly_greater(mm.first.y, node.position))
-                stack.push_back(node.lesser_child_id);
-            if (!strictly_lesser(mm.second.y, node.position))
-                stack.push_back(node.greater_child_id);
+            NodeId node_id = stack.back();
+            stack.pop_back();
+            const Node& node = tree_[node_id];
+
+            if (node.direction == 'x') {
+                for (ShapePos shape_id: node.shape_ids)
+                    potentially_intersecting_shapes_.add(shape_id);
+                for (ElementPos element_id: node.element_ids)
+                    potentially_intersecting_elements_.add(element_id);
+                for (ElementPos point_id: node.point_ids)
+                    potentially_intersecting_points_.add(point_id);
+            } else if (node.direction == 'v') {
+                if (!strictly_greater(mm.first.x, node.position))
+                    stack.push_back(node.lesser_child_id);
+                if (!strictly_lesser(mm.second.x, node.position))
+                    stack.push_back(node.greater_child_id);
+            } else {  // node.direction == 'h'
+                if (!strictly_greater(mm.first.y, node.position))
+                    stack.push_back(node.lesser_child_id);
+                if (!strictly_lesser(mm.second.y, node.position))
+                    stack.push_back(node.greater_child_id);
+            }
         }
     }
 
@@ -429,36 +448,43 @@ IntersectionTree::IntersectOutput IntersectionTree::intersect(
 {
     IntersectOutput output;
 
-    auto mm = element.min_max();
+    if (small_) {
+        potentially_intersecting_shapes_.fill();
+        potentially_intersecting_elements_.fill();
+        potentially_intersecting_points_.fill();
 
-    potentially_intersecting_shapes_.clear();
-    potentially_intersecting_elements_.clear();
-    potentially_intersecting_points_.clear();
-    std::vector<NodeId> stack = {0};
+    } else {
+        auto mm = element.min_max();
 
-    while (!stack.empty()) {
+        potentially_intersecting_shapes_.clear();
+        potentially_intersecting_elements_.clear();
+        potentially_intersecting_points_.clear();
+        std::vector<NodeId> stack = {0};
 
-        NodeId node_id = stack.back();
-        stack.pop_back();
-        const Node& node = tree_[node_id];
+        while (!stack.empty()) {
 
-        if (node.direction == 'x') {
-            for (ShapePos shape_id: node.shape_ids)
-                potentially_intersecting_shapes_.add(shape_id);
-            for (ElementPos element_id: node.element_ids)
-                potentially_intersecting_elements_.add(element_id);
-            for (ElementPos point_id: node.point_ids)
-                potentially_intersecting_points_.add(point_id);
-        } else if (node.direction == 'v') {
-            if (!strictly_greater(mm.first.x, node.position))
-                stack.push_back(node.lesser_child_id);
-            if (!strictly_lesser(mm.second.x, node.position))
-                stack.push_back(node.greater_child_id);
-        } else {  // node.direction == 'h'
-            if (!strictly_greater(mm.first.y, node.position))
-                stack.push_back(node.lesser_child_id);
-            if (!strictly_lesser(mm.second.y, node.position))
-                stack.push_back(node.greater_child_id);
+            NodeId node_id = stack.back();
+            stack.pop_back();
+            const Node& node = tree_[node_id];
+
+            if (node.direction == 'x') {
+                for (ShapePos shape_id: node.shape_ids)
+                    potentially_intersecting_shapes_.add(shape_id);
+                for (ElementPos element_id: node.element_ids)
+                    potentially_intersecting_elements_.add(element_id);
+                for (ElementPos point_id: node.point_ids)
+                    potentially_intersecting_points_.add(point_id);
+            } else if (node.direction == 'v') {
+                if (!strictly_greater(mm.first.x, node.position))
+                    stack.push_back(node.lesser_child_id);
+                if (!strictly_lesser(mm.second.x, node.position))
+                    stack.push_back(node.greater_child_id);
+            } else {  // node.direction == 'h'
+                if (!strictly_greater(mm.first.y, node.position))
+                    stack.push_back(node.lesser_child_id);
+                if (!strictly_lesser(mm.second.y, node.position))
+                    stack.push_back(node.greater_child_id);
+            }
         }
     }
 
@@ -497,34 +523,41 @@ IntersectionTree::IntersectOutput IntersectionTree::intersect(
 {
     IntersectOutput output;
 
-    potentially_intersecting_shapes_.clear();
-    potentially_intersecting_elements_.clear();
-    potentially_intersecting_points_.clear();
-    std::vector<NodeId> stack = {0};
+    if (small_) {
+        potentially_intersecting_shapes_.fill();
+        potentially_intersecting_elements_.fill();
+        potentially_intersecting_points_.fill();
 
-    while (!stack.empty()) {
+    } else {
+        potentially_intersecting_shapes_.clear();
+        potentially_intersecting_elements_.clear();
+        potentially_intersecting_points_.clear();
+        std::vector<NodeId> stack = {0};
 
-        NodeId node_id = stack.back();
-        stack.pop_back();
-        const Node& node = tree_[node_id];
+        while (!stack.empty()) {
 
-        if (node.direction == 'x') {
-            for (ShapePos shape_id: node.shape_ids)
-                potentially_intersecting_shapes_.add(shape_id);
-            for (ElementPos element_id: node.element_ids)
-                potentially_intersecting_elements_.add(element_id);
-            for (ElementPos point_id: node.point_ids)
-                potentially_intersecting_points_.add(point_id);
-        } else if (node.direction == 'v') {
-            if (!strictly_greater(point.x, node.position))
-                stack.push_back(node.lesser_child_id);
-            if (!strictly_lesser(point.x, node.position))
-                stack.push_back(node.greater_child_id);
-        } else {  // node.direction == 'h'
-            if (!strictly_greater(point.y, node.position))
-                stack.push_back(node.lesser_child_id);
-            if (!strictly_lesser(point.y, node.position))
-                stack.push_back(node.greater_child_id);
+            NodeId node_id = stack.back();
+            stack.pop_back();
+            const Node& node = tree_[node_id];
+
+            if (node.direction == 'x') {
+                for (ShapePos shape_id: node.shape_ids)
+                    potentially_intersecting_shapes_.add(shape_id);
+                for (ElementPos element_id: node.element_ids)
+                    potentially_intersecting_elements_.add(element_id);
+                for (ElementPos point_id: node.point_ids)
+                    potentially_intersecting_points_.add(point_id);
+            } else if (node.direction == 'v') {
+                if (!strictly_greater(point.x, node.position))
+                    stack.push_back(node.lesser_child_id);
+                if (!strictly_lesser(point.x, node.position))
+                    stack.push_back(node.greater_child_id);
+            } else {  // node.direction == 'h'
+                if (!strictly_greater(point.y, node.position))
+                    stack.push_back(node.lesser_child_id);
+                if (!strictly_lesser(point.y, node.position))
+                    stack.push_back(node.greater_child_id);
+            }
         }
     }
 
@@ -548,6 +581,21 @@ std::vector<std::pair<ShapePos, ShapePos>> IntersectionTree::compute_intersectin
     //std::cout << "compute_intersecting_shapes..." << std::endl;
     if (shapes_->empty())
         return {};
+
+    if (small_) {
+        std::vector<std::pair<ShapePos, ShapePos>> intersecting_shapes;
+        for (ShapePos shape_1_pos = 0;
+                shape_1_pos < (ShapePos)shapes_->size();
+                ++shape_1_pos) {
+            for (ShapePos shape_2_pos = shape_1_pos + 1;
+                    shape_2_pos < (ShapePos)shapes_->size();
+                    ++shape_2_pos) {
+                if (shape::intersect(this->shape(shape_1_pos), this->shape(shape_2_pos), strict))
+                    intersecting_shapes.push_back({shape_1_pos, shape_2_pos});
+            }
+        }
+        return intersecting_shapes;
+    }
 
     std::vector<std::pair<ShapePos, ShapePos>> potentially_intersecting_shapes;
     for (const Node& node: tree_) {
@@ -585,6 +633,41 @@ std::vector<ElementElementIntersection> IntersectionTree::compute_intersecting_e
     //std::cout << "compute_intersecting_elements..." << std::endl;
     if (elements_->empty())
         return {};
+
+    if (small_) {
+        std::vector<ElementElementIntersection> intersecting_elements;
+        for (ElementPos element_1_pos = 0;
+                element_1_pos < (ElementPos)elements_->size();
+                ++element_1_pos) {
+            for (ElementPos element_2_pos = element_1_pos + 1;
+                    element_2_pos < (ElementPos)elements_->size();
+                    ++element_2_pos) {
+                auto intersections = shape::compute_intersections(
+                        this->element(element_1_pos),
+                        this->element(element_2_pos));
+                if (strict) {
+                    if (!intersections.proper_intersections.empty()) {
+                        ElementElementIntersection intersection;
+                        intersection.element_id_1 = element_1_pos;
+                        intersection.element_id_2 = element_2_pos;
+                        intersection.intersections = intersections;
+                        intersecting_elements.push_back(intersection);
+                    }
+                } else {
+                    if (!intersections.overlapping_parts.empty()
+                            || !intersections.improper_intersections.empty()
+                            || !intersections.proper_intersections.empty()) {
+                        ElementElementIntersection intersection;
+                        intersection.element_id_1 = element_1_pos;
+                        intersection.element_id_2 = element_2_pos;
+                        intersection.intersections = intersections;
+                        intersecting_elements.push_back(intersection);
+                    }
+                }
+            }
+        }
+        return intersecting_elements;
+    }
 
     std::vector<std::pair<ElementPos, ElementPos>> potentially_intersecting_elements;
     for (const Node& node: tree_) {
@@ -643,6 +726,21 @@ std::vector<std::pair<ElementPos, ElementPos>> IntersectionTree::compute_equal_p
     //std::cout << "compute_equal_points..." << std::endl;
     if (points_->empty())
         return {};
+
+    if (small_) {
+        std::vector<std::pair<ShapePos, ShapePos>> equal_points;
+        for (ShapePos point_1_pos = 0;
+                point_1_pos < (ShapePos)points_->size();
+                ++point_1_pos) {
+            for (ShapePos point_2_pos = point_1_pos + 1;
+                    point_2_pos < (ShapePos)points_->size();
+                    ++point_2_pos) {
+                if (equal(this->point(point_1_pos), this->point(point_2_pos)))
+                    equal_points.push_back({point_1_pos, point_2_pos});
+            }
+        }
+        return equal_points;
+    }
 
     //std::cout << "points_->size() " << points_->size() << std::endl;
     std::vector<std::pair<ShapePos, ShapePos>> potentially_equal_points;

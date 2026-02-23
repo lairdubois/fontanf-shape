@@ -127,6 +127,8 @@ private:
     /** Points. */
     const std::vector<Point>* points_ = nullptr;
 
+    bool small_ = false;
+
     mutable optimizationtools::IndexedSet potentially_intersecting_shapes_;
 
     mutable optimizationtools::IndexedSet potentially_intersecting_elements_;
