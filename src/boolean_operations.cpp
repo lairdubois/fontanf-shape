@@ -567,7 +567,8 @@ BooleanOperationGraph compute_graph(
 
 std::vector<ShapeWithHoles> compute_boolean_operation_component(
         const std::vector<ShapeWithHoles>& shapes,
-        std::vector<SplittedElement>& splitted_elements,
+        ComputeSplittedElementsOutput& cse_output,
+        ComponentId component_id,
         BooleanOperation boolean_operation)
 {
     //std::cout << "compute_boolean_operation_component" << std::endl;
@@ -579,6 +580,7 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
     //    writer.add_element(splitted_element.element);
     //writer.write_json("overlay.json");
 
+    std::vector<SplittedElement>& splitted_elements = cse_output.components_splitted_elements[component_id];
     std::vector<ShapeWithHoles> new_shapes;
     BooleanOperationGraph graph = compute_graph(splitted_elements);
 
@@ -630,7 +632,13 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
     //    writer.write_json("overlay.json");
     //}
 
-    IntersectionTree intersection_tree(shapes, {}, {});
+    std::vector<ShapeWithHoles> component_shapes;
+    for (auto it = cse_output.shape_component_ids.begin(component_id);
+            it != cse_output.shape_component_ids.end(component_id);
+            ++it) {
+        component_shapes.push_back(shapes[*it]);
+    }
+    IntersectionTree intersection_tree(component_shapes, {}, {});
 
     // Find an element from the outline.
     // To do so, we look at the rightmost node of the graph.
@@ -917,7 +925,7 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
                     false);
             //std::cout << "intersection_output.shape_ids.size() " << intersection_output.shape_ids.size() << std::endl;
             if (intersection_output.shape_ids.size() == 1
-                    && intersection_output.shape_ids[0] == 0) {
+                    && intersection_output.shape_ids[0] == cse_output.shape_component_ids.position(0)) {
                 //std::cout << "add face" << std::endl;
                 face = remove_redundant_vertices(face).second;
                 face = remove_aligned_vertices(face).second;
@@ -1023,7 +1031,8 @@ std::vector<ShapeWithHoles> compute_boolean_operation(
         //    << std::endl;
         std::vector<ShapeWithHoles> new_shapes = compute_boolean_operation_component(
                 shapes,
-                cse_output.components_splitted_elements[component_id],
+                cse_output,
+                component_id,
                 boolean_operation);
         for (const ShapeWithHoles& new_shape: new_shapes)
             output.push_back(new_shape);
