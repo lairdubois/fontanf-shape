@@ -790,7 +790,7 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
 
         //std::cout << "find faces..." << std::endl;
         Shape face;
-        std::vector<uint8_t> is_inside(shapes.size());
+        std::vector<uint8_t> is_inside(component_shapes.size(), 0);
         ElementPos element_cur_pos = element_start_pos;
         while (!element_is_processed[element_cur_pos]) {
             const SplittedElement& splitted_element_cur = splitted_elements[element_cur_pos];
@@ -799,8 +799,10 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
             //    << " " << element_cur.to_string() << std::endl;
             face.elements.push_back(element_cur);
             element_is_processed[element_cur_pos] = 1;
-            if (splitted_element_cur.original_direction)
-                is_inside[splitted_element_cur.orig_shape_id] = 1;
+            if (splitted_element_cur.original_direction) {
+                ShapePos pos = cse_output.shape_component_ids.position(splitted_element_cur.orig_shape_id);
+                is_inside[pos] = 1;
+            }
             if (element_cur.orientation == ShapeElementOrientation::Full)
                 break;
             element_cur_pos = arcs_next[element_cur_pos];
@@ -844,7 +846,7 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
             // Fast check.
             bool ok = false;
             for (ShapePos shape_pos = 0;
-                    shape_pos < (ShapePos)shapes.size();
+                    shape_pos < (ShapePos)component_shapes.size();
                     ++shape_pos) {
                 if (is_inside[shape_pos]) {
                     ok = true;
@@ -875,7 +877,7 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
             // Fast check.
             bool ok = true;
             for (ShapePos shape_pos = 0;
-                    shape_pos < (ShapePos)shapes.size();
+                    shape_pos < (ShapePos)component_shapes.size();
                     ++shape_pos) {
                 if (!is_inside[shape_pos]) {
                     ok = false;
@@ -905,9 +907,11 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
         } case BooleanOperation::Difference: {
             // Fast check.
             bool ok = true;
-            for (ShapePos shape_pos = 1;
-                    shape_pos < (ShapePos)shapes.size();
+            for (ShapePos shape_pos = 0;
+                    shape_pos < (ShapePos)component_shapes.size();
                     ++shape_pos) {
+                if (shape_pos == cse_output.shape_component_ids.position(0))
+                    continue;
                 if (is_inside[shape_pos]) {
                     ok = false;
                     break;
